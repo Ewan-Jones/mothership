@@ -11,6 +11,7 @@ import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import acpRoutes from "./routes/acp";
+import v1Environments from "./routes/v1/environments";
 import webSessions from "./routes/web/sessions";
 import webEnvironments from "./routes/web/environments";
 import webApiKeys from "./routes/web/api-keys";
@@ -56,6 +57,9 @@ app.use("/code/*", serveStatic({ root: webDir, rewriteRequestPath: stripCodePref
 app.get("/code", serveStatic({ root: webDir, path: "index.html" }));
 app.get("/code/", serveStatic({ root: webDir, path: "index.html" }));
 app.get("/code/:sessionId", serveStatic({ root: webDir, path: "index.html" }));
+
+// v1 compatibility routes (acp-link REST registration)
+app.route("/v1/environments", v1Environments);
 
 // Web control panel routes
 app.route("/web", webSessions);
