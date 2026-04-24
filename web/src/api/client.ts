@@ -2,58 +2,15 @@ import type { Session, Environment, ControlResponse, SessionEvent } from "../typ
 
 const BASE = "";
 
-function generateUuid(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
-    (Number(c) ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(c) / 4)))).toString(16),
-  );
-}
-
-export function getUuid(): string {
-  let uuid = localStorage.getItem("rcs_uuid");
-  if (!uuid) {
-    uuid = generateUuid();
-    localStorage.setItem("rcs_uuid", uuid);
-  }
-  return uuid;
-}
-
-export function setUuid(uuid: string): void {
-  localStorage.setItem("rcs_uuid", uuid);
-}
-
-/** Active API token for Authorization header (set by useTokens) */
-let _activeToken: string | null = null;
-
-export function setActiveApiToken(token: string | null): void {
-  _activeToken = token;
-}
-
-export function getActiveApiToken(): string | null {
-  return _activeToken;
-}
-
 async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
 
-  if (_activeToken) {
-    headers["Authorization"] = `Bearer ${_activeToken}`;
-  }
-
-  // When using Bearer token auth, backend derives UUID from the token — no need to send query param.
-  // Otherwise fall back to UUID auth via query param.
-  let url: string;
-  if (_activeToken) {
-    const sep = path.includes("?") ? "&" : "?";
-    url = `${BASE}${path}${sep}uuid=${encodeURIComponent(_activeToken)}`;
-  } else {
-    const uuid = getUuid();
-    const sep = path.includes("?") ? "&" : "?";
-    url = `${BASE}${path}${sep}uuid=${encodeURIComponent(uuid)}`;
-  }
-  const opts: RequestInit = { method, headers };
+  const url = `${BASE}${path}`;
+  const opts: RequestInit = {
+    method,
+    headers,
+    credentials: "include", // send cookies for better-auth session
+  };
   if (body !== undefined) opts.body = JSON.stringify(body);
 
   const res = await fetch(url, opts);
@@ -65,13 +22,7 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<T> 
   return data as T;
 }
 
-export function apiBind(sessionId: string) {
-  return api<void>("POST", "/web/bind", { sessionId });
-}
-
-export function apiFetchSessions() {
-  return api<Session[]>("GET", "/web/sessions");
-}
+// --- Sessions ---
 
 export function apiFetchAllSessions() {
   return api<Session[]>("GET", "/web/sessions/all");
@@ -81,14 +32,34 @@ export function apiFetchSession(id: string) {
   return api<Session>("GET", `/web/sessions/${id}`);
 }
 
-export function apiFetchSessionHistory(id: string) {
-  return api<{ events: SessionEvent[] }>("GET", `/web/sessions/${id}/history`);
+export function apiFetchSessions() {
+  return api<Session[]>("GET", "/web/sessions");
 }
+
+// --- Environments ---
 
 export function apiFetchEnvironments() {
   return api<Environment[]>("GET", "/web/environments");
 }
 
+// --- Control ---
+
+/** @deprecated Legacy — used by RCS chat adapter for non-ACP sessions */
+export function getUuid(): string {
+  return "";
+}
+
+/** @deprecated Legacy — bind session to current user */
+export function apiBind(sessionId: string) {
+  return api<void>("POST", "/web/bind", { sessionId });
+}
+
+/** @deprecated Legacy — fetch session history */
+export function apiFetchSessionHistory(id: string) {
+  return api<{ events: SessionEvent[] }>("GET", `/web/sessions/${id}/history`);
+}
+
+/** @deprecated Legacy — send event to session */
 export function apiSendEvent(sessionId: string, body: Record<string, unknown>) {
   return api<void>("POST", `/web/sessions/${sessionId}/events`, body);
 }
@@ -101,6 +72,32 @@ export function apiInterrupt(sessionId: string) {
   return api<void>("POST", `/web/sessions/${sessionId}/interrupt`);
 }
 
-export function apiCreateSession(body: { title?: string; environment_id?: string }) {
-  return api<Session>("POST", "/web/sessions", body);
+// --- API Keys ---
+
+export interface ApiKeyInfo {
+  id: string;
+  label: string;
+  keyPrefix: string;
+  createdAt: number;
+  lastUsedAt: number | null;
+}
+
+export interface CreateApiKeyResponse extends ApiKeyInfo {
+  full_key: string;
+}
+
+export function apiFetchApiKeys() {
+  return api<ApiKeyInfo[]>("GET", "/web/api-keys");
+}
+
+export function apiCreateApiKey(label: string) {
+  return api<CreateApiKeyResponse>("POST", "/web/api-keys", { label });
+}
+
+export function apiDeleteApiKey(id: string) {
+  return api<{ ok: boolean }>("DELETE", `/web/api-keys/${id}`);
+}
+
+export function apiUpdateApiKeyLabel(id: string, label: string) {
+  return api<{ ok: boolean }>("PATCH", `/web/api-keys/${id}`, { label });
 }

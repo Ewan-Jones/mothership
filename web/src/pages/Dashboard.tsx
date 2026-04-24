@@ -3,7 +3,6 @@ import { apiFetchAllSessions, apiFetchEnvironments } from "../api/client";
 import type { Session, Environment } from "../types";
 import { EnvironmentList } from "../components/EnvironmentList";
 import { SessionList } from "../components/SessionList";
-import { NewSessionDialog } from "../components/NewSessionDialog";
 
 interface DashboardProps {
   onNavigateSession: (sessionId: string) => void;
@@ -12,7 +11,6 @@ interface DashboardProps {
 export function Dashboard({ onNavigateSession }: DashboardProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -30,15 +28,13 @@ export function Dashboard({ onNavigateSession }: DashboardProps) {
     return () => clearInterval(interval);
   }, [loadDashboard]);
 
-  const handleSessionCreated = (session: Session) => {
-    setDialogOpen(false);
-    onNavigateSession(session.id);
-  };
-
-  const handleSelectEnvironment = useCallback((_env: Environment) => {
-    // ACP agents require WebSocket connection and cannot be navigated to directly
-    // Bridge environments: no direct navigation (sessions are listed below)
-  }, []);
+  const handleSelectEnvironment = useCallback((env: Environment) => {
+    // Navigate to the first session of this environment, if any
+    const session = sessions.find((s) => s.environment_id === env.id);
+    if (session) {
+      onNavigateSession(session.id);
+    }
+  }, [sessions, onNavigateSession]);
 
   const handleSelectSession = useCallback((sessionId: string) => {
     onNavigateSession(sessionId);
@@ -52,7 +48,7 @@ export function Dashboard({ onNavigateSession }: DashboardProps) {
         {/* Stats overview */}
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-lg border border-border bg-surface-1 px-4 py-3">
-            <div className="text-xs font-medium text-text-muted">Environments</div>
+            <div className="text-xs font-medium text-text-muted">Agents</div>
             <div className="mt-1 text-2xl font-semibold text-text-primary">{environments.length}</div>
           </div>
           <div className="rounded-lg border border-border bg-surface-1 px-4 py-3">
@@ -62,38 +58,23 @@ export function Dashboard({ onNavigateSession }: DashboardProps) {
           <div className="rounded-lg border border-border bg-surface-1 px-4 py-3">
             <div className="text-xs font-medium text-text-muted">Active</div>
             <div className="mt-1 text-2xl font-semibold text-status-running">
-              {sessions.filter((s) => s.status === "active" || s.status === "running").length}
+              {environments.filter((e) => e.status === "active").length}
             </div>
           </div>
         </div>
 
-        {/* Environments */}
+        {/* Agents */}
         <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold text-text-primary">Environments</h2>
+          <h2 className="mb-3 text-sm font-semibold text-text-primary">Agents</h2>
           <EnvironmentList environments={environments} onSelectEnvironment={handleSelectEnvironment} />
         </section>
 
         {/* Sessions */}
         <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-text-primary">Sessions</h2>
-            <button
-              onClick={() => setDialogOpen(true)}
-              className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-light transition-colors"
-            >
-              + New Session
-            </button>
-          </div>
+          <h2 className="mb-3 text-sm font-semibold text-text-primary">Sessions</h2>
           <SessionList sessions={sessions} onSelect={handleSelectSession} />
         </section>
       </div>
-
-      <NewSessionDialog
-        open={dialogOpen}
-        environments={environments}
-        onClose={() => setDialogOpen(false)}
-        onCreated={handleSessionCreated}
-      />
     </div>
   );
 }

@@ -1,12 +1,3 @@
-import { createHash } from "node:crypto";
-import { config } from "../config";
-
-/** Validate a raw API key token string */
-export function validateApiKey(token: string | undefined): boolean {
-  if (!token) return false;
-  return config.apiKeys.includes(token);
-}
-
-export function hashApiKey(key: string): string {
-  return createHash("sha256").update(key).digest("hex");
-}
+// Legacy global API key validation — replaced by per-user API key service.
+// See src/auth/api-key-service.ts for the new implementation.
+// This file is kept empty to avoid breaking any remaining imports during transition.

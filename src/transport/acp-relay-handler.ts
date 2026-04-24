@@ -5,11 +5,13 @@ import {
 } from "./acp-ws-handler";
 import { getAcpEventBus } from "./event-bus";
 import type { SessionEvent } from "./event-bus";
+import { storeGetEnvironment } from "../store";
 import { log, error as logError } from "../logger";
 
 // Per-relay connection state
 interface RelayConnectionEntry {
   agentId: string;
+  userId: string;
   unsub: (() => void) | null;
   keepalive: ReturnType<typeof setInterval> | null;
   ws: WSContext;
@@ -31,8 +33,8 @@ function sendToRelayWs(ws: WSContext, msg: object): void {
 }
 
 /** Called from onOpen — finds target agent and bridges connection */
-export function handleRelayOpen(ws: WSContext, relayWsId: string, agentId: string): void {
-  log(`[ACP-Relay] Relay connection opened: relayWsId=${relayWsId} agentId=${agentId}`);
+export function handleRelayOpen(ws: WSContext, relayWsId: string, agentId: string, userId: string): void {
+  log(`[ACP-Relay] Relay connection opened: relayWsId=${relayWsId} agentId=${agentId} userId=${userId}`);
 
   // Check if agent is online
   const agentConn = findAcpConnectionByAgentId(agentId);
@@ -53,13 +55,12 @@ export function handleRelayOpen(ws: WSContext, relayWsId: string, agentId: strin
     sendToRelayWs(entry.ws, { type: "keep_alive" });
   }, RELAY_KEEPALIVE_INTERVAL_MS);
 
-  // Subscribe to channel group EventBus — forward agent responses to frontend
-  const channelGroupId = agentConn.channelGroupId;
-  const bus = getAcpEventBus(channelGroupId);
+  // Subscribe to per-agent EventBus — forward agent responses to frontend
+  const bus = getAcpEventBus(agentId);
   const unsub = bus.subscribe((event: SessionEvent) => {
     if (ws.readyState !== 1) return;
     if (event.direction !== "inbound") return;
-    // Handle agent disconnect specially: send status to frontend
+    // Handle agent disconnect specially
     if (event.type === "agent_disconnect") {
       sendToRelayWs(ws, { type: "status", payload: { connected: false } });
       return;
@@ -70,17 +71,12 @@ export function handleRelayOpen(ws: WSContext, relayWsId: string, agentId: strin
 
   relayConnections.set(relayWsId, {
     agentId,
+    userId,
     unsub,
     keepalive,
     ws,
     openTime: Date.now(),
   });
-
-  // Don't send a synthetic status message here!
-  // The frontend sends a "connect" command, which acp-link processes
-  // and responds with a real status message including capabilities.
-  // Sending a fake status would make the frontend think it's connected
-  // before the agent process is actually ready.
 
   log(`[ACP-Relay] Relay established: relayWsId=${relayWsId} → agentId=${agentId}`);
 }

@@ -44,8 +44,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/web": "http://localhost:3000",
-      "/v1": "http://localhost:3000",
-      "/v2": "http://localhost:3000",
+      "/api": "http://localhost:3000",
       "/acp": "http://localhost:3000",
     },
   },

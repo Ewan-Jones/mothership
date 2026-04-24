@@ -1,118 +1,63 @@
-import { log, error as logError } from "../../logger";
 import { Hono } from "hono";
-import { uuidAuth } from "../../auth/middleware";
-import { getAutomationStateSnapshot } from "../../services/automationState";
+import { sessionAuth } from "../../auth/middleware";
 import {
-  createSession,
-  getSession,
-  isSessionClosedStatus,
-  listWebSessionSummariesByOwnerUuid,
-  listWebSessionsByOwnerUuid,
-  resolveOwnedWebSessionId,
-  toWebSessionResponse,
-} from "../../services/session";
-import { storeBindSession, storeGetSessionWorker } from "../../store";
-import { createWorkItem } from "../../services/work-dispatch";
-import { createSSEStream } from "../../transport/sse-writer";
-import { getEventBus } from "../../transport/event-bus";
+  storeGetSession,
+  storeListSessionsByUserId,
+} from "../../store";
 
 const app = new Hono();
 
-/** POST /web/sessions — Create a session from web UI */
-app.post("/sessions", uuidAuth, async (c) => {
-  const uuid = c.get("uuid")!;
-  const body = await c.req.json();
-  const session = createSession({
-    environment_id: body.environment_id || null,
-    title: body.title || "New Session",
-    source: "web",
-    permission_mode: body.permission_mode || "default",
-  });
+function toSessionResponse(row: { id: string; environmentId: string | null; title: string | null; status: string; source: string; permissionMode: string | null; workerEpoch: number; username: string | null; createdAt: Date; updatedAt: Date }) {
+  return {
+    id: row.id,
+    environment_id: row.environmentId,
+    title: row.title,
+    status: row.status,
+    source: row.source,
+    permission_mode: row.permissionMode,
+    worker_epoch: row.workerEpoch,
+    username: row.username,
+    created_at: row.createdAt.getTime() / 1000,
+    updated_at: row.updatedAt.getTime() / 1000,
+  };
+}
 
-  // Auto-bind to creator's UUID
-  storeBindSession(session.id, uuid);
+function toSessionSummary(row: { id: string; title: string | null; status: string; username: string | null; updatedAt: Date }) {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    username: row.username,
+    updated_at: row.updatedAt.getTime() / 1000,
+  };
+}
 
-  // Dispatch work to environment if specified
-  if (body.environment_id) {
-    try {
-      await createWorkItem(body.environment_id, session.id);
-    } catch (err) {
-      logError(`[RCS] Failed to create work item: ${(err as Error).message}`);
-    }
-  }
-
-  return c.json(session, 200);
-});
-
-/** GET /web/sessions — List sessions owned by the requesting UUID */
-app.get("/sessions", uuidAuth, async (c) => {
-  const uuid = c.get("uuid")!;
-  const sessions = listWebSessionsByOwnerUuid(uuid);
+/** GET /web/sessions — List sessions owned by the current user */
+app.get("/sessions", sessionAuth, async (c) => {
+  const user = c.get("user")!;
+  const sessions = storeListSessionsByUserId(user.id).map(toSessionResponse);
   return c.json(sessions, 200);
 });
 
-/** GET /web/sessions/all — List sessions owned by the requesting UUID (unowned sessions excluded) */
-app.get("/sessions/all", uuidAuth, async (c) => {
-  const uuid = c.get("uuid")!;
-  const sessions = listWebSessionSummariesByOwnerUuid(uuid);
+/** GET /web/sessions/all — List session summaries owned by the current user */
+app.get("/sessions/all", sessionAuth, async (c) => {
+  const user = c.get("user")!;
+  const sessions = storeListSessionsByUserId(user.id).map(toSessionSummary);
   return c.json(sessions, 200);
 });
 
 /** GET /web/sessions/:id — Session detail */
-app.get("/sessions/:id", uuidAuth, async (c) => {
-  const uuid = c.get("uuid")!;
-  const sessionId = resolveOwnedWebSessionId(c.req.param("id")!, uuid);
-  if (!sessionId) {
-    return c.json({ error: { type: "forbidden", message: "Not your session" } }, 403);
-  }
-  const session = getSession(sessionId);
+app.get("/sessions/:id", sessionAuth, async (c) => {
+  const user = c.get("user")!;
+  const sessionId = c.req.param("id")!;
+  const session = storeGetSession(sessionId);
   if (!session) {
     return c.json({ error: { type: "not_found", message: "Session not found" } }, 404);
   }
-  const worker = storeGetSessionWorker(sessionId);
-  const automationState = getAutomationStateSnapshot(worker?.externalMetadata);
-  const response = toWebSessionResponse(session);
-  return c.json(
-    automationState === undefined ? response : { ...response, automation_state: automationState },
-    200,
-  );
-});
-
-/** GET /web/sessions/:id/history — Historical events for session */
-app.get("/sessions/:id/history", uuidAuth, async (c) => {
-  const uuid = c.get("uuid")!;
-  const sessionId = resolveOwnedWebSessionId(c.req.param("id")!, uuid);
-  if (!sessionId) {
+  if (session.userId && session.userId !== user.id) {
     return c.json({ error: { type: "forbidden", message: "Not your session" } }, 403);
   }
-  const session = getSession(sessionId);
-  if (!session) {
-    return c.json({ error: { type: "not_found", message: "Session not found" } }, 404);
-  }
-
-  const bus = getEventBus(sessionId);
-  const events = bus.getEventsSince(0);
-  return c.json({ events }, 200);
-});
-
-/** SSE /web/sessions/:id/events — Real-time event stream */
-app.get("/sessions/:id/events", uuidAuth, async (c) => {
-  const uuid = c.get("uuid")!;
-  const sessionId = resolveOwnedWebSessionId(c.req.param("id")!, uuid);
-  if (!sessionId) {
-    return c.json({ error: { type: "forbidden", message: "Not your session" } }, 403);
-  }
-  const session = getSession(sessionId);
-  if (!session) {
-    return c.json({ error: { type: "not_found", message: "Session not found" } }, 404);
-  }
-  if (isSessionClosedStatus(session.status)) {
-    return c.json({ error: { type: "session_closed", message: `Session is ${session.status}` } }, 409);
-  }
-
-  const lastEventId = c.req.header("Last-Event-ID");
-  const fromSeqNum = lastEventId ? parseInt(lastEventId) : 0;
-  return createSSEStream(c, sessionId, fromSeqNum);
+  return c.json(toSessionResponse(session), 200);
 });
 
 export default app;

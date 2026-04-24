@@ -1,92 +1,31 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from "react";
 import { AppShell, type SidebarItem } from "./components/shell";
-import { IdentityPanel } from "./components/IdentityPanel";
-import { TokenManagerDialog } from "./components/TokenManagerDialog";
 import { ThemeProvider } from "./lib/theme";
-import { getUuid, setUuid, apiBind, setActiveApiToken } from "./api/client";
-import { ACPDirectView } from "./components/ACPDirectView";
-import { useTokens } from "./hooks/useTokens";
+import { authClient, useSession } from "./lib/auth-client";
+import { LoginPage } from "./pages/LoginPage";
+import { ApiKeyManager } from "./pages/ApiKeyManager";
 import {
   LayoutDashboard,
   MessageSquare,
-  Monitor,
   KeyRound,
-  UserPlus,
+  LogOut,
 } from "lucide-react";
 
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const SessionDetail = lazy(() => import("./pages/SessionDetail").then((m) => ({ default: m.SessionDetail })));
 
-type ViewId = "dashboard" | "session";
+type ViewId = "dashboard" | "session" | "apikeys" | "login";
 
 export default function App() {
+  const { data: session, isPending } = useSession();
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [identityOpen, setIdentityOpen] = useState(false);
-  const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
-  const [acpDirect, setAcpDirect] = useState<{ url: string; token: string } | null>(null);
-  const { tokens, activeTokenId, activeLabel, activeTokenValue, setActiveTokenId, addToken, removeToken, updateToken } = useTokens();
-
-  // Sync active token to API client
-  useEffect(() => {
-    setActiveApiToken(activeTokenValue);
-  }, [activeTokenValue]);
-
-  const handleSetActiveToken = useCallback((id: string) => {
-    setActiveTokenId(id);
-  }, [setActiveTokenId]);
+  const [showApiKeys, setShowApiKeys] = useState(false);
 
   // Simple hash-based router
   const parseRoute = useCallback(() => {
-    getUuid();
-
     const path = window.location.pathname;
-    const params = new URLSearchParams(window.location.search);
-    const importUuid = params.get("uuid");
-    if (importUuid) {
-      setUuid(importUuid);
-      const url = new URL(window.location.href);
-      url.searchParams.delete("uuid");
-      window.history.replaceState(null, "", url);
-    }
-
-    const acpParam = params.get("acp");
-    if (acpParam === "1") {
-      const stored = sessionStorage.getItem("acp_connection");
-      if (stored) {
-        try {
-          const acpData = JSON.parse(stored);
-          if (acpData.url && acpData.token) {
-            setAcpDirect({ url: acpData.url, token: acpData.token });
-            sessionStorage.removeItem("acp_connection");
-            // Clean URL
-            const url = new URL(window.location.href);
-            url.searchParams.delete("acp");
-            window.history.replaceState(null, "", url);
-            return;
-          }
-        } catch {
-          sessionStorage.removeItem("acp_connection");
-        }
-      }
-    }
-
-    // Check for CLI session bind (?sid=xxx) — bind session to current UUID
-    const sid = params.get("sid");
-    if (sid) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("sid");
-      window.history.replaceState(null, "", `/code/${sid}`);
-      setCurrentSessionId(sid);
-      // Bind this session to the current user's UUID for ownership
-      apiBind(sid).catch((err: unknown) => {
-        console.warn("Failed to bind session:", err);
-      });
-      return;
-    }
-
-    // Path-based routing: /code/session_xxx → session detail
     const match = path.match(/^\/code\/([^/]+)/);
-    if (match && match[1]) {
+    if (match && match[1] && match[1] !== "login" && match[1] !== "api-keys") {
       setCurrentSessionId(match[1]);
     } else {
       setCurrentSessionId(null);
@@ -107,10 +46,41 @@ export default function App() {
   const navigateToDashboard = useCallback(() => {
     window.history.pushState(null, "", "/code/");
     setCurrentSessionId(null);
-    setAcpDirect(null);
+    setShowApiKeys(false);
   }, []);
 
-  const activeView: ViewId = currentSessionId || acpDirect ? "session" : "dashboard";
+  const navigateToApiKeys = useCallback(() => {
+    setShowApiKeys(true);
+    setCurrentSessionId(null);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await authClient.signOut();
+    window.location.reload();
+  }, []);
+
+  // Loading session state
+  if (isPending) {
+    return (
+      <div className="flex h-screen items-center justify-center text-text-muted">
+        Loading...
+      </div>
+    );
+  }
+
+  // Not authenticated — show login page
+  if (!session) {
+    return (
+      <ThemeProvider defaultTheme="system">
+        <LoginPage onLogin={() => window.location.reload()} />
+      </ThemeProvider>
+    );
+  }
+
+  const userEmail = session.user.email;
+  const activeView: ViewId =
+    showApiKeys ? "apikeys" :
+    currentSessionId ? "session" : "dashboard";
 
   const navItems: SidebarItem[] = useMemo(() => [
     {
@@ -120,7 +90,7 @@ export default function App() {
       active: activeView === "dashboard",
       onClick: navigateToDashboard,
     },
-    ...(currentSessionId ? [{
+    ...(currentSessionId && !showApiKeys ? [{
       id: "session",
       label: "Session",
       icon: <MessageSquare className="h-4 w-4" />,
@@ -132,24 +102,25 @@ export default function App() {
 
   const footerItems: SidebarItem[] = useMemo(() => [
     {
-      id: "tokens",
-      label: activeLabel || "No Token",
+      id: "apikeys",
+      label: "API Keys",
       icon: <KeyRound className="h-4 w-4" />,
-      onClick: () => setTokenDialogOpen(true),
+      active: activeView === "apikeys",
+      onClick: navigateToApiKeys,
     },
     {
-      id: "identity",
-      label: "Identity",
-      icon: <UserPlus className="h-4 w-4" />,
-      onClick: () => setIdentityOpen(true),
+      id: "logout",
+      label: userEmail,
+      icon: <LogOut className="h-4 w-4" />,
+      onClick: handleLogout,
     },
-  ], [activeLabel]);
+  ], [activeView, userEmail, navigateToApiKeys, handleLogout]);
 
   const pageTitle = useMemo(() => {
-    if (acpDirect) return "ACP Direct";
+    if (showApiKeys) return "API Keys";
     if (currentSessionId) return "Session";
     return "Dashboard";
-  }, [acpDirect, currentSessionId]);
+  }, [showApiKeys, currentSessionId]);
 
   return (
     <ThemeProvider defaultTheme="system">
@@ -158,39 +129,18 @@ export default function App() {
         navItems={navItems}
         footerItems={footerItems}
         title={pageTitle}
-        topBarRight={
-          activeLabel && !currentSessionId && !acpDirect ? (
-            <span className="flex items-center gap-1 rounded-md bg-brand/10 px-2 py-1 text-xs font-medium text-brand">
-              <KeyRound className="h-3 w-3" />
-              {activeLabel}
-            </span>
-          ) : undefined
-        }
       >
         <Suspense fallback={
           <div className="flex h-full items-center justify-center text-text-muted">Loading...</div>
         }>
-          {acpDirect ? (
-            <ACPDirectView url={acpDirect.url} token={acpDirect.token} onBack={navigateToDashboard} />
+          {showApiKeys ? (
+            <ApiKeyManager onBack={navigateToDashboard} />
           ) : currentSessionId ? (
             <SessionDetail key={currentSessionId} sessionId={currentSessionId} />
           ) : (
             <Dashboard onNavigateSession={navigateToSession} />
           )}
         </Suspense>
-
-        <IdentityPanel open={identityOpen} onClose={() => setIdentityOpen(false)} />
-
-        <TokenManagerDialog
-          open={tokenDialogOpen}
-          onClose={() => setTokenDialogOpen(false)}
-          tokens={tokens}
-          activeTokenId={activeTokenId}
-          onSetActive={handleSetActiveToken}
-          onAdd={addToken}
-          onRemove={removeToken}
-          onUpdate={updateToken}
-        />
       </AppShell>
     </ThemeProvider>
   );

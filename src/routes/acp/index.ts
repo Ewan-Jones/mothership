@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { upgradeWebSocket } from "../../transport/ws-shared";
-import { apiKeyAuth } from "../../auth/middleware";
-import { validateApiKey } from "../../auth/api-key";
+import { upgradeWebSocket } from "hono/bun";
+import { sessionAuth } from "../../auth/middleware";
+import { validateApiKeyAndGetUser } from "../../auth/api-key-service";
+import { auth } from "../../auth/better-auth";
 import {
   handleAcpWsOpen,
   handleAcpWsMessage,
@@ -13,11 +14,9 @@ import {
   handleRelayClose,
 } from "../../transport/acp-relay-handler";
 import {
-  storeListAcpAgents,
-  storeListAcpAgentsByChannelGroup,
+  storeListAcpAgentsByUserId,
   storeGetEnvironment,
 } from "../../store";
-import { createAcpSSEStream } from "../../transport/acp-sse-writer";
 import { log, error as logError } from "../../logger";
 
 const app = new Hono();
@@ -26,12 +25,10 @@ const app = new Hono();
 const MAX_WS_MESSAGE_SIZE = 10 * 1024 * 1024;
 
 /** Response shape for an ACP agent */
-function toAcpAgentResponse(env: ReturnType<typeof storeGetEnvironment> & {}) {
-  if (!env) return null;
+function toAcpAgentResponse(env: NonNullable<ReturnType<typeof storeGetEnvironment>>) {
   return {
     id: env.id,
     agent_name: env.machineName,
-    channel_group_id: env.bridgeId,
     status: env.status === "active" ? "online" : "offline",
     max_sessions: env.maxSessions,
     last_seen_at: env.lastPollAt ? env.lastPollAt.getTime() / 1000 : null,
@@ -39,83 +36,24 @@ function toAcpAgentResponse(env: ReturnType<typeof storeGetEnvironment> & {}) {
   };
 }
 
-/** GET /acp/agents — List all registered ACP agents (UUID or API key auth) */
-app.get("/agents", async (c) => {
-  // Require at least UUID auth
-  const uuid = c.req.query("uuid");
-  const authHeader = c.req.header("Authorization");
-  const queryToken = c.req.query("token");
-  const token = authHeader?.replace("Bearer ", "") || queryToken;
-  if (!uuid && !(token && validateApiKey(token))) {
-    return c.json({ error: { type: "unauthorized", message: "Missing auth" } }, 401);
-  }
-  const agents = storeListAcpAgents();
-  return c.json(agents.map((a) => toAcpAgentResponse(a)).filter(Boolean));
-});
-
-/** GET /acp/channel-groups — List all channel groups with member agents (UUID or API key auth) */
-app.get("/channel-groups", async (c) => {
-  const uuid = c.req.query("uuid");
-  const authHeader = c.req.header("Authorization");
-  const queryToken = c.req.query("token");
-  const token = authHeader?.replace("Bearer ", "") || queryToken;
-  if (!uuid && !(token && validateApiKey(token))) {
-    return c.json({ error: { type: "unauthorized", message: "Missing auth" } }, 401);
-  }
-  const agents = storeListAcpAgents();
-  const groupMap = new Map<string, typeof agents>();
-  for (const agent of agents) {
-    const groupId = agent.bridgeId || "default";
-    if (!groupMap.has(groupId)) {
-      groupMap.set(groupId, []);
-    }
-    groupMap.get(groupId)!.push(agent);
-  }
-  const groups = [...groupMap.entries()].map(([id, members]) => ({
-    channel_group_id: id,
-    member_count: members.length,
-    members: members.map((m) => toAcpAgentResponse(m)).filter(Boolean),
-  }));
-  return c.json(groups);
-});
-
-/** GET /acp/channel-groups/:id — Specific channel group detail (no auth for web UI) */
-app.get("/channel-groups/:id", async (c) => {
-  const groupId = c.req.param("id")!;
-  const members = storeListAcpAgentsByChannelGroup(groupId);
-  if (members.length === 0) {
-    return c.json({ error: { type: "not_found", message: "Channel group not found" } }, 404);
-  }
-  return c.json({
-    channel_group_id: groupId,
-    member_count: members.length,
-    members: members.map((m) => toAcpAgentResponse(m)).filter(Boolean),
-  });
-});
-
-/** SSE /acp/channel-groups/:id/events — Event stream for external consumers (no auth for web UI) */
-app.get("/channel-groups/:id/events", async (c) => {
-  const groupId = c.req.param("id")!;
-
-  // Support Last-Event-ID / from_sequence_num for reconnection
-  const lastEventId = c.req.header("Last-Event-ID");
-  const fromSeq = c.req.query("from_sequence_num");
-  const fromSeqNum = fromSeq ? parseInt(fromSeq) : lastEventId ? parseInt(lastEventId) : 0;
-
-  return createAcpSSEStream(c, groupId, fromSeqNum);
+/** GET /acp/agents — List current user's ACP agents */
+app.get("/agents", sessionAuth, async (c) => {
+  const user = c.get("user")!;
+  const agents = storeListAcpAgentsByUserId(user.id);
+  return c.json(agents.map((a) => toAcpAgentResponse(a)));
 });
 
 /** WS /acp/ws — WebSocket endpoint for acp-link connections */
 app.get(
   "/ws",
   upgradeWebSocket(async (c) => {
-    // Authenticate via API key in query param or header
+    // Authenticate via API key
     const authHeader = c.req.header("Authorization");
     const queryToken = c.req.query("token");
     const token = authHeader?.replace("Bearer ", "") || queryToken;
 
-    if (!token || !validateApiKey(token)) {
-      log("[ACP-WS] Upgrade rejected: unauthorized");
+    if (!token) {
+      log("[ACP-WS] Upgrade rejected: missing token");
       return {
         onOpen(_evt: any, ws: any) {
           ws.close(4003, "unauthorized");
@@ -123,14 +61,37 @@ app.get(
       };
     }
 
+    const keyInfo = await validateApiKeyAndGetUser(token);
+    if (!keyInfo) {
+      log("[ACP-WS] Upgrade rejected: invalid API key");
+      return {
+        onOpen(_evt: any, ws: any) {
+          ws.close(4003, "unauthorized");
+        },
+      };
+    }
+
+    // Look up user
+    const userInfo = await auth.api.getUser({ userId: keyInfo.userId });
+    if (!userInfo) {
+      log("[ACP-WS] Upgrade rejected: user not found");
+      return {
+        onOpen(_evt: any, ws: any) {
+          ws.close(4003, "unauthorized");
+        },
+      };
+    }
+
+    const userId = userInfo.user.id;
+
     // Generate unique wsId for this connection
     const { v4: uuid } = await import("uuid");
     const wsId = `acp_ws_${uuid().replace(/-/g, "")}`;
 
-    log(`[ACP-WS] Upgrade accepted: wsId=${wsId}`);
+    log(`[ACP-WS] Upgrade accepted: wsId=${wsId} userId=${userId}`);
     return {
       onOpen(_evt: any, ws: any) {
-        handleAcpWsOpen(ws, wsId);
+        handleAcpWsOpen(ws, wsId, userId);
       },
       onMessage(evt: any, ws: any) {
         const data =
@@ -160,17 +121,11 @@ app.get(
 app.get(
   "/relay/:agentId",
   upgradeWebSocket(async (c) => {
-    // Authenticate via UUID (web frontend) or API key (legacy)
-    const clientUuid = c.req.query("uuid");
-    const authHeader = c.req.header("Authorization");
-    const queryToken = c.req.query("token");
-    const token = authHeader?.replace("Bearer ", "") || queryToken;
+    // Authenticate via better-auth session (cookie-based)
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
-    const hasUuid = !!clientUuid;
-    const hasApiKey = !!token && validateApiKey(token);
-
-    if (!hasUuid && !hasApiKey) {
-      log("[ACP-Relay] Upgrade rejected: unauthorized");
+    if (!session?.user) {
+      log("[ACP-Relay] Upgrade rejected: not authenticated");
       return {
         onOpen(_evt: any, ws: any) {
           ws.close(4003, "unauthorized");
@@ -178,14 +133,27 @@ app.get(
       };
     }
 
+    const userId = session.user.id;
     const agentId = c.req.param("agentId")!;
+
+    // Verify agent belongs to this user
+    const env = storeGetEnvironment(agentId);
+    if (!env || env.userId !== userId) {
+      log(`[ACP-Relay] Upgrade rejected: agent ${agentId} not found or not owned by user ${userId}`);
+      return {
+        onOpen(_evt: any, ws: any) {
+          ws.close(4003, "unauthorized");
+        },
+      };
+    }
+
     const { v4: uuid } = await import("uuid");
     const relayWsId = `relay_${uuid().replace(/-/g, "")}`;
 
     log(`[ACP-Relay] Upgrade accepted: relayWsId=${relayWsId} agentId=${agentId}`);
     return {
       onOpen(_evt: any, ws: any) {
-        handleRelayOpen(ws, relayWsId, agentId);
+        handleRelayOpen(ws, relayWsId, agentId, userId);
       },
       onMessage(evt: any, ws: any) {
         const data =
