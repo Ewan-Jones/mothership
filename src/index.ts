@@ -16,6 +16,8 @@ import webSessions from "./routes/web/sessions";
 import webEnvironments from "./routes/web/environments";
 import webApiKeys from "./routes/web/api-keys";
 import webConfig from "./routes/web/config";
+import webInstances from "./routes/web/instances";
+import { stopAllInstances } from "./services/instance";
 import { migrateSkillsDir } from "./services/skill";
 
 console.log("[RCS] Database initialized (SQLite + better-auth)");
@@ -70,6 +72,7 @@ app.route("/web", webSessions);
 app.route("/web", webEnvironments);
 app.route("/web", webApiKeys);
 app.route("/web", webConfig);
+app.route("/web", webInstances);
 
 // ACP protocol routes
 console.log("[RCS] ACP support enabled");
@@ -99,6 +102,7 @@ async function gracefulShutdown(signal: string) {
   console.log(`\n[RCS] Received ${signal}, shutting down...`);
   closeAllAcpConnections();
   closeAllRelayConnections();
+  stopAllInstances();
   process.exit(0);
 }
 

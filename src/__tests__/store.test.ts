@@ -53,16 +53,9 @@ describe("store", () => {
       expect(env.capabilities).toEqual({ foo: true });
     });
 
-    test("reuses existing ACP environment by machineName for same user", () => {
+    test("always creates a new record even with same machineName", () => {
       const env1 = storeCreateEnvironment({ secret: "s1", userId: "user1", machineName: "agent1", workerType: "acp" });
       const env2 = storeCreateEnvironment({ secret: "s2", userId: "user1", machineName: "agent1", workerType: "acp" });
-      expect(env1.id).toBe(env2.id);
-      expect(env2.status).toBe("active");
-    });
-
-    test("does not reuse environment across different users", () => {
-      const env1 = storeCreateEnvironment({ secret: "s1", userId: "user1", machineName: "agent1", workerType: "acp" });
-      const env2 = storeCreateEnvironment({ secret: "s2", userId: "user2", machineName: "agent1", workerType: "acp" });
       expect(env1.id).not.toBe(env2.id);
     });
   });

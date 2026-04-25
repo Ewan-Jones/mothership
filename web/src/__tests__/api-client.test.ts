@@ -81,3 +81,30 @@ describe("api functions", () => {
     await expect(client.apiFetchSessions()).rejects.toThrow("Internal Server Error");
   });
 });
+
+// =============================================================================
+// Instance API functions
+// =============================================================================
+
+describe("instance API functions", () => {
+  test("apiCreateInstance — POST /web/instances", async () => {
+    fetchMock.responseData = { id: "inst_xxx", port: 8888, status: "running", created_at: 1000 };
+    await client.apiCreateInstance();
+    expect(fetchMock.lastUrl).toBe("/web/instances");
+    expect(fetchMock.lastOpts.method).toBe("POST");
+  });
+
+  test("apiListInstances — GET /web/instances", async () => {
+    fetchMock.responseData = [];
+    await client.apiListInstances();
+    expect(fetchMock.lastUrl).toBe("/web/instances");
+    expect(fetchMock.lastOpts.method).toBe("GET");
+  });
+
+  test("apiDeleteInstance — DELETE /web/instances/:id", async () => {
+    fetchMock.responseData = { ok: true };
+    await client.apiDeleteInstance("inst_123");
+    expect(fetchMock.lastUrl).toBe("/web/instances/inst_123");
+    expect(fetchMock.lastOpts.method).toBe("DELETE");
+  });
+});

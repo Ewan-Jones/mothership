@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiFetchAllSessions, apiFetchEnvironments } from "../api/client";
-import type { Session, Environment } from "../types";
-import { EnvironmentList } from "../components/EnvironmentList";
+import { apiFetchAllSessions, apiCreateInstance } from "../api/client";
+import type { Session } from "../types";
 import { SessionList } from "../components/SessionList";
 
 interface DashboardProps {
@@ -10,13 +9,12 @@ interface DashboardProps {
 
 export function Dashboard({ onNavigateSession }: DashboardProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [creatingInstance, setCreatingInstance] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     try {
-      const [sess, envs] = await Promise.all([apiFetchAllSessions(), apiFetchEnvironments()]);
+      const sess = await apiFetchAllSessions();
       setSessions(sess || []);
-      setEnvironments(envs || []);
     } catch (err) {
       console.error("Dashboard render error:", err);
     }
@@ -28,17 +26,21 @@ export function Dashboard({ onNavigateSession }: DashboardProps) {
     return () => clearInterval(interval);
   }, [loadDashboard]);
 
-  const handleSelectEnvironment = useCallback((env: Environment) => {
-    // Navigate to the first session of this environment, if any
-    const session = sessions.find((s) => s.environment_id === env.id);
-    if (session) {
-      onNavigateSession(session.id);
-    }
-  }, [sessions, onNavigateSession]);
-
   const handleSelectSession = useCallback((sessionId: string) => {
     onNavigateSession(sessionId);
   }, [onNavigateSession]);
+
+  const handleCreateInstance = useCallback(async () => {
+    setCreatingInstance(true);
+    try {
+      await apiCreateInstance();
+      await loadDashboard();
+    } catch (err) {
+      console.error("Failed to create instance:", err);
+    } finally {
+      setCreatingInstance(false);
+    }
+  }, [loadDashboard]);
 
   return (
     <div className="h-full overflow-y-auto">
@@ -46,32 +48,32 @@ export function Dashboard({ onNavigateSession }: DashboardProps) {
         <h1 className="sr-only">Dashboard</h1>
 
         {/* Stats overview */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-surface-1 px-4 py-3">
-            <div className="text-xs font-medium text-text-muted">Agents</div>
-            <div className="mt-1 text-2xl font-semibold text-text-primary">{environments.length}</div>
-          </div>
-          <div className="rounded-lg border border-border bg-surface-1 px-4 py-3">
-            <div className="text-xs font-medium text-text-muted">Sessions</div>
+            <div className="text-xs font-medium text-text-muted">Agent</div>
             <div className="mt-1 text-2xl font-semibold text-text-primary">{sessions.length}</div>
           </div>
           <div className="rounded-lg border border-border bg-surface-1 px-4 py-3">
-            <div className="text-xs font-medium text-text-muted">Active</div>
+            <div className="text-xs font-medium text-text-muted">活跃</div>
             <div className="mt-1 text-2xl font-semibold text-status-running">
-              {environments.filter((e) => e.status === "active").length}
+              {sessions.filter((s) => s.status === "idle" || s.status === "active").length}
             </div>
           </div>
         </div>
 
-        {/* Agents */}
-        <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold text-text-primary">Agents</h2>
-          <EnvironmentList environments={environments} onSelectEnvironment={handleSelectEnvironment} />
-        </section>
-
-        {/* Sessions */}
+        {/* Agent (Sessions) */}
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-text-primary">Sessions</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-text-primary">Agent</h2>
+            <button
+              type="button"
+              onClick={handleCreateInstance}
+              disabled={creatingInstance}
+              className="rounded-md bg-brand px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-brand/80 disabled:opacity-50"
+            >
+              {creatingInstance ? "Creating..." : "+ 新增实例"}
+            </button>
+          </div>
           <SessionList sessions={sessions} onSelect={handleSelectSession} />
         </section>
       </div>

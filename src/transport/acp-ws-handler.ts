@@ -4,7 +4,9 @@ import { getAcpEventBus } from "./event-bus";
 import type { SessionEvent } from "./event-bus";
 import {
   storeCreateEnvironment,
+  storeCreateSession,
   storeGetEnvironment,
+  storeListSessionsByEnvironment,
   storeMarkAcpAgentOffline,
   storeMarkAcpAgentOnline,
   storeUpdateEnvironment,
@@ -103,6 +105,17 @@ function handleRegister(wsId: string, msg: Record<string, unknown>): void {
   storeUpdateEnvironment(record.id, {
     status: "active",
   });
+
+  // Auto-create session if none exists for this environment
+  const existing = storeListSessionsByEnvironment(record.id);
+  if (existing.length === 0) {
+    storeCreateSession({
+      environmentId: record.id,
+      title: agentName || "ACP Agent",
+      source: "acp",
+      userId: entry.userId,
+    });
+  }
 
   entry.agentId = record.id;
   entry.capabilities = capabilities || null;

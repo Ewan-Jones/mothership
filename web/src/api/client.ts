@@ -74,6 +74,36 @@ export function apiInterrupt(sessionId: string) {
   return api<void>("POST", `/web/sessions/${sessionId}/interrupt`);
 }
 
+// --- Instances ---
+
+export interface InstanceInfo {
+  id: string;
+  port: number;
+  status: "starting" | "running" | "stopped" | "error";
+  error: string | null;
+  group_id: string;
+  created_at: number;
+}
+
+export interface CreateInstanceResponse {
+  id: string;
+  port: number;
+  status: string;
+  created_at: number;
+}
+
+export function apiCreateInstance() {
+  return api<CreateInstanceResponse>("POST", "/web/instances");
+}
+
+export function apiListInstances() {
+  return api<InstanceInfo[]>("GET", "/web/instances");
+}
+
+export function apiDeleteInstance(id: string) {
+  return api<{ ok: boolean }>("DELETE", `/web/instances/${id}`);
+}
+
 // --- API Keys ---
 
 export interface ApiKeyInfo {

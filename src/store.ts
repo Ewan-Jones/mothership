@@ -71,22 +71,6 @@ export function storeCreateEnvironment(req: {
   username?: string;
   capabilities?: Record<string, unknown>;
 }): EnvironmentRecord {
-  // ACP: reuse existing active record by machineName + userId
-  if (req.workerType === "acp" && req.machineName) {
-    const existing = storeFindEnvironmentByMachineName(req.machineName, req.userId);
-    if (existing) {
-      Object.assign(existing, {
-        status: "active",
-        lastPollAt: new Date(),
-        updatedAt: new Date(),
-        maxSessions: req.maxSessions ?? existing.maxSessions,
-        capabilities: req.capabilities ?? existing.capabilities,
-        username: req.username ?? existing.username,
-      });
-      return existing;
-    }
-  }
-
   const id = `env_${uuid().replace(/-/g, "")}`;
   const now = new Date();
   const record: EnvironmentRecord = {
