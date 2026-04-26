@@ -26,6 +26,28 @@ app.post("/bridge", apiKeyAuth, async (c) => {
     metadata?: { worker_type?: string };
   }>();
 
+  // If authenticated via environment secret, return the existing environment
+  const authEnvId = c.get("authEnvironmentId") as string | undefined;
+  if (authEnvId) {
+    const existing = storeGetEnvironment(authEnvId);
+    if (existing) {
+      storeUpdateEnvironment(authEnvId, {
+        status: "active",
+        lastPollAt: new Date(),
+        capabilities: body.capabilities || undefined,
+        maxSessions: body.max_sessions,
+      });
+
+      const sessions = storeListSessionsByEnvironment(authEnvId);
+      return c.json({
+        environment_id: existing.id,
+        environment_secret: existing.secret,
+        status: "active",
+        session_id: sessions.length > 0 ? sessions[0].id : undefined,
+      }, 200);
+    }
+  }
+
   const workerType = body.worker_type || body.metadata?.worker_type || "acp";
 
   const record = storeCreateEnvironment({

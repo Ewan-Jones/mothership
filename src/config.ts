@@ -9,9 +9,10 @@ export const config = {
   pollTimeout: parseInt(process.env.RCS_POLL_TIMEOUT || "8"),
   heartbeatInterval: parseInt(process.env.RCS_HEARTBEAT_INTERVAL || "20"),
   /** Bun WebSocket idle timeout (seconds). Bun sends protocol-level pings after
-   *  this many seconds of no received data. Must be shorter than any reverse
-   *  proxy's idle timeout (nginx default 60s, Cloudflare 100s). Default 30s. */
-  wsIdleTimeout: parseInt(process.env.RCS_WS_IDLE_TIMEOUT || "30"),
+   *  this many seconds of no received data. Set higher than
+   *  wsKeepaliveInterval * 3 so that application-level keepalive detects dead
+   *  connections before Bun closes them. Default 255s (Bun's built-in default). */
+  wsIdleTimeout: parseInt(process.env.RCS_WS_IDLE_TIMEOUT || "255"),
   /** Server→client keep_alive data-frame interval (seconds). Keeps reverse
    *  proxies from closing idle connections. Default 20s. */
   wsKeepaliveInterval: parseInt(process.env.RCS_WS_KEEPALIVE_INTERVAL || "20"),

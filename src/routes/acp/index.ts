@@ -99,13 +99,24 @@ app.get(
     }
 
     let userId: string | undefined;
+    let envId: string | undefined;
+
+    // 0. Try environment.secret match (highest priority)
+    const { storeGetEnvironmentBySecret } = await import("../../store");
+    const envRecord = storeGetEnvironmentBySecret(token);
+    if (envRecord) {
+      userId = envRecord.userId;
+      envId = envRecord.id;
+    }
 
     // 1. Try per-user API Key (SQLite)
-    const keyInfo = await validateApiKeyAndGetUser(token);
-    if (keyInfo) {
-      const [userRow] = await db.select().from(user).where(eq(user.id, keyInfo.userId)).limit(1);
-      if (userRow) {
-        userId = userRow.id;
+    if (!userId) {
+      const keyInfo = await validateApiKeyAndGetUser(token);
+      if (keyInfo) {
+        const [userRow] = await db.select().from(user).where(eq(user.id, keyInfo.userId)).limit(1);
+        if (userRow) {
+          userId = userRow.id;
+        }
       }
     }
 
@@ -133,7 +144,7 @@ app.get(
     log(`[ACP-WS] Upgrade accepted: wsId=${wsId} userId=${userId}`);
     return {
       onOpen(_evt: any, ws: any) {
-        handleAcpWsOpen(ws, wsId, userId);
+        handleAcpWsOpen(ws, wsId, userId, envId);
       },
       onMessage(evt: any, ws: any) {
         const data =

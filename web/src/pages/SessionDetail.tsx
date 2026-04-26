@@ -436,33 +436,35 @@ function ACPSessionDetail({ sessionId, agentId }: { sessionId: string; agentId: 
   return (
     <TooltipProvider>
       <div className="flex flex-1 flex-col overflow-hidden">
-        {error && connectionState === "error" && (
-          <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm border-b">
-            {error}
-          </div>
-        )}
-
         {connectionState === "connecting" && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin h-8 w-8 border-2 border-brand border-t-transparent rounded-full mx-auto mb-3" />
-              <p className="text-text-muted text-sm">Connecting to agent...</p>
+              <p className="text-text-muted text-sm">正在连接 Agent...</p>
             </div>
           </div>
         )}
 
-        {connectionState === "error" && !client && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <p className="font-medium mb-1">Connection Failed</p>
-              <p className="text-text-muted text-sm">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {client && connectionState === "connected" && (
+        {connectionState === "connected" && client && (
           <div className="flex-1 min-h-0">
             <ACPMain client={client} agentId={agentId} />
+          </div>
+        )}
+
+        {(connectionState === "error" || connectionState === "disconnected") && connectionState !== "connecting" && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center max-w-md">
+              <p className="font-medium mb-2">Agent 未连接</p>
+              <p className="text-text-muted text-sm mb-4">
+                {error || "Agent 尚未上线，请确保 acp-link 已启动并连接到服务器"}
+              </p>
+              <a
+                href="/code/"
+                className="inline-block rounded-md bg-brand px-4 py-2 text-sm text-white hover:bg-brand/90 transition-colors no-underline"
+              >
+                返回仪表盘
+              </a>
+            </div>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ declare module "hono" {
     session: { id: string; userId: string; token: string } | null;
     uuid: string | undefined;
     username: string | undefined;
+    authEnvironmentId: string | undefined;
   }
 }
 

@@ -3,6 +3,7 @@ import {
   storeReset,
   storeCreateEnvironment,
   storeGetEnvironment,
+  storeGetEnvironmentBySecret,
   storeUpdateEnvironment,
   storeListActiveEnvironments,
   storeListEnvironmentsByUserId,
@@ -18,44 +19,88 @@ import {
   storeListAcpAgentsByUserId,
   storeListOnlineAcpAgents,
 } from "../store";
+import { db } from "../db";
+import { user } from "../db/schema";
+import { eq } from "drizzle-orm";
+
+function ensureUser(userId: string) {
+  const existing = db.select().from(user).where(eq(user.id, userId)).limit(1).all();
+  if (existing.length === 0) {
+    const now = new Date();
+    db.insert(user).values({
+      id: userId,
+      name: userId,
+      email: `${userId}@test.com`,
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+  }
+}
 
 describe("store", () => {
   beforeEach(() => {
     storeReset();
+    ensureUser("user1");
+    ensureUser("user-a");
+    ensureUser("user-b");
+    ensureUser("u1");
   });
 
   // ---------- Environment ----------
 
   describe("storeCreateEnvironment", () => {
-    test("creates environment with defaults", () => {
+    test("creates environment with required fields", () => {
       const env = storeCreateEnvironment({ secret: "s1", userId: "user1" });
       expect(env.id).toMatch(/^env_/);
       expect(env.secret).toBe("s1");
       expect(env.status).toBe("active");
-      expect(env.machineName).toBeNull();
+      expect(env.userId).toBe("user1");
       expect(env.maxSessions).toBe(1);
       expect(env.workerType).toBe("acp");
-      expect(env.userId).toBe("user1");
       expect(env.lastPollAt).toBeInstanceOf(Date);
+      expect(env.createdAt).toBeInstanceOf(Date);
+      expect(env.updatedAt).toBeInstanceOf(Date);
     });
 
-    test("creates ACP environment with machineName", () => {
+    test("auto-generates name when not provided", () => {
+      const env = storeCreateEnvironment({ secret: "s1", userId: "user1" });
+      expect(env.name).toMatch(/^env-/);
+    });
+
+    test("uses provided name", () => {
+      const env = storeCreateEnvironment({ secret: "s1", userId: "user1", name: "my-env" });
+      expect(env.name).toBe("my-env");
+    });
+
+    test("defaults workspacePath to /tmp when not provided", () => {
+      const env = storeCreateEnvironment({ secret: "s1", userId: "user1" });
+      expect(env.workspacePath).toBe("/tmp");
+    });
+
+    test("creates environment with all optional fields", () => {
       const env = storeCreateEnvironment({
         secret: "s2",
         userId: "user1",
+        name: "test-env",
+        description: "A test environment",
+        workspacePath: "/home/user/project",
+        agentName: "build",
         machineName: "my-agent",
         workerType: "acp",
         capabilities: { foo: true },
       });
+      expect(env.name).toBe("test-env");
+      expect(env.description).toBe("A test environment");
+      expect(env.workspacePath).toBe("/home/user/project");
+      expect(env.agentName).toBe("build");
       expect(env.machineName).toBe("my-agent");
-      expect(env.workerType).toBe("acp");
       expect(env.capabilities).toEqual({ foo: true });
     });
 
-    test("always creates a new record even with same machineName", () => {
-      const env1 = storeCreateEnvironment({ secret: "s1", userId: "user1", machineName: "agent1", workerType: "acp" });
-      const env2 = storeCreateEnvironment({ secret: "s2", userId: "user1", machineName: "agent1", workerType: "acp" });
-      expect(env1.id).not.toBe(env2.id);
+    test("creates with custom status", () => {
+      const env = storeCreateEnvironment({ secret: "s1", userId: "user1", status: "idle" });
+      expect(env.status).toBe("idle");
     });
   });
 
@@ -64,19 +109,38 @@ describe("store", () => {
       expect(storeGetEnvironment("env_no")).toBeUndefined();
     });
 
-    test("returns created environment", () => {
+    test("returns created environment by id", () => {
       const env = storeCreateEnvironment({ secret: "s", userId: "u1" });
-      expect(storeGetEnvironment(env.id)).toBe(env);
+      const fetched = storeGetEnvironment(env.id);
+      expect(fetched).toBeDefined();
+      expect(fetched!.id).toBe(env.id);
+      expect(fetched!.secret).toBe("s");
+      expect(fetched!.userId).toBe("u1");
+    });
+  });
+
+  describe("storeGetEnvironmentBySecret", () => {
+    test("returns environment matching secret", () => {
+      storeCreateEnvironment({ secret: "secret_abc", userId: "u1", name: "env-1" });
+      const fetched = storeGetEnvironmentBySecret("secret_abc");
+      expect(fetched).toBeDefined();
+      expect(fetched!.name).toBe("env-1");
+    });
+
+    test("returns undefined for non-existent secret", () => {
+      expect(storeGetEnvironmentBySecret("no_such_secret")).toBeUndefined();
     });
   });
 
   describe("storeUpdateEnvironment", () => {
-    test("updates existing environment", () => {
+    test("updates existing environment fields", () => {
       const env = storeCreateEnvironment({ secret: "s", userId: "u1" });
-      const result = storeUpdateEnvironment(env.id, { status: "offline" });
+      const result = storeUpdateEnvironment(env.id, { status: "offline", machineName: "host1", capabilities: { bar: 1 } });
       expect(result).toBe(true);
       const updated = storeGetEnvironment(env.id);
       expect(updated?.status).toBe("offline");
+      expect(updated?.machineName).toBe("host1");
+      expect(updated?.capabilities).toEqual({ bar: 1 });
     });
 
     test("returns false for non-existent environment", () => {

@@ -98,6 +98,8 @@ export interface InstanceInfo {
   status: "starting" | "running" | "stopped" | "error";
   error: string | null;
   group_id: string;
+  environment_id: string | null;
+  session_id: string | null;
   created_at: number;
 }
 
@@ -118,6 +120,10 @@ export function apiListInstances() {
 
 export function apiDeleteInstance(id: string) {
   return api<{ ok: boolean }>("DELETE", `/web/instances/${id}`);
+}
+
+export function apiSpawnInstanceFromEnvironment(environmentId: string) {
+  return api<CreateInstanceResponse>("POST", "/web/instances/from-environment", { environmentId });
 }
 
 // --- API Keys ---

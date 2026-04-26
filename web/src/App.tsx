@@ -239,7 +239,7 @@ export default function App() {
                             sessionId={currentSessionId}
                         />
                     ) : (
-                        <Dashboard />
+                        <Dashboard onNavigateToSession={navigateToSession} />
                     )}
                 </Suspense>
             </AppShell>

@@ -48,6 +48,8 @@ export interface DataTableProps<T> {
   defaultExpandAll?: boolean;
   emptyMessage?: string;
   pageSize?: number;
+  expandedState?: ExpandedState;
+  onExpandedChange?: (expanded: ExpandedState) => void;
 }
 
 export function filterData<T>(data: T[], columns: Column<T>[], search: string): T[] {
@@ -170,13 +172,17 @@ export function DataTable<T>({
   emptyMessage = "暂无数据",
   pageSize = 10,
   defaultExpandAll,
+  expandedState: controlledExpanded,
+  onExpandedChange,
 }: DataTableProps<T>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [expanded, setExpanded] = useState<ExpandedState>(() => {
+  const [internalExpanded, setInternalExpanded] = useState<ExpandedState>(() => {
     if (!defaultExpandAll) return {};
     return buildInitialExpandedState(data, rowKey);
   });
+  const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+  const setExpanded = onExpandedChange ?? setInternalExpanded;
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
 
   useEffect(() => {

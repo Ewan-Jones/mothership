@@ -1,9 +1,16 @@
 import { v4 as uuid } from "uuid";
+import { db, sqlite } from "./db";
+import { environment, user } from "./db/schema";
+import { eq, and } from "drizzle-orm";
 
 // ---------- Types ----------
 
 export interface EnvironmentRecord {
   id: string;
+  name: string;
+  description: string | null;
+  workspacePath: string;
+  agentName: string | null;
   secret: string;
   machineName: string | null;
   directory: string | null;
@@ -36,14 +43,42 @@ export interface SessionRecord {
 
 // ---------- Stores (in-memory Maps) ----------
 
-const environments = new Map<string, EnvironmentRecord>();
 const sessions = new Map<string, SessionRecord>();
 
-// ---------- Environment ----------
+// ---------- Environment (SQLite) ----------
+
+function rowToRecord(row: typeof environment.$inferSelect): EnvironmentRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    workspacePath: row.workspacePath,
+    agentName: row.agentName,
+    secret: row.secret,
+    machineName: row.machineName,
+    directory: row.workspacePath,
+    branch: row.branch,
+    gitRepoUrl: row.gitRepoUrl,
+    maxSessions: row.maxSessions,
+    workerType: row.workerType,
+    capabilities: row.capabilities ? JSON.parse(row.capabilities) : null,
+    status: row.status,
+    username: null,
+    userId: row.userId,
+    lastPollAt: row.lastPollAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 export function storeCreateEnvironment(req: {
+  name?: string;
+  description?: string;
+  workspacePath?: string;
+  agentName?: string;
   secret: string;
   userId: string;
+  status?: string;
   machineName?: string;
   directory?: string;
   branch?: string;
@@ -55,50 +90,80 @@ export function storeCreateEnvironment(req: {
 }): EnvironmentRecord {
   const id = `env_${uuid().replace(/-/g, "")}`;
   const now = new Date();
-  const record: EnvironmentRecord = {
+  const name = req.name || `env-${id.slice(4, 12)}`;
+  const workspacePath = req.workspacePath || req.directory || "/tmp";
+  const status = req.status || "active";
+  db.insert(environment).values({
     id,
+    name,
+    description: req.description ?? null,
+    workspacePath,
+    agentName: req.agentName ?? null,
     secret: req.secret,
     machineName: req.machineName ?? null,
-    directory: req.directory ?? null,
     branch: req.branch ?? null,
     gitRepoUrl: req.gitRepoUrl ?? null,
     maxSessions: req.maxSessions ?? 1,
     workerType: req.workerType ?? "acp",
-    capabilities: req.capabilities ?? null,
-    status: "active",
-    username: req.username ?? null,
+    capabilities: req.capabilities ? JSON.stringify(req.capabilities) : null,
+    status,
     userId: req.userId,
     lastPollAt: now,
     createdAt: now,
     updatedAt: now,
+  }).run();
+  return {
+    id, name, description: req.description ?? null, workspacePath,
+    agentName: req.agentName ?? null, secret: req.secret,
+    machineName: req.machineName ?? null, directory: req.directory ?? null,
+    branch: req.branch ?? null, gitRepoUrl: req.gitRepoUrl ?? null,
+    maxSessions: req.maxSessions ?? 1, workerType: req.workerType ?? "acp",
+    capabilities: req.capabilities ?? null, status,
+    username: req.username ?? null, userId: req.userId,
+    lastPollAt: now, createdAt: now, updatedAt: now,
   };
-  environments.set(id, record);
-  return record;
 }
 
 export function storeGetEnvironment(id: string): EnvironmentRecord | undefined {
-  return environments.get(id);
+  const rows = db.select().from(environment).where(eq(environment.id, id)).limit(1).all();
+  return rows[0] ? rowToRecord(rows[0]) : undefined;
 }
 
-export function storeUpdateEnvironment(id: string, patch: Partial<Pick<EnvironmentRecord, "status" | "lastPollAt" | "updatedAt" | "capabilities" | "machineName" | "maxSessions">>): boolean {
-  const rec = environments.get(id);
-  if (!rec) return false;
-  Object.assign(rec, patch, { updatedAt: new Date() });
-  return true;
+export function storeGetEnvironmentBySecret(secret: string): EnvironmentRecord | undefined {
+  const rows = db.select().from(environment).where(eq(environment.secret, secret)).limit(1).all();
+  return rows[0] ? rowToRecord(rows[0]) : undefined;
+}
+
+export function storeUpdateEnvironment(id: string, patch: Partial<Pick<EnvironmentRecord, "status" | "lastPollAt" | "updatedAt" | "capabilities" | "machineName" | "maxSessions" | "name" | "description" | "workspacePath" | "agentName" | "branch" | "gitRepoUrl">>): boolean {
+  const set: Record<string, unknown> = { updatedAt: new Date() };
+  if (patch.status !== undefined) set.status = patch.status;
+  if (patch.lastPollAt !== undefined) set.lastPollAt = patch.lastPollAt;
+  if (patch.capabilities !== undefined) set.capabilities = patch.capabilities ? JSON.stringify(patch.capabilities) : null;
+  if (patch.machineName !== undefined) set.machineName = patch.machineName;
+  if (patch.maxSessions !== undefined) set.maxSessions = patch.maxSessions;
+  if (patch.name !== undefined) set.name = patch.name;
+  if (patch.description !== undefined) set.description = patch.description;
+  if (patch.workspacePath !== undefined) set.workspacePath = patch.workspacePath;
+  if (patch.agentName !== undefined) set.agentName = patch.agentName;
+  if (patch.branch !== undefined) set.branch = patch.branch;
+  if (patch.gitRepoUrl !== undefined) set.gitRepoUrl = patch.gitRepoUrl;
+  db.update(environment).set(set).where(eq(environment.id, id)).run();
+  const changes = (sqlite.query("SELECT changes() as c").get() as { c: number }).c;
+  return changes > 0;
 }
 
 export function storeListActiveEnvironments(): EnvironmentRecord[] {
-  return [...environments.values()].filter((e) => e.status === "active");
+  return db.select().from(environment).where(eq(environment.status, "active")).all().map(rowToRecord);
 }
 
 export function storeListEnvironmentsByUserId(userId: string): EnvironmentRecord[] {
-  return [...environments.values()].filter((e) => e.userId === userId);
+  return db.select().from(environment).where(eq(environment.userId, userId)).all().map(rowToRecord);
 }
 
 export function storeListActiveEnvironmentsByUsername(username: string): EnvironmentRecord[] {
-  return [...environments.values()].filter(
-    (e) => e.status === "active" && e.username === username,
-  );
+  const userRow = db.select().from(user).where(eq(user.name, username)).limit(1).all();
+  if (userRow.length === 0) return [];
+  return db.select().from(environment).where(and(eq(environment.status, "active"), eq(environment.userId, userRow[0].id))).all().map(rowToRecord);
 }
 
 // ---------- Session ----------
@@ -245,34 +310,30 @@ export function storeUpdateWorkItem(id: string, patch: Partial<Pick<WorkItemReco
 
 /** Delete an environment and its associated sessions */
 export function storeDeleteEnvironment(id: string): boolean {
-  // Delete associated sessions first
+  // Delete associated in-memory sessions first
   for (const [sid, s] of sessions) {
-    if (s.environmentId === id) {
-      sessions.delete(sid);
-    }
+    if (s.environmentId === id) sessions.delete(sid);
   }
-  return environments.delete(id);
+  db.delete(environment).where(eq(environment.id, id)).run();
+  const changes = (sqlite.query("SELECT changes() as c").get() as { c: number }).c;
+  return changes > 0;
 }
 
 // ---------- ACP Agent (reuses EnvironmentRecord with workerType="acp") ----------
 
 /** List all ACP agents (environments with workerType="acp") */
 export function storeListAcpAgents(): EnvironmentRecord[] {
-  return [...environments.values()].filter((e) => e.workerType === "acp");
+  return db.select().from(environment).where(eq(environment.workerType, "acp")).all().map(rowToRecord);
 }
 
 /** List ACP agents for a specific user */
 export function storeListAcpAgentsByUserId(userId: string): EnvironmentRecord[] {
-  return [...environments.values()].filter(
-    (e) => e.workerType === "acp" && e.userId === userId,
-  );
+  return db.select().from(environment).where(and(eq(environment.workerType, "acp"), eq(environment.userId, userId))).all().map(rowToRecord);
 }
 
 /** List online ACP agents */
 export function storeListOnlineAcpAgents(): EnvironmentRecord[] {
-  return [...environments.values()].filter(
-    (e) => e.workerType === "acp" && e.status === "active",
-  );
+  return db.select().from(environment).where(and(eq(environment.workerType, "acp"), eq(environment.status, "active"))).all().map(rowToRecord);
 }
 
 // ---------- Session Workers ----------
@@ -325,7 +386,7 @@ export function storeGetUserByToken(token: string): { username: string } | undef
 // ---------- Reset (for tests) ----------
 
 export function storeReset() {
-  environments.clear();
+  db.delete(environment).run();
   sessions.clear();
   sessionWorkers.clear();
   tokens.clear();

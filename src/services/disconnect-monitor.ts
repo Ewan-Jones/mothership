@@ -1,5 +1,5 @@
 import { log, error as logError } from "../logger";
-import { storeListActiveEnvironments, storeUpdateEnvironment, storeDeleteEnvironment } from "../store";
+import { storeListActiveEnvironments, storeUpdateEnvironment } from "../store";
 import { storeListSessions } from "../store";
 import { config } from "../config";
 import { updateSessionStatus } from "./session";
@@ -14,7 +14,7 @@ export function runDisconnectMonitorSweep(now = Date.now()) {
     if (env.workerType === "acp") {
       if (env.lastPollAt && now - env.lastPollAt.getTime() > timeoutMs) {
         log(`[RCS] ACP agent ${env.id} timed out (no activity for ${Math.round((now - env.lastPollAt.getTime()) / 1000)}s)`);
-        storeDeleteEnvironment(env.id);
+        storeUpdateEnvironment(env.id, { status: "idle" });
       }
       continue;
     }

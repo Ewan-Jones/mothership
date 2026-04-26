@@ -10,6 +10,7 @@ export interface Environment {
   last_poll_at: number | null;
   created_at: number;
   updated_at: number;
+  session_id?: string;
 }
 
 export interface EnvironmentDetail extends Environment {

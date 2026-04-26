@@ -79,7 +79,8 @@ async function ensureSystemUser(): Promise<{ id: string; email: string; name: st
 
 /**
  * API Key auth for ACP agent routes.
- * Two-level validation:
+ * Three-level validation:
+ * 0. Environment secret → resolves to environment owner
  * 1. Per-user API Key (SQLite) → resolves to a specific user
  * 2. Legacy global API Key (RCS_API_KEYS env) → resolves to a system user
  */
@@ -87,6 +88,26 @@ export async function apiKeyAuth(c: Context, next: Next) {
   const token = extractToken(c);
   if (!token) {
     return c.json({ error: { type: "unauthorized", message: "Missing API key" } }, 401);
+  }
+
+  // 0. Try environment.secret match (highest priority)
+  const { storeGetEnvironmentBySecret } = await import("../store");
+  const envRecord = storeGetEnvironmentBySecret(token);
+  if (envRecord && envRecord.userId) {
+    const { db } = await import("../db");
+    const { user } = await import("../db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [userRow] = await db.select().from(user).where(eq(user.id, envRecord.userId)).limit(1);
+    if (userRow) {
+      c.set("user", {
+        id: userRow.id,
+        email: userRow.email,
+        name: userRow.name,
+      });
+      c.set("authEnvironmentId", envRecord.id);
+      await next();
+      return;
+    }
   }
 
   // 1. Try per-user API Key (SQLite)
