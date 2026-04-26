@@ -25,6 +25,46 @@ export interface CreateTaskInput {
   retryInterval?: number;
 }
 export type UpdateTaskInput = Partial<CreateTaskInput> & { enabled?: boolean };
+type ServiceErrorCode = "VALIDATION_ERROR" | "NOT_FOUND";
+type ServiceError = { code: ServiceErrorCode; message: string };
+type ServiceSuccess<T> = { success: true; data: T };
+type ServiceFailure = { success: false; error: ServiceError };
+type ServiceResult<T> = ServiceSuccess<T> | ServiceFailure;
+
+interface TaskResponse {
+  id: string;
+  name: string;
+  description: string | null;
+  cron: string;
+  timezone: string;
+  enabled: boolean;
+  url: string;
+  method: string;
+  headers: Record<string, string> | null;
+  body: string | null;
+  timeout: number;
+  retryEnabled: boolean;
+  retryCount: number;
+  retryInterval: number;
+  lastRunAt: number | null;
+  nextRunAt: number | null;
+  lastStatus: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface TaskExecutionLogResponse {
+  id: string;
+  taskId: string;
+  status: string;
+  statusCode: number | null;
+  responseBody: string | null;
+  error: string | null;
+  duration: number | null;
+  attempt: number;
+  triggeredBy: string;
+  createdAt: number;
+}
 
 const SENSITIVE_HEADER_KEYS = new Set(["authorization", "cookie", "set-cookie", "x-api-key", "proxy-authorization"]);
 
@@ -41,7 +81,7 @@ function maskHeaders(headers: Record<string, string> | null): Record<string, str
   return masked;
 }
 
-function sanitizeTask(row: any) {
+function sanitizeTask(row: any): TaskResponse {
   const parsedHeaders = row.headers ? JSON.parse(row.headers) : null;
   return {
     id: row.id,
@@ -94,7 +134,7 @@ function validateTaskInput(data: CreateTaskInput, isUpdate = false): string | nu
   return null;
 }
 
-export async function createTask(userId: string, data: CreateTaskInput) {
+export async function createTask(userId: string, data: CreateTaskInput): Promise<ServiceResult<TaskResponse>> {
   const validationError = validateTaskInput(data);
   if (validationError) return { success: false, error: { code: "VALIDATION_ERROR", message: validationError } };
 
@@ -129,21 +169,21 @@ export async function createTask(userId: string, data: CreateTaskInput) {
   return { success: true, data: sanitizeTask(row) };
 }
 
-export async function listTasks(userId: string) {
+export async function listTasks(userId: string): Promise<ServiceSuccess<TaskResponse[]>> {
   const rows = await db.select().from(scheduledTask)
     .where(eq(scheduledTask.userId, userId))
     .orderBy(desc(scheduledTask.createdAt));
   return { success: true, data: rows.map(sanitizeTask) };
 }
 
-export async function getTask(userId: string, taskId: string) {
+export async function getTask(userId: string, taskId: string): Promise<ServiceResult<TaskResponse>> {
   const [row] = await db.select().from(scheduledTask)
     .where(and(eq(scheduledTask.id, taskId), eq(scheduledTask.userId, userId)));
   if (!row) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
   return { success: true, data: sanitizeTask(row) };
 }
 
-export async function updateTask(userId: string, taskId: string, data: UpdateTaskInput) {
+export async function updateTask(userId: string, taskId: string, data: UpdateTaskInput): Promise<ServiceResult<TaskResponse>> {
   const [existing] = await db.select().from(scheduledTask)
     .where(and(eq(scheduledTask.id, taskId), eq(scheduledTask.userId, userId)));
   if (!existing) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
@@ -171,15 +211,15 @@ export async function updateTask(userId: string, taskId: string, data: UpdateTas
   return { success: true, data: sanitizeTask(row) };
 }
 
-export async function deleteTask(userId: string, taskId: string) {
+export async function deleteTask(userId: string, taskId: string): Promise<ServiceResult<undefined>> {
   const result = db.delete(scheduledTask)
     .where(and(eq(scheduledTask.id, taskId), eq(scheduledTask.userId, userId)))
     .run() as any;
   if (result.changes === 0) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
-  return { success: true };
+  return { success: true, data: undefined };
 }
 
-export async function toggleTask(userId: string, taskId: string) {
+export async function toggleTask(userId: string, taskId: string): Promise<ServiceResult<{ id: string; enabled: boolean }>> {
   const [existing] = await db.select().from(scheduledTask)
     .where(and(eq(scheduledTask.id, taskId), eq(scheduledTask.userId, userId)));
   if (!existing) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
@@ -192,7 +232,7 @@ export async function toggleTask(userId: string, taskId: string) {
   return { success: true, data: { id: taskId, enabled: newEnabled } };
 }
 
-export async function triggerTask(userId: string, taskId: string) {
+export async function triggerTask(userId: string, taskId: string): Promise<ServiceResult<TaskExecutionLogResponse>> {
   const [task] = await db.select().from(scheduledTask)
     .where(and(eq(scheduledTask.id, taskId), eq(scheduledTask.userId, userId)));
   if (!task) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
@@ -262,13 +302,18 @@ export async function triggerTask(userId: string, taskId: string) {
       responseBody,
       error: errorMsg,
       duration,
+      attempt: 1,
       triggeredBy: "manual",
       createdAt: Math.floor(now.getTime() / 1000),
     },
   };
 }
 
-export async function listExecutionLogs(taskId: string, page = 1, pageSize = 20) {
+export async function listExecutionLogs(
+  taskId: string,
+  page = 1,
+  pageSize = 20,
+): Promise<ServiceSuccess<{ total: number; items: TaskExecutionLogResponse[] }>> {
   const offset = (page - 1) * pageSize;
   const [{ count: total }] = await db.select({ count: sql<number>`count(*)` })
     .from(taskExecutionLog)
@@ -299,9 +344,9 @@ export async function listExecutionLogs(taskId: string, page = 1, pageSize = 20)
   };
 }
 
-export async function clearExecutionLogs(taskId: string) {
+export async function clearExecutionLogs(taskId: string): Promise<ServiceSuccess<undefined>> {
   db.delete(taskExecutionLog).where(eq(taskExecutionLog.taskId, taskId)).run();
-  return { success: true };
+  return { success: true, data: undefined };
 }
 
 export async function getTaskById(taskId: string) {

@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 
 // Mutable provider store for mocking
-let _providerStore: Record<string, unknown> = {};
+let _providerStore: Record<string, any> = {};
 
 mock.module("../auth/middleware", () => ({
   sessionAuth: async (c: any, next: any) => {
@@ -20,6 +20,12 @@ mock.module("../services/config", () => ({
 }));
 
 const providersRoute = (await import("../routes/web/config/providers")).default;
+
+function createFetchMock(handler: () => Promise<Response> | Response): typeof fetch {
+  return Object.assign(handler, {
+    preconnect: () => {},
+  }) as typeof fetch;
+}
 
 describe("Providers Config Route", () => {
   beforeEach(() => {
@@ -205,10 +211,10 @@ describe("Providers Config Route", () => {
       anthropic: { npm: "@ai-sdk/anthropic", options: { apiKey: "test-key", baseURL: "https://api.example.com" } },
     };
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => ({
+    globalThis.fetch = createFetchMock(async () => ({
       ok: true,
       json: async () => ({ data: [{ id: "model-a" }, { id: "model-b" }] }),
-    } as Response) as any;
+    } as Response));
 
     const res = await providersRoute.request(new Request("http://localhost/config/providers", {
       method: "POST",
@@ -227,7 +233,9 @@ describe("Providers Config Route", () => {
       anthropic: { npm: "@ai-sdk/anthropic", options: { apiKey: "bad-key", baseURL: "https://api.example.com" } },
     };
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => { throw new Error("Network error"); };
+    globalThis.fetch = createFetchMock(async () => {
+      throw new Error("Network error");
+    });
 
     const res = await providersRoute.request(new Request("http://localhost/config/providers", {
       method: "POST",

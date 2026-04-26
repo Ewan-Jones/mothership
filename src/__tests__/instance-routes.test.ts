@@ -17,7 +17,17 @@ function toResponse(inst: any) {
 }
 
 // Mock service functions
-const mockSpawnInstance = mock(async (userId: string) => ({
+const mockSpawnInstance = mock<(userId: string) => Promise<{
+  id: string;
+  userId: string;
+  port: number;
+  pid: number;
+  status: "running";
+  command: string;
+  error: null;
+  apiKey: string;
+  createdAt: Date;
+}>>(async (userId: string) => ({
   id: "inst_abc123",
   userId,
   port: 8888,
@@ -29,7 +39,17 @@ const mockSpawnInstance = mock(async (userId: string) => ({
   createdAt: new Date("2026-01-01T00:00:00Z"),
 }));
 
-const mockListInstances = mock(() => [
+const mockListInstances = mock<(userId: string) => Array<{
+  id: string;
+  userId: string;
+  port: number;
+  pid: number;
+  status: "running" | "stopped";
+  command: string;
+  error: null;
+  apiKey: string;
+  createdAt: Date;
+}>>((_userId: string) => [
   {
     id: "inst_abc123",
     userId: "test-user-id",
@@ -54,7 +74,11 @@ const mockListInstances = mock(() => [
   },
 ]);
 
-const mockStopInstance = mock(() => ({ ok: true }));
+type StopInstanceResult =
+  | { ok: true }
+  | { ok: false; error: "Instance not found" | "Not your instance" | string };
+
+const mockStopInstance = mock<(id: string, userId: string) => StopInstanceResult>(() => ({ ok: true }));
 
 // Build the route inline with mock auth
 function createInstanceApp() {

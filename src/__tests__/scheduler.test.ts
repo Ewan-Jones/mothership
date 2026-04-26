@@ -20,7 +20,7 @@ const mockUpdateWhere = mock(() => ({
 const mockUpdateSet = mock(() => ({ where: mockUpdateWhere }));
 const mockDbUpdate = mock(() => ({ set: mockUpdateSet }));
 
-const mockWhere = mock(() => Promise.resolve([]));
+const mockWhere = mock<() => Promise<Array<{ id: string; cron: string; enabled: boolean; timezone: string }>>>(() => Promise.resolve([]));
 const mockFrom = mock(() => ({ where: mockWhere }));
 const mockSelect = mock(() => ({ from: mockFrom }));
 

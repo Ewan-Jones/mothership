@@ -1,5 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
 
+type TaskRouteResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: { code: string; message: string } };
+
 // Mock auth middleware — pass-through
 mock.module("../auth/middleware", () => ({
   sessionAuth: mock(async (c: any, next: any) => {
@@ -9,15 +13,27 @@ mock.module("../auth/middleware", () => ({
 }));
 
 // Mock task service functions
-const mockListTasks = mock(() => Promise.resolve({ success: true, data: [] }));
-const mockCreateTask = mock(() => Promise.resolve({ success: true, data: { id: "task_xxx", cron: "*/5 * * * *" } }));
-const mockGetTask = mock(() => Promise.resolve({ success: true, data: { id: "task_xxx" } }));
-const mockUpdateTask = mock(() => Promise.resolve({ success: true, data: { id: "task_xxx" } }));
-const mockDeleteTask = mock(() => Promise.resolve({ success: true }));
-const mockToggleTask = mock(() => Promise.resolve({ success: true, data: { id: "task_xxx", enabled: true } }));
-const mockTriggerTask = mock(() => Promise.resolve({ success: true, data: { id: "log_xxx", status: "success", duration: 150 } }));
-const mockListExecutionLogs = mock(() => Promise.resolve({ success: true, data: { total: 0, items: [] } }));
-const mockClearExecutionLogs = mock(() => Promise.resolve({ success: true }));
+const mockListTasks = mock<() => Promise<TaskRouteResult<any[]>>>(() => Promise.resolve({ success: true, data: [] }));
+const mockCreateTask = mock<() => Promise<TaskRouteResult<{ id: string; cron: string; timezone?: string; enabled?: boolean }>>>(() =>
+  Promise.resolve({ success: true, data: { id: "task_xxx", cron: "*/5 * * * *" } }),
+);
+const mockGetTask = mock<() => Promise<TaskRouteResult<{ id: string; cron?: string; timezone?: string; enabled?: boolean }>>>(() =>
+  Promise.resolve({ success: true, data: { id: "task_xxx" } }),
+);
+const mockUpdateTask = mock<() => Promise<TaskRouteResult<{ id: string; cron?: string; timezone?: string; enabled?: boolean }>>>(() =>
+  Promise.resolve({ success: true, data: { id: "task_xxx" } }),
+);
+const mockDeleteTask = mock<() => Promise<TaskRouteResult<undefined>>>(() => Promise.resolve({ success: true, data: undefined }));
+const mockToggleTask = mock<() => Promise<TaskRouteResult<{ id: string; enabled: boolean }>>>(() =>
+  Promise.resolve({ success: true, data: { id: "task_xxx", enabled: true } }),
+);
+const mockTriggerTask = mock<() => Promise<TaskRouteResult<{ id: string; status: string; duration: number }>>>(() =>
+  Promise.resolve({ success: true, data: { id: "log_xxx", status: "success", duration: 150 } }),
+);
+const mockListExecutionLogs = mock<() => Promise<TaskRouteResult<{ total: number; items: any[] }>>>(() =>
+  Promise.resolve({ success: true, data: { total: 0, items: [] } }),
+);
+const mockClearExecutionLogs = mock<() => Promise<TaskRouteResult<undefined>>>(() => Promise.resolve({ success: true, data: undefined }));
 
 mock.module("../services/task", () => ({
   listTasks: mockListTasks,

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
 
-let _configStore: Record<string, unknown> = {};
+let _configStore: Record<string, any> = {};
 
 mock.module("../auth/middleware", () => ({
   sessionAuth: async (c: any, next: any) => {
