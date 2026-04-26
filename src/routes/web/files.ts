@@ -11,6 +11,43 @@ const TEXT_EXTENSIONS = new Set([
   ".sh", ".bash", ".zsh", ".sql", ".env",
 ]);
 
+/** Map file extension to MIME type for preview mode */
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html",
+  ".htm": "text/html",
+  ".css": "text/css",
+  ".js": "text/javascript",
+  ".ts": "text/typescript",
+  ".tsx": "text/typescript",
+  ".jsx": "text/javascript",
+  ".json": "application/json",
+  ".xml": "application/xml",
+  ".txt": "text/plain",
+  ".md": "text/plain",
+  ".yaml": "text/plain",
+  ".yml": "text/plain",
+  ".py": "text/plain",
+  ".go": "text/plain",
+  ".rs": "text/plain",
+  ".sh": "text/plain",
+  ".bash": "text/plain",
+  ".zsh": "text/plain",
+  ".sql": "text/plain",
+  ".csv": "text/csv",
+  ".pdf": "application/pdf",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+};
+
 /**
  * Resolve file path within the workspace.
  * First tries session-based lookup; if session lost (e.g. server restart),
@@ -33,7 +70,16 @@ async function resolveUserPath(sessionId: string, relativePath: string, userId?:
   if (!env) return null;
   const userDir = join(env.workspacePath, "user");
   await mkdir(userDir, { recursive: true });
-  const resolved = resolve(userDir, relativePath);
+
+  // Strip leading "user/" since userDir already contains the "user" segment
+  let cleanPath = relativePath;
+  if (cleanPath.startsWith("user/")) {
+    cleanPath = cleanPath.slice(5);
+  } else if (cleanPath === "user") {
+    cleanPath = "";
+  }
+
+  const resolved = resolve(userDir, cleanPath);
   if (!resolved.startsWith(userDir + "/") && resolved !== userDir) return null;
   return { userDir, resolved };
 }
@@ -81,11 +127,12 @@ app.get("/:sessionId/files", sessionAuth, async (c) => {
   return c.json({ entries: items });
 });
 
-// GET /:sessionId/files/* — read file
+// GET /:sessionId/files/* — read file (?preview=true returns raw content for iframe)
 app.get("/:sessionId/files/:filePath{.+}", sessionAuth, async (c) => {
   const user = c.get("user")!;
   const sessionId = c.req.param("sessionId")!;
   const filePath = c.req.param("filePath")!;
+  const preview = c.req.query("preview") === "true";
 
   const result = await resolveUserPath(sessionId, filePath, user.id);
   if (!result) return c.json({ error: { type: "not_found", message: "Session or environment not found" } }, 404);
@@ -98,6 +145,15 @@ app.get("/:sessionId/files/:filePath{.+}", sessionAuth, async (c) => {
   const lastDot = filePath.lastIndexOf(".");
   const lastSlash = filePath.lastIndexOf("/");
   const ext = lastDot > lastSlash ? filePath.substring(lastDot) : "";
+
+  // Preview mode: return raw file content with correct MIME type for iframe embedding
+  if (preview) {
+    const mimeType = MIME_TYPES[ext] || "application/octet-stream";
+    c.header("Content-Type", mimeType);
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'");
+    return c.body(createReadStream(resolved) as any);
+  }
+
   const isText = TEXT_EXTENSIONS.has(ext) || (!ext && await isTextFile(resolved));
 
   if (isText) {
