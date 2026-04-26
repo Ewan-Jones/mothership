@@ -18,6 +18,7 @@ import webApiKeys from "./routes/web/api-keys";
 import webConfig from "./routes/web/config";
 import webInstances from "./routes/web/instances";
 import webTasks from "./routes/web/tasks";
+import fileRoutes from "./routes/web/files";
 import { stopAllInstances } from "./services/instance";
 import { migrateSkillsDir } from "./services/skill";
 import { startScheduler, stopScheduler } from "./services/scheduler";
@@ -71,6 +72,7 @@ app.get("/code/:sessionId", serveStatic({ root: webDir, path: "index.html" }));
 app.route("/v1/environments", v1Environments);
 
 // Web control panel routes
+app.route("/web/sessions", fileRoutes);
 app.route("/web", webSessions);
 app.route("/web", webEnvironments);
 app.route("/web", webApiKeys);

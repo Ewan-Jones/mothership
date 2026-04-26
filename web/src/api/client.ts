@@ -1,4 +1,5 @@
 import type { Session, Environment, EnvironmentDetail, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent } from "../types";
+import type { FileListResponse, FileContent, FileUploadResult, FileWriteResult } from "../types";
 import type { ProviderInfo, ProviderDetail, ModelConfig, AgentInfo, AgentDetail, SkillInfo, SkillDetail, McpServerInfo, McpServerDetail, McpServerConfig, McpToolInfo, McpInspectResult, ApiResponse } from "../types/config";
 
 
@@ -365,4 +366,43 @@ export function apiListTaskLogs(id: string, page: number, pageSize: number) {
 
 export function apiClearTaskLogs(id: string) {
   return api<void>("DELETE", `/web/tasks/${id}/logs`);
+}
+
+// --- Files ---
+
+export function apiListFiles(sessionId: string, dirPath?: string) {
+  const query = dirPath ? `?path=${encodeURIComponent(dirPath)}` : "";
+  return api<FileListResponse>("GET", `/web/sessions/${sessionId}/files${query}`);
+}
+
+export function apiReadFile(sessionId: string, filePath: string) {
+  const encodedPath = filePath.split("/").map(encodeURIComponent).join("/");
+  return api<FileContent>("GET", `/web/sessions/${sessionId}/files/${encodedPath}`);
+}
+
+export async function apiUploadFile(sessionId: string, dirPath: string, files: File[]) {
+  const formData = new FormData();
+  files.forEach((f) => formData.append("files", f));
+  const encodedDir = dirPath.split("/").map(encodeURIComponent).join("/");
+  const res = await fetch(`/web/sessions/${sessionId}/files/${encodedDir}`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = data.error || { type: "unknown", message: res.statusText };
+    throw new Error(err.message || err.type);
+  }
+  return data as FileUploadResult;
+}
+
+export function apiWriteFile(sessionId: string, filePath: string, content: string) {
+  const encodedPath = filePath.split("/").map(encodeURIComponent).join("/");
+  return api<FileWriteResult>("PUT", `/web/sessions/${sessionId}/files/${encodedPath}`, { content });
+}
+
+export function apiDeleteFile(sessionId: string, filePath: string) {
+  const encodedPath = filePath.split("/").map(encodeURIComponent).join("/");
+  return api<{ ok: boolean }>("DELETE", `/web/sessions/${sessionId}/files/${encodedPath}`);
 }

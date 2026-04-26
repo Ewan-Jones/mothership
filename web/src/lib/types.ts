@@ -84,6 +84,12 @@ export type ThreadEntry =
 export interface ChatInputMessage {
   text: string;
   images?: UserMessageImage[];
+  attachments?: FileAttachment[];
+}
+
+export interface FileAttachment {
+  name: string;
+  path: string;
 }
 
 // 权限请求条目（用于 PermissionPanel）

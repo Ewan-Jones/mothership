@@ -329,8 +329,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
           onSubmit={handleSubmit}
           isLoading={isLoading}
           onInterrupt={handleInterrupt}
-          disabled={closed}
-          placeholder={closed ? "会话已关闭" : "输入消息..."}
+          disabled={closed || !!error || !session}
+          placeholder={error ? "会话加载失败" : closed ? "会话已关闭" : "输入消息..."}
+          sessionId={sessionId}
         />
 
         {/* Task Panel */}

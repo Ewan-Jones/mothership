@@ -118,6 +118,7 @@ function handleRegister(wsId: string, msg: Record<string, unknown>): void {
   const capabilities = msg.capabilities as Record<string, unknown> | undefined;
   const acpLinkVersion = (msg.acp_link_version as string) || null;
   const maxSessions = typeof msg.max_sessions === "number" ? msg.max_sessions : 1;
+  const directory = (msg.directory as string) || undefined;
 
   // If already bound to a persistent environment via environment.secret
   if (entry.boundEnvId) {
@@ -156,6 +157,7 @@ function handleRegister(wsId: string, msg: Record<string, unknown>): void {
     userId: entry.userId,
     machineName: agentName,
     workerType: "acp",
+    directory,
     maxSessions,
     capabilities: capabilities || undefined,
   });

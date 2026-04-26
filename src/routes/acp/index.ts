@@ -105,7 +105,7 @@ app.get(
     const { storeGetEnvironmentBySecret } = await import("../../store");
     const envRecord = storeGetEnvironmentBySecret(token);
     if (envRecord) {
-      userId = envRecord.userId;
+      userId = envRecord.userId ?? undefined;
       envId = envRecord.id;
     }
 

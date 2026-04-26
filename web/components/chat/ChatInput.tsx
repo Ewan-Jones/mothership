@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback, type KeyboardEvent, type ClipboardEvent } from "react";
 import { cn } from "../../src/lib/utils";
 import { Button } from "../ui/button";
-import { Send, Square, Paperclip, Slash } from "lucide-react";
-import type { ChatInputMessage, UserMessageImage } from "../../src/lib/types";
+import { Send, Square, Paperclip, Slash, AtSign } from "lucide-react";
+import type { ChatInputMessage, UserMessageImage, FileAttachment } from "../../src/lib/types";
 import type { AvailableCommand } from "../../src/acp/types";
+import type { FileInfo } from "../../src/types";
 import { CommandMenu } from "./CommandMenu";
+import { FilePickerDialog } from "../../src/components/FilePickerDialog";
 import imageCompression from "browser-image-compression";
 
 // 图片压缩配置
@@ -29,6 +31,8 @@ interface ChatInputProps {
   supportsImages?: boolean;
   /** Agent 提供的可用 slash 命令 */
   commands?: AvailableCommand[];
+  /** 当前会话 ID，用于触发 @ 文件选择 */
+  sessionId?: string;
   className?: string;
 }
 
@@ -40,12 +44,15 @@ export function ChatInput({
   placeholder = "给 Claude 发送消息…",
   supportsImages = false,
   commands,
+  sessionId,
   className,
 }: ChatInputProps) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<UserMessageImage[]>([]);
   const [showCommandMenu, setShowCommandMenu] = useState(false);
   const [commandFilter, setCommandFilter] = useState("");
+  const [showFilePicker, setShowFilePicker] = useState(false);
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,16 +60,17 @@ export function ChatInput({
     const trimmed = text.trim();
     if ((!trimmed && images.length === 0) || disabled) return;
 
-    onSubmit({ text: trimmed, images: images.length > 0 ? images : undefined });
+    onSubmit({ text: trimmed, images: images.length > 0 ? images : undefined, attachments: attachments.length > 0 ? attachments : undefined });
     setText("");
     setImages([]);
+    setAttachments([]);
     setShowCommandMenu(false);
     setCommandFilter("");
     // 重置 textarea 高度
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-  }, [text, images, disabled, onSubmit]);
+  }, [text, images, attachments, disabled, onSubmit]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -109,6 +117,14 @@ export function ChatInput({
       setCommandFilter("");
     }
 
+    // 检测 @ 文件引用触发
+    if (sessionId && value.endsWith("@")) {
+      const prevChar = value.length > 1 ? value[value.length - 2] : " ";
+      if (prevChar === " " || value.length === 1) {
+        setShowFilePicker(true);
+      }
+    }
+
     // 自动调整高度
     const el = e.target;
     el.style.height = "auto";
@@ -149,6 +165,17 @@ export function ChatInput({
     textareaRef.current?.focus();
   }, []);
 
+  const handleFilePickerSelect = useCallback((file: FileInfo) => {
+    setText((prev) => prev.replace(/@$/, ""));
+    setText((prev) => prev + `@${file.name} `);
+    setAttachments((prev) => {
+      if (prev.some((a) => a.path === file.path)) return prev;
+      return [...prev, { name: file.name, path: file.path }];
+    });
+    setShowFilePicker(false);
+    textareaRef.current?.focus();
+  }, []);
+
   const toggleCommandMenu = useCallback(() => {
     if (showCommandMenu) {
       setShowCommandMenu(false);
@@ -168,6 +195,16 @@ export function ChatInput({
   return (
     <div className={cn("w-full max-w-3xl mx-auto px-4 sm:px-8 pb-4 pt-2", className)}>
       <div className="relative">
+        {/* File Picker Dialog */}
+        {showFilePicker && sessionId && (
+          <FilePickerDialog
+            open={showFilePicker}
+            sessionId={sessionId}
+            onClose={() => setShowFilePicker(false)}
+            onSelect={handleFilePickerSelect}
+          />
+        )}
+
         {/* Slash command menu — floating above input */}
         {showCommandMenu && commands && commands.length > 0 && (
           <CommandMenu
@@ -205,6 +242,24 @@ export function ChatInput({
                 >
                   {"\u00D7"}
                 </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 文件附件预览 */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-3 pt-2">
+            {attachments.map((att, i) => (
+              <div key={i} className="flex items-center gap-1.5 rounded-md bg-brand/10 px-2.5 py-1 text-xs text-brand">
+                <span className="truncate max-w-[120px]">{att.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                  className="text-text-muted hover:text-text-primary"
+                >
+                  {"\u00D7"}
+                </button>
               </div>
             ))}
           </div>
@@ -254,6 +309,21 @@ export function ChatInput({
               title="命令列表"
             >
               <Slash className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* @ 文件引用按钮 */}
+          {sessionId && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowFilePicker(true)}
+              className="flex-shrink-0 h-8 w-8 text-text-muted hover:text-text-secondary hover:bg-surface-1/50"
+              disabled={disabled}
+              title="引用文件"
+            >
+              <AtSign className="h-4 w-4" />
             </Button>
           )}
 

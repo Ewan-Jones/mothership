@@ -123,3 +123,35 @@ export interface AutomationActivity {
   label: string;
   endsAt?: number;
 }
+
+// --- File System Types ---
+
+export interface FileInfo {
+  name: string;
+  path: string;
+  type: "file" | "dir";
+  size: number;
+  modifiedAt: number;
+}
+
+export interface FileListResponse {
+  entries: FileInfo[];
+}
+
+export interface FileContent {
+  name: string;
+  path: string;
+  content: string;
+  size: number;
+  encoding: string;
+}
+
+export interface FileUploadResult {
+  files: Array<{ name: string; path: string; size: number }>;
+}
+
+export interface FileWriteResult {
+  name: string;
+  path: string;
+  size: number;
+}

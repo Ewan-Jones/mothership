@@ -874,6 +874,7 @@ export function ChatInterface({ client, agentId }: ChatInterfaceProps) {
           placeholder={sessionReady ? "给 Claude 发送消息…" : "等待会话..."}
           supportsImages={supportsImages}
           commands={availableCommands.length > 0 ? availableCommands : undefined}
+          sessionId={activeSessionId}
         />
       </div>
     </div>
