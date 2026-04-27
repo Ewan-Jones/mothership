@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import * as net from "node:net";
-import { existsSync } from "node:fs";
+import { accessSync, constants, existsSync } from "node:fs";
+import { join } from "node:path";
 import { createApiKey } from "../auth/api-key-service";
 import { getBaseUrl } from "../config";
 import { log } from "../logger";
@@ -26,6 +27,24 @@ const PORT_MAX = 8999;
 
 const instances = new Map<string, SpawnedInstance>();
 const allocatingPorts = new Set<number>();
+
+function isExecutable(filePath: string): boolean {
+  try {
+    accessSync(filePath, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveExecutable(command: string): string {
+  const localBin = join(process.cwd(), "node_modules", ".bin", command);
+  if (isExecutable(localBin)) {
+    return localBin;
+  }
+
+  throw new Error(`Required executable not found: ${command}. Run npm install in the project root to install it into node_modules/.bin.`);
+}
 
 function allocatePort(): number | null {
   const occupied = new Set<number>();
@@ -52,6 +71,8 @@ function probePort(port: number): Promise<boolean> {
 }
 
 export async function spawnInstance(userId: string): Promise<SpawnedInstance> {
+  const acpLinkPath = resolveExecutable("acp-link");
+
   // 1. Create dedicated API Key
   const { fullKey } = await createApiKey(userId, `instance-${Date.now()}`);
   const apiKey = fullKey;
@@ -76,7 +97,7 @@ export async function spawnInstance(userId: string): Promise<SpawnedInstance> {
     instances.set(id, instance);
 
     // 4. Spawn child process
-    const proc = spawn("acp-link", [
+    const proc = spawn(acpLinkPath, [
       "--group", apiKey,
       "--port", String(port),
       "opencode", "--", "acp",
@@ -149,6 +170,8 @@ export function stopAllInstances(): void {
 }
 
 export async function spawnInstanceFromEnvironment(userId: string, environmentId: string): Promise<SpawnedInstance> {
+  const acpLinkPath = resolveExecutable("acp-link");
+
   const env = storeGetEnvironment(environmentId);
   if (!env) throw new Error("Environment not found");
   if (env.userId !== userId) throw new Error("Not your environment");
@@ -198,7 +221,7 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
     // Spawn acp-link as standalone local proxy (no RCS upstream URL).
     // Pass ACP_RCS_TOKEN so acp-link uses it as its local WS auth token.
     // The relay handler connects with this token to trigger agent spawning.
-    const proc = spawn("acp-link", [
+    const proc = spawn(acpLinkPath, [
       "--group", env.secret,
       "--port", String(port),
       "opencode", "--", "acp",

@@ -1,5 +1,8 @@
 import { describe, test, expect, beforeEach, mock, afterEach } from "bun:test";
 import { randomBytes } from "node:crypto";
+import { chmodSync, mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 // Mock dependencies before importing the module
 const mockProbePort = mock(() => Promise.resolve(true));
@@ -57,12 +60,61 @@ describe("InstanceService", () => {
   // create instances and stop them between tests.
   const createdInstanceIds: string[] = [];
 
+  beforeEach(() => {
+    const localBinDir = join(process.cwd(), "node_modules", ".bin");
+    const localAcpLink = join(localBinDir, "acp-link");
+    mkdirSync(localBinDir, { recursive: true });
+    writeFileSync(localAcpLink, "#!/bin/sh\nexit 0\n");
+    chmodSync(localAcpLink, 0o755);
+  });
+
   afterEach(async () => {
     // Clean up any instances created during tests
     for (const id of createdInstanceIds) {
       try { stopInstance(id, "test-user"); } catch {}
     }
     createdInstanceIds.length = 0;
+  });
+
+  test("spawnInstance fails early when acp-link is unavailable", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "instance-service-no-acp-link-"));
+    const originalCwd = process.cwd();
+    try {
+      mkdirSync(join(tempDir, "node_modules", ".bin"), { recursive: true });
+      process.chdir(tempDir);
+
+      await expect(spawnInstance("test-user")).rejects.toThrow(
+        "Required executable not found: acp-link",
+      );
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("spawnInstance uses project-local acp-link binary", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "instance-service-local-acp-link-"));
+    const originalCwd = process.cwd();
+    try {
+      const localBinDir = join(tempDir, "node_modules", ".bin");
+      const localAcpLink = join(localBinDir, "acp-link");
+      mkdirSync(localBinDir, { recursive: true });
+      writeFileSync(localAcpLink, "#!/bin/sh\nexit 0\n");
+      chmodSync(localAcpLink, 0o755);
+
+      process.chdir(tempDir);
+
+      const inst = await spawnInstance("test-user");
+      createdInstanceIds.push(inst.id);
+
+      expect(mockSpawn).toHaveBeenCalled();
+      const lastCall = mockSpawn.mock.calls.at(-1) as [string, ...unknown[]] | undefined;
+      expect(lastCall).toBeDefined();
+      expect(realpathSync(lastCall![0])).toBe(realpathSync(localAcpLink));
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   test("spawnInstance creates an instance and returns it", async () => {
