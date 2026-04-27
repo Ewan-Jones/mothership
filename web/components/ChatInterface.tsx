@@ -60,6 +60,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 interface ChatInterfaceProps {
   client: ACPClient;
   agentId?: string;
+  cwd?: string;
+  readonly?: boolean;
 }
 
 // =============================================================================
@@ -153,7 +155,7 @@ function findToolCallIndex(entries: ThreadEntry[], toolCallId: string): number {
 // ChatInterface Component
 // =============================================================================
 
-export function ChatInterface({ client, agentId }: ChatInterfaceProps) {
+export function ChatInterface({ client, agentId, cwd, readonly }: ChatInterfaceProps) {
   // Flat list of entries (like Zed's entries: Vec<AgentThreadEntry>)
   const [entries, setEntries] = useState<ThreadEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -598,8 +600,8 @@ export function ChatInterface({ client, agentId }: ChatInterfaceProps) {
 
     // 3. Create new session (like Zed's initial_state -> connection.new_session())
     // The session_created handler will set sessionReady=true when ready
-    client.createSession(undefined, permissionMode);
-  }, [client, isLoading, resetThreadState, permissionMode]);
+    client.createSession(cwd, permissionMode);
+  }, [client, isLoading, resetThreadState, permissionMode, cwd]);
 
   // Cancel handler - matches Zed's cancel() logic in acp_thread.rs
   // 1. Mark all pending/running/waiting_for_confirmation tool calls as canceled
@@ -843,6 +845,7 @@ export function ChatInterface({ client, agentId }: ChatInterfaceProps) {
       )}
 
       {/* Model selector + New thread + ChatInput */}
+      {!readonly && (
       <div className="flex-shrink-0">
         <div className="max-w-3xl mx-auto w-full px-4 sm:px-8 pb-1 flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -877,6 +880,14 @@ export function ChatInterface({ client, agentId }: ChatInterfaceProps) {
           sessionId={activeSessionId}
         />
       </div>
+      )}
+      {readonly && (
+      <div className="flex-shrink-0">
+        <div className="max-w-3xl mx-auto w-full px-4 sm:px-8 py-3 text-center">
+          <span className="text-xs text-text-muted">只读模式 — 无法发送消息</span>
+        </div>
+      </div>
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
   storeListAcpAgents,
   storeListAcpAgentsByUserId,
   storeListOnlineAcpAgents,
+  storeListSessionsForAgentByCwd,
 } from "../store";
 import { db } from "../db";
 import { user } from "../db/schema";
@@ -275,6 +276,53 @@ describe("store", () => {
       storeCreateEnvironment({ secret: "s1", userId: "u1", workerType: "acp", machineName: "a1" });
       storeCreateEnvironment({ secret: "s2", userId: "u1", workerType: "acp", machineName: "a2" });
       expect(storeListOnlineAcpAgents()).toHaveLength(2);
+    });
+  });
+
+  // ---------- storeListSessionsForAgentByCwd ----------
+
+  describe("storeListSessionsForAgentByCwd", () => {
+    test("returns sessions for agent with matching cwd (exact)", () => {
+      ensureUser("u-cwd1");
+      const env = storeCreateEnvironment({ secret: "s", userId: "u-cwd1", workerType: "acp", workspacePath: "/home/user/project" });
+      storeCreateSession({ environmentId: env.id, title: "session 1", userId: "u-cwd1" });
+      storeCreateSession({ environmentId: env.id, title: "session 2", userId: "u-cwd1" });
+
+      const result = storeListSessionsForAgentByCwd(env.id, "/home/user/project");
+      expect(result).toHaveLength(2);
+    });
+
+    test("returns sessions for agent with prefix cwd match", () => {
+      ensureUser("u-cwd2");
+      const env = storeCreateEnvironment({ secret: "s", userId: "u-cwd2", workerType: "acp", workspacePath: "/home/user/project/subdir" });
+      storeCreateSession({ environmentId: env.id, title: "session 1", userId: "u-cwd2" });
+
+      const result = storeListSessionsForAgentByCwd(env.id, "/home/user/project");
+      expect(result).toHaveLength(1);
+    });
+
+    test("returns empty when cwd does not match", () => {
+      ensureUser("u-cwd3");
+      const env = storeCreateEnvironment({ secret: "s", userId: "u-cwd3", workerType: "acp", workspacePath: "/home/user/other-project" });
+      storeCreateSession({ environmentId: env.id, title: "session 1", userId: "u-cwd3" });
+
+      const result = storeListSessionsForAgentByCwd(env.id, "/home/user/project");
+      expect(result).toHaveLength(0);
+    });
+
+    test("returns all sessions when cwd is not specified", () => {
+      ensureUser("u-cwd4");
+      const env = storeCreateEnvironment({ secret: "s", userId: "u-cwd4", workerType: "acp", workspacePath: "/home/user/project" });
+      storeCreateSession({ environmentId: env.id, title: "session 1", userId: "u-cwd4" });
+      storeCreateSession({ environmentId: env.id, title: "session 2", userId: "u-cwd4" });
+
+      const result = storeListSessionsForAgentByCwd(env.id);
+      expect(result).toHaveLength(2);
+    });
+
+    test("returns empty for non-existent agent", () => {
+      const result = storeListSessionsForAgentByCwd("env_nonexistent", "/any/path");
+      expect(result).toHaveLength(0);
     });
   });
 

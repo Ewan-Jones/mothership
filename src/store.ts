@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { db, sqlite } from "./db";
-import { environment, user } from "./db/schema";
-import { eq, and } from "drizzle-orm";
+import { environment, user, shareLink, shareEventSnapshot } from "./db/schema";
+import { eq, and, isNull, gt, or, sql } from "drizzle-orm";
 
 // ---------- Types ----------
 
@@ -37,6 +37,7 @@ export interface SessionRecord {
   workerEpoch: number;
   username: string | null;
   userId: string | null;
+  shareMode: "none" | "readonly" | "writable";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -189,6 +190,7 @@ export function storeCreateSession(req: {
     workerEpoch: 0,
     username: req.username ?? null,
     userId: req.userId ?? null,
+    shareMode: "none" as const,
     createdAt: now,
     updatedAt: now,
   };
@@ -219,8 +221,115 @@ export function storeListSessionsByUserId(userId: string): SessionRecord[] {
   return [...sessions.values()].filter((s) => s.userId === userId);
 }
 
+export function storeListSessionsForAgentByCwd(agentId: string, cwd?: string): SessionRecord[] {
+  const env = storeGetEnvironment(agentId);
+  if (!env) return [];
+  if (cwd) {
+    const normalizedCwd = cwd.endsWith("/") ? cwd : cwd + "/";
+    const normalizedWp = env.workspacePath.endsWith("/") ? env.workspacePath : env.workspacePath + "/";
+    if (env.workspacePath !== cwd && !normalizedWp.startsWith(normalizedCwd)) {
+      return [];
+    }
+  }
+  return storeListSessionsByEnvironment(agentId);
+}
+
 export function storeDeleteSession(id: string): boolean {
   return sessions.delete(id);
+}
+
+// ---------- Share Link ----------
+
+export function storeCreateShareLink(
+  sessionId: string,
+  environmentId: string,
+  mode: string,
+  expiresAt: Date | null,
+  createdBy: string,
+) {
+  const id = `share_${uuid().replace(/-/g, "")}`;
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  const now = new Date();
+  db.insert(shareLink).values({
+    id,
+    sessionId,
+    environmentId,
+    token,
+    mode: mode as "readonly" | "writable",
+    expiresAt,
+    createdBy,
+    accessCount: 0,
+    lastAccessedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  }).run();
+  return { id, sessionId, environmentId, token, mode, expiresAt, createdBy, accessCount: 0, lastAccessedAt: null as Date | null, createdAt: now, updatedAt: now };
+}
+
+export function storeGetShareLink(id: string) {
+  const rows = db.select().from(shareLink).where(eq(shareLink.id, id)).limit(1).all();
+  return rows[0] ?? undefined;
+}
+
+export function storeGetShareLinkByToken(token: string) {
+  const rows = db.select().from(shareLink).where(eq(shareLink.token, token)).limit(1).all();
+  return rows[0] ?? undefined;
+}
+
+export function storeListShareLinksBySession(sessionId: string) {
+  return db.select().from(shareLink).where(eq(shareLink.sessionId, sessionId)).all();
+}
+
+export function storeDeleteShareLink(id: string): boolean {
+  db.delete(shareLink).where(eq(shareLink.id, id)).run();
+  const changes = (sqlite.query("SELECT changes() as c").get() as { c: number }).c;
+  return changes > 0;
+}
+
+export function storeUpdateShareLinkAccess(id: string): void {
+  db.update(shareLink).set({
+    accessCount: sql`${shareLink.accessCount} + 1`,
+    lastAccessedAt: new Date(),
+    updatedAt: new Date(),
+  }).where(eq(shareLink.id, id)).run();
+}
+
+export function storeRefreshSessionShareMode(sessionId: string): void {
+  const links = db.select().from(shareLink).where(eq(shareLink.sessionId, sessionId)).all();
+  const now = Date.now();
+  let mode: "none" | "readonly" | "writable" = "none";
+  for (const link of links) {
+    const expired = link.expiresAt !== null && link.expiresAt.getTime() < now;
+    if (!expired) {
+      if (link.mode === "writable") { mode = "writable"; break; }
+      if (link.mode === "readonly" && mode === "none") { mode = "readonly"; }
+    }
+  }
+  const rec = sessions.get(sessionId);
+  if (rec) rec.shareMode = mode;
+}
+
+// ---------- Share Event Snapshot ----------
+
+/** Persist an event snapshot for a share link (overwrites previous) */
+export function storeSaveEventSnapshot(shareLinkId: string, eventsJson: string): void {
+  // Delete previous snapshot
+  db.delete(shareEventSnapshot).where(eq(shareEventSnapshot.shareLinkId, shareLinkId)).run();
+  db.insert(shareEventSnapshot).values({
+    id: `snap_${uuid().replace(/-/g, "")}`,
+    shareLinkId,
+    events: eventsJson,
+    createdAt: new Date(),
+  }).run();
+}
+
+/** Load the event snapshot for a share link (returns null if none) */
+export function storeGetEventSnapshot(shareLinkId: string): string | null {
+  const rows = db.select({ events: shareEventSnapshot.events })
+    .from(shareEventSnapshot)
+    .where(eq(shareEventSnapshot.shareLinkId, shareLinkId))
+    .limit(1).all();
+  return rows.length > 0 ? rows[0].events : null;
 }
 
 // ---------- Session Ownership (UUID-based) ----------
@@ -391,6 +500,7 @@ export function storeReset() {
   } catch {
     // db may be mocked in test environment
   }
+  try { db.delete(shareLink).run(); } catch { /* db may be mocked */ }
   sessions.clear();
   sessionWorkers.clear();
   tokens.clear();

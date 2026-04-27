@@ -79,6 +79,7 @@ function formatRelativeTime(date: Date | null): string {
 
 interface ThreadHistoryProps {
   client: ACPClient;
+  cwd?: string;
   // Returns Promise to allow loading state tracking; resolves when session is loaded
   onSelectSession: (session: AgentSessionInfo) => void | Promise<void>;
 }
@@ -88,7 +89,7 @@ interface GroupedSessions {
   sessions: AgentSessionInfo[];
 }
 
-export function ThreadHistory({ client, onSelectSession }: ThreadHistoryProps) {
+export function ThreadHistory({ client, cwd, onSelectSession }: ThreadHistoryProps) {
   const [sessions, setSessions] = useState<AgentSessionInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   // Start with isLoading=true to prevent flash of "no threads" message
@@ -112,14 +113,14 @@ export function ThreadHistory({ client, onSelectSession }: ThreadHistoryProps) {
     setError(null);
 
     try {
-      const response = await client.listSessions();
+      const response = await client.listSessions(cwd ? { cwd } : undefined);
       setSessions(response.sessions);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, [client]);
+  }, [client, cwd]);
 
   useEffect(() => {
     if (supportsHistory) {

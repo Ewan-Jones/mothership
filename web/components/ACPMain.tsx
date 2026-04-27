@@ -6,18 +6,28 @@ import { cn } from "../src/lib/utils";
 import { MessageSquare, Plus, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
+import { apiGetEnvironment } from "../src/api/client";
 
 interface ACPMainProps {
   client: ACPClient;
   agentId?: string;
+  readonly?: boolean;
 }
 
 /**
  * Main container — Anthropic sidebar + chat layout.
  * Sidebar: sectioned by recency, orange active state, warm raised bg.
  */
-export function ACPMain({ client, agentId }: ACPMainProps) {
+export function ACPMain({ client, agentId, readonly }: ACPMainProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [cwd, setCwd] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!agentId) return;
+    apiGetEnvironment(agentId)
+      .then((env) => setCwd(env.workspace_path.replace(/\/+$/, "")))
+      .catch(() => {});
+  }, [agentId]);
 
   // Handle session selection
   const handleSelectSession = useCallback(async (session: AgentSessionInfo) => {
@@ -36,8 +46,8 @@ export function ACPMain({ client, agentId }: ACPMainProps) {
 
   return (
     <div className="flex h-full w-full">
-      {/* 侧边栏 — Anthropic warm sidebar, hidden on mobile */}
-      <div
+      {/* 侧边栏 — Anthropic warm sidebar, hidden on mobile / hidden in readonly share mode */}
+      {!readonly && <div
         className={cn(
           "hidden md:flex flex-col border-r border-border/60 bg-surface-1/50 transition-all duration-200 flex-shrink-0",
           sidebarCollapsed ? "w-12" : "w-64",
@@ -80,14 +90,14 @@ export function ACPMain({ client, agentId }: ACPMainProps) {
         {/* 会话列表 */}
         {!sidebarCollapsed && (
           <ScrollArea className="flex-1">
-            <SidebarSessionList client={client} onSelectSession={handleSelectSession} />
+            <SidebarSessionList client={client} cwd={cwd} onSelectSession={handleSelectSession} />
           </ScrollArea>
         )}
-      </div>
+      </div>}
 
       {/* 聊天区域 */}
       <div className="flex-1 flex flex-col min-w-0">
-        <ChatInterface client={client} agentId={agentId} />
+        <ChatInterface client={client} agentId={agentId} cwd={cwd} readonly={readonly} />
       </div>
     </div>
   );
@@ -99,9 +109,11 @@ export function ACPMain({ client, agentId }: ACPMainProps) {
 
 function SidebarSessionList({
   client,
+  cwd,
   onSelectSession,
 }: {
   client: ACPClient;
+  cwd?: string;
   onSelectSession: (session: AgentSessionInfo) => void;
 }) {
   const [sessions, setSessions] = useState<AgentSessionInfo[]>([]);
@@ -115,14 +127,14 @@ function SidebarSessionList({
     }
     setLoading(true);
     try {
-      const response = await client.listSessions();
+      const response = await client.listSessions(cwd ? { cwd } : undefined);
       setSessions(response.sessions);
     } catch (err) {
       console.warn("[SidebarSessionList] Failed to load:", err);
     } finally {
       setLoading(false);
     }
-  }, [client]);
+  }, [client, cwd]);
 
   useEffect(() => {
     if (client.getState() === "connected" && client.supportsSessionList) {
