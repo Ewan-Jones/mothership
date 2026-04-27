@@ -491,6 +491,10 @@ export class ACPClient {
           this.heartbeatTimeout = null;
         }
         break;
+
+      case "keep_alive":
+        // Server-side keepalive, no action needed
+        break;
     }
   }
 
