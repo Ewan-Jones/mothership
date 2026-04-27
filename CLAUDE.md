@@ -380,7 +380,6 @@ bun test web/src/__tests__/app-i18n.test.ts
 
 后端 `tsconfig.json` 已配置为自包含（不依赖外部 `tsconfig.base.json`）：
 - `target: ES2022`、`module: ES2022`、`moduleResolution: bundler`
-- `downlevelIteration: true`（Map/Set 展开需要）
 - `types: ["bun"]`（依赖 `@types/bun`，已安装在 devDependencies）
 - 前端有独立的 `web/tsconfig.json`
 

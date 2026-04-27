@@ -1,4 +1,4 @@
-import type { Session, Environment, EnvironmentDetail, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent } from "../types";
+import type { Session, Environment, EnvironmentDetail, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent, ChannelProviderInfo, ChannelInfo } from "../types";
 import type { FileListResponse, FileContent, FileUploadResult, FileWriteResult } from "../types";
 import type { ProviderInfo, ProviderDetail, ModelConfig, AgentInfo, AgentDetail, SkillInfo, SkillDetail, McpServerInfo, McpServerDetail, McpServerConfig, McpToolInfo, McpInspectResult, ApiResponse } from "../types/config";
 
@@ -125,6 +125,20 @@ export function apiDeleteInstance(id: string) {
 
 export function apiSpawnInstanceFromEnvironment(environmentId: string) {
   return api<CreateInstanceResponse>("POST", "/web/instances/from-environment", { environmentId });
+}
+
+// --- Channels ---
+
+export function apiListChannelProviders() {
+  return api<ChannelProviderInfo[]>("GET", "/web/channels/providers");
+}
+
+export function apiListChannels() {
+  return api<ChannelInfo[]>("GET", "/web/channels");
+}
+
+export function apiCreateChannel(type: ChannelProviderInfo["type"]) {
+  return api<ChannelInfo>("POST", "/web/channels", { type });
 }
 
 // --- API Keys ---

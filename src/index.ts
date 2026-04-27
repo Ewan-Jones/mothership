@@ -18,6 +18,7 @@ import webApiKeys from "./routes/web/api-keys";
 import webConfig from "./routes/web/config";
 import webInstances from "./routes/web/instances";
 import webTasks from "./routes/web/tasks";
+import webChannels from "./routes/web/channels";
 import fileRoutes from "./routes/web/files";
 import { stopAllInstances } from "./services/instance";
 import { migrateSkillsDir } from "./services/skill";
@@ -86,6 +87,7 @@ app.route("/web", webApiKeys);
 app.route("/web", webConfig);
 app.route("/web", webInstances);
 app.route("/web", webTasks);
+app.route("/web", webChannels);
 
 // ACP protocol routes
 console.log("[RCS] ACP support enabled");

@@ -108,3 +108,27 @@ describe("instance API functions", () => {
     expect(fetchMock.lastOpts.method).toBe("DELETE");
   });
 });
+
+describe("channel API functions", () => {
+  test("apiListChannelProviders — GET /web/channels/providers", async () => {
+    fetchMock.responseData = [];
+    await client.apiListChannelProviders();
+    expect(fetchMock.lastUrl).toBe("/web/channels/providers");
+    expect(fetchMock.lastOpts.method).toBe("GET");
+  });
+
+  test("apiListChannels — GET /web/channels", async () => {
+    fetchMock.responseData = [];
+    await client.apiListChannels();
+    expect(fetchMock.lastUrl).toBe("/web/channels");
+    expect(fetchMock.lastOpts.method).toBe("GET");
+  });
+
+  test("apiCreateChannel — POST /web/channels", async () => {
+    fetchMock.responseData = { id: "placeholder", type: "wechat", label: "微信", status: "disabled" };
+    await client.apiCreateChannel("wechat");
+    expect(fetchMock.lastUrl).toBe("/web/channels");
+    expect(fetchMock.lastOpts.method).toBe("POST");
+    expect(fetchMock.lastOpts.body).toBe(JSON.stringify({ type: "wechat" }));
+  });
+});

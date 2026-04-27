@@ -20,6 +20,21 @@ export interface EnvironmentDetail extends Environment {
   max_sessions: number;
 }
 
+export type ChannelProviderStatus = "disabled";
+
+export interface ChannelProviderInfo {
+  type: "wechat" | "feishu";
+  label: string;
+  status: ChannelProviderStatus;
+}
+
+export interface ChannelInfo {
+  id: string;
+  type: ChannelProviderInfo["type"];
+  label: string;
+  status: string;
+}
+
 export interface CreateEnvironmentRequest {
   name: string;
   description?: string;

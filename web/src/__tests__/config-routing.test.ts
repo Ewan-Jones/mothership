@@ -18,6 +18,10 @@ describe("parseConfigView", () => {
     expect(parseConfigView("/code/skills")).toBe("skills");
   });
 
+  test("/code/channels → channels", () => {
+    expect(parseConfigView("/code/channels")).toBe("channels");
+  });
+
   test("/code/ → null", () => {
     expect(parseConfigView("/code/")).toBeNull();
   });

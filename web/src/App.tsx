@@ -18,6 +18,7 @@ import {
     Bot,
     Wrench,
     Plug,
+    MessageSquare,
     Clock,
     KeyRound,
 } from "lucide-react";
@@ -43,9 +44,12 @@ const McpPage = lazy(() =>
 const TasksPage = lazy(() =>
     import("./pages/TasksPage").then((m) => ({ default: m.TasksPage })),
 );
+const ChannelsPage = lazy(() =>
+    import("./pages/ChannelsPage").then((m) => ({ default: m.ChannelsPage })),
+);
 
 export function parseConfigView(pathname: string): string | null {
-    const configViews = ["models", "agents", "skills", "mcp", "tasks"];
+    const configViews = ["models", "agents", "skills", "mcp", "tasks", "channels"];
     const segment = pathname.replace(/^\/code\/?/, "").split("/")[0];
     return configViews.includes(segment) ? segment : null;
 }
@@ -59,7 +63,8 @@ type ViewId =
     | "agents"
     | "skills"
     | "mcp"
-    | "tasks";
+    | "tasks"
+    | "channels";
 
 export default function App() {
     const { data: session, isPending } = useSession();
@@ -71,7 +76,7 @@ export default function App() {
 
     const parseRoute = useCallback(() => {
         const path = window.location.pathname;
-        const configViews = ["models", "agents", "skills", "mcp", "tasks"];
+        const configViews = ["models", "agents", "skills", "mcp", "tasks", "channels"];
         const segment = path.replace(/^\/code\/?/, "").split("/")[0];
         if (configViews.includes(segment)) {
             setConfigView(segment);
@@ -176,6 +181,13 @@ export default function App() {
                 onClick: () => navigateToConfig("mcp"),
             },
             {
+                id: "channels",
+                label: "通道",
+                icon: <MessageSquare className="h-4 w-4" />,
+                active: activeView === "channels",
+                onClick: () => navigateToConfig("channels"),
+            },
+            {
                 id: "tasks",
                 label: "定时任务",
                 icon: <Clock className="h-4 w-4" />,
@@ -233,6 +245,8 @@ export default function App() {
                         <McpPage />
                     ) : configView === "tasks" ? (
                         <TasksPage />
+                    ) : configView === "channels" ? (
+                        <ChannelsPage />
                     ) : currentSessionId ? (
                         <SessionDetail
                             key={currentSessionId}
