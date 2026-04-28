@@ -61,6 +61,7 @@ interface ChatInterfaceProps {
   client: ACPClient;
   agentId?: string;
   cwd?: string;
+  cwdReady?: boolean;
   readonly?: boolean;
 }
 
@@ -159,7 +160,7 @@ export interface ChatInterfaceHandle {
   newSession: () => void;
 }
 
-export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(function ChatInterface({ client, agentId, cwd, readonly }, ref) {
+export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(function ChatInterface({ client, agentId, cwd, cwdReady = true, readonly }, ref) {
   // Flat list of entries (like Zed's entries: Vec<AgentThreadEntry>)
   const [entries, setEntries] = useState<ThreadEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -169,6 +170,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [permissionMode, setPermissionMode] = useState(() => localStorage.getItem("acp_permission_mode") || "default");
+  const permissionModeRef = useRef(permissionMode);
   // Reference: Zed's supports_images() checks prompt_capabilities.image
   const [supportsImages, setSupportsImages] = useState(false);
   const { commands: availableCommands } = useCommands(client);
@@ -177,6 +179,10 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     activeSessionIdRef.current = activeSessionId;
   }, [activeSessionId]);
 
+  useEffect(() => {
+    permissionModeRef.current = permissionMode;
+  }, [permissionMode]);
+
   const resetThreadState = useCallback(() => {
     setEntries([]);
     setIsLoading(false);
@@ -184,6 +190,10 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   }, []);
 
   const storageKey = agentId ? `acp_last_session_${agentId}` : null;
+
+  const requestCreateSession = useCallback(async () => {
+    await client.createSession(cwd, permissionModeRef.current);
+  }, [client, cwd]);
 
   const activateSession = useCallback((sessionId: string, options?: { resetEntries?: boolean }) => {
     const shouldResetEntries = options?.resetEntries ?? true;
@@ -194,7 +204,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     setActiveSessionId(sessionId);
     setSessionReady(true);
     setSupportsImages(client.supportsImages);
-    // Persist session ID for restoration on remount
     if (storageKey) {
       try { localStorage.setItem(storageKey, sessionId); } catch {}
     }
@@ -535,41 +544,10 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     client.setErrorMessageHandler((msg) => {
       console.error("[ChatInterface] Agent error:", msg);
       setErrorMessage(msg);
-      // Clear any existing timer
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      // Auto-clear after 5 seconds
       errorTimerRef.current = setTimeout(() => setErrorMessage(null), 5000);
-      // Retry createSession if agent not ready yet
-      if (msg.includes("not connected") || msg.includes("Not connected")) {
-        console.log("[ChatInterface] Agent not ready, retrying createSession in 2s...");
-        setTimeout(() => {
-          if (client.getState() === "connected") {
-            client.createSession(undefined, permissionMode);
-          }
-        }, 2000);
-      }
     });
 
-    // Restore last session or create a new one
-    const lastSessionId = storageKey ? localStorage.getItem(storageKey) : null;
-    if (lastSessionId && (client.supportsLoadSession || client.supportsResumeSession)) {
-      console.log("[ChatInterface] Restoring session:", lastSessionId);
-      const restore = async () => {
-        try {
-          if (client.supportsLoadSession) {
-            await client.loadSession({ sessionId: lastSessionId });
-          } else {
-            await client.resumeSession({ sessionId: lastSessionId });
-          }
-        } catch (err) {
-          console.warn("[ChatInterface] Failed to restore session, creating new one:", err);
-          client.createSession(undefined, permissionMode);
-        }
-      };
-      restore();
-    } else {
-      client.createSession(undefined, permissionMode);
-    }
     return () => {
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
       client.setSessionCreatedHandler(() => {});
@@ -590,6 +568,11 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   // Creates a new session by clearing current state and calling new_session
   // This is the core of Zed's NewThread action
   const handleNewSession = useCallback(() => {
+    if (!cwdReady) {
+      console.log("[ChatInterface] Ignoring new session request until cwd is ready");
+      return;
+    }
+
     console.log("[ChatInterface] Creating new session...");
 
     // Reference: Zed's set_server_state() calls close_all_sessions() before setting new state
@@ -604,8 +587,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
 
     // 3. Create new session (like Zed's initial_state -> connection.new_session())
     // The session_created handler will set sessionReady=true when ready
-    client.createSession(cwd, permissionMode);
-  }, [client, isLoading, resetThreadState, permissionMode, cwd]);
+    requestCreateSession();
+  }, [cwdReady, isLoading, resetThreadState, requestCreateSession]);
 
   useImperativeHandle(ref, () => ({ newSession: handleNewSession }), [handleNewSession]);
 

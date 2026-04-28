@@ -83,7 +83,12 @@ export class ACPClient {
   private onErrorMessage: ErrorMessageHandler | null = null;
 
   // Pending session operations
-  private pendingSessionList: { resolve: (response: ListSessionsResponse) => void; reject: (err: Error) => void; timer: ReturnType<typeof setTimeout> } | null = null;
+  private pendingSessionList: {
+    promise: Promise<ListSessionsResponse>;
+    resolve: (response: ListSessionsResponse) => void;
+    reject: (err: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  } | null = null;
   private pendingSessionLoad: { resolve: (sessionId: string) => void; reject: (err: Error) => void; timer: ReturnType<typeof setTimeout> } | null = null;
   private pendingSessionResume: { resolve: (sessionId: string) => void; reject: (err: Error) => void; timer: ReturnType<typeof setTimeout> } | null = null;
 
@@ -642,22 +647,36 @@ export class ACPClient {
     if (!this.supportsSessionList) {
       throw new Error("Listing sessions is not supported by this agent");
     }
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        if (this.pendingSessionList) {
-          this.pendingSessionList = null;
-          reject(new Error("List sessions timed out"));
-        }
-      }, 30000);
-      this.pendingSessionList = { resolve, reject, timer };
-      try {
-        this.send({ type: "list_sessions", payload: request });
-      } catch (err) {
-        clearTimeout(timer);
-        this.pendingSessionList = null;
-        reject(err);
-      }
+    if (this.pendingSessionList) {
+      return this.pendingSessionList.promise;
+    }
+    let resolveFn!: (response: ListSessionsResponse) => void;
+    let rejectFn!: (err: Error) => void;
+    const promise = new Promise<ListSessionsResponse>((resolve, reject) => {
+      resolveFn = resolve;
+      rejectFn = reject;
     });
+    const timer = setTimeout(() => {
+      if (this.pendingSessionList) {
+        const pending = this.pendingSessionList;
+        this.pendingSessionList = null;
+        pending.reject(new Error("List sessions timed out"));
+      }
+    }, 30000);
+    this.pendingSessionList = {
+      promise,
+      resolve: resolveFn,
+      reject: rejectFn,
+      timer,
+    };
+    try {
+      this.send({ type: "list_sessions", payload: request });
+    } catch (err) {
+      clearTimeout(timer);
+      this.pendingSessionList = null;
+      rejectFn(err instanceof Error ? err : new Error(String(err)));
+    }
+    return promise;
   }
 
   /**

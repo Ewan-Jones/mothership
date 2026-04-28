@@ -23,7 +23,10 @@ export function ACPMain({ client, agentId, initialCwd, readonly }: ACPMainProps)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [cwd, setCwd] = useState<string | undefined>(initialCwd?.replace(/\/+$/, ""));
   const [cwdReady, setCwdReady] = useState(!agentId || !!initialCwd);
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const chatRef = useRef<ChatInterfaceHandle>(null);
+  const bootstrappedRef = useRef(false);
+  const bootstrapRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (initialCwd) {
@@ -48,6 +51,15 @@ export function ACPMain({ client, agentId, initialCwd, readonly }: ACPMainProps)
       });
   }, [agentId, initialCwd]);
 
+  useEffect(() => {
+    bootstrappedRef.current = false;
+    setBootstrapAttempt(0);
+    if (bootstrapRetryTimerRef.current) {
+      clearTimeout(bootstrapRetryTimerRef.current);
+      bootstrapRetryTimerRef.current = null;
+    }
+  }, [agentId, cwd]);
+
   // Handle session selection
   const handleSelectSession = useCallback(async (session: AgentSessionInfo) => {
     try {
@@ -62,6 +74,65 @@ export function ACPMain({ client, agentId, initialCwd, readonly }: ACPMainProps)
       console.error("Failed to load/resume session:", error);
     }
   }, [client]);
+
+  useEffect(() => {
+    if (!cwdReady) {
+      return;
+    }
+    if (client.getState() !== "connected") {
+      return;
+    }
+    if (bootstrappedRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      try {
+        if (!client.supportsSessionList) {
+          console.log("[ACPMain] Session list capability not ready yet, retrying bootstrap...");
+          if (!cancelled) {
+            bootstrapRetryTimerRef.current = setTimeout(() => {
+              setBootstrapAttempt((prev) => prev + 1);
+            }, 500);
+          }
+          return;
+        }
+
+        bootstrappedRef.current = true;
+        const response = await client.listSessions(cwd ? { cwd } : undefined);
+        if (cancelled) return;
+
+        const latest = [...response.sessions].sort((a, b) => {
+          const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return timeB - timeA;
+        })[0];
+
+        if (latest) {
+          await handleSelectSession(latest);
+          return;
+        }
+
+        console.log("[ACPMain] No existing sessions found for cwd, creating new session");
+        chatRef.current?.newSession();
+      } catch (error) {
+        bootstrappedRef.current = false;
+        console.warn("[ACPMain] Failed to bootstrap latest session:", error);
+      }
+    };
+
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+      if (bootstrapRetryTimerRef.current) {
+        clearTimeout(bootstrapRetryTimerRef.current);
+        bootstrapRetryTimerRef.current = null;
+      }
+    };
+  }, [bootstrapAttempt, client, cwd, cwdReady, handleSelectSession]);
 
   return (
     <div className="flex h-full w-full">
@@ -114,7 +185,7 @@ export function ACPMain({ client, agentId, initialCwd, readonly }: ACPMainProps)
 
       {/* 聊天区域 */}
       <div className="flex-1 flex flex-col min-w-0">
-        <ChatInterface ref={chatRef} client={client} agentId={agentId} cwd={cwd} readonly={readonly} />
+        <ChatInterface ref={chatRef} client={client} agentId={agentId} cwd={cwd} cwdReady={cwdReady} readonly={readonly} />
       </div>
     </div>
   );
