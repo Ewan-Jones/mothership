@@ -25,6 +25,7 @@ export interface SpawnedInstance {
 
 const PORT_MIN = 8888;
 const PORT_MAX = 8999;
+const ACP_LINK_BIND_HOST = "0.0.0.0";
 
 const instances = new Map<string, SpawnedInstance>();
 const allocatingPorts = new Set<number>();
@@ -90,7 +91,7 @@ export async function spawnInstance(userId: string): Promise<SpawnedInstance> {
     // 3. Create SpawnedInstance record
     const id = `inst_${randomBytes(8).toString("hex")}`;
     const baseUrl = getBaseUrl();
-    const command = `ACP_RCS_URL=${baseUrl} ACP_RCS_TOKEN=${apiKey} acp-link --group "${apiKey}" --port ${port} opencode -- acp`;
+    const command = `ACP_RCS_URL=${baseUrl} ACP_RCS_TOKEN=${apiKey} acp-link --host ${ACP_LINK_BIND_HOST} --group "${apiKey}" --port ${port} opencode -- acp`;
     const instance: SpawnedInstance = {
       id, userId, port, pid: null,
       status: "starting", command, error: null, apiKey,
@@ -100,6 +101,7 @@ export async function spawnInstance(userId: string): Promise<SpawnedInstance> {
 
     // 4. Spawn child process
     const proc = spawnImpl(acpLinkPath, [
+      "--host", ACP_LINK_BIND_HOST,
       "--group", apiKey,
       "--port", String(port),
       "opencode", "--", "acp",
@@ -216,7 +218,7 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
     if (!available) throw new Error(`Port ${port} is in use`);
 
     const id = `inst_${randomBytes(8).toString("hex")}`;
-    const command = `ACP_RCS_TOKEN=${env.secret} acp-link --group "${env.secret}" --port ${port} opencode -- acp`;
+    const command = `ACP_RCS_TOKEN=${env.secret} acp-link --host ${ACP_LINK_BIND_HOST} --group "${env.secret}" --port ${port} opencode -- acp`;
     const instance: SpawnedInstance = {
       id, userId, port, pid: null,
       status: "starting", command, error: null, apiKey: env.secret,
@@ -230,6 +232,7 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
     // Pass ACP_RCS_TOKEN so acp-link uses it as its local WS auth token.
     // The relay handler connects with this token to trigger agent spawning.
     const proc = spawnImpl(acpLinkPath, [
+      "--host", ACP_LINK_BIND_HOST,
       "--group", env.secret,
       "--port", String(port),
       "opencode", "--", "acp",

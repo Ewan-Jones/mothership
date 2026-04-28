@@ -34,6 +34,7 @@ interface AgentLocalConn {
 const agentLocalWsMap = new Map<string, AgentLocalConn>(); // agentId → localWs + keepalive
 
 const RELAY_KEEPALIVE_INTERVAL_MS = 20_000;
+const INSTANCE_LOCAL_WS_HOST = "127.0.0.1";
 
 /** Send a JSON message to relay WS */
 function sendToRelayWs(ws: WSContext, msg: object): void {
@@ -132,7 +133,7 @@ function openInstanceRelay(ws: WSContext, relayWsId: string, agentId: string, us
     agentLocalWsMap.delete(agentId);
   }
 
-  const localWs = new WebSocket(`ws://localhost:${port}/ws?token=${encodeURIComponent(token)}`);
+  const localWs = new WebSocket(`ws://${INSTANCE_LOCAL_WS_HOST}:${port}/ws?token=${encodeURIComponent(token)}`);
 
   // Independent keep_alive to acp-link — runs even when no relay is connected
   const localKeepalive = setInterval(() => {
