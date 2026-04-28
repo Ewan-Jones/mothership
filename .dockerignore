@@ -1,0 +1,10 @@
+node_modules
+.git
+.DS_Store
+data
+docker/opencode-data
+docker/workspaces
+web/dist
+dist
+spec
+*.log
