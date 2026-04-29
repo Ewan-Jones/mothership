@@ -9,6 +9,7 @@ import {
     storeListSessionsByEnvironment,
     storeCreateSession,
 } from "../../store";
+import type { EnvironmentRecord } from "../../store";
 import { getSection } from "../../services/config";
 import {
     findRunningInstanceByEnvironment,
@@ -50,7 +51,7 @@ function validateWorkspacePath(p: string): string | null {
     return null;
 }
 
-function sanitizeResponse(row: any) {
+function sanitizeResponse(row: EnvironmentRecord) {
     return {
         id: row.id,
         name: row.name,
@@ -237,7 +238,7 @@ app.put("/environments/:id", sessionAuth, async (c) => {
     }
 
     const body = await c.req.json();
-    const patch: Record<string, unknown> = {};
+    const patch: Partial<Pick<EnvironmentRecord, "name" | "description" | "workspacePath" | "agentName" | "autoStart">> = {};
 
     if (body.name !== undefined) {
         if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(body.name)) {
@@ -291,7 +292,7 @@ app.put("/environments/:id", sessionAuth, async (c) => {
 
     storeUpdateEnvironment(envId, patch);
     const updated = storeGetEnvironment(envId);
-    return c.json(sanitizeResponse(updated), 200);
+    return c.json(sanitizeResponse(updated!), 200);
 });
 
 /** POST /web/environments/:id/enter — Enter an environment (auto-spawn instance if needed) */

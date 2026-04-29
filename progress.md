@@ -16,3 +16,17 @@
 ### 测试补充
 - 新增 `session-service.test.ts`：覆盖 `toWebSessionId`、`isSessionClosedStatus`、`resolveExistingSessionId`、`resolveOwnedWebSessionId`（含 auto-bind）、`listWebSessionsByOwnerUuid`、`touchSession` 等函数，共 23 个测试
 - 扩展 `store.test.ts`：补充 Session Ownership、Work Items、Session Workers、storeListAllEnvironments 测试，新增 11 个测试
+
+## 2026-04-29 (Round 2)
+
+### work-dispatch.ts 优化
+- 合并重复的 `config` 和 `getBaseUrl` import 为单行
+- 移除 `heartbeatWork` 中的 `as any` 类型断言，传入空对象即可触发 updatedAt 更新
+
+### web/environments.ts 路由优化
+- `sanitizeResponse` 参数类型从 `any` 改为 `EnvironmentRecord`，增强类型安全
+- `storeUpdateEnvironment` 的 patch 类型从 `Record<string, unknown>` 改为 `Partial<Pick<EnvironmentRecord, ...>>`，防止非法字段传入
+- 添加 `EnvironmentRecord` 类型导入
+
+### 测试补充
+- 新增 `mcp-inspector.test.ts`（7 个测试）：验证 McpInspectResult/McpToolItem 类型结构和 URL 校验

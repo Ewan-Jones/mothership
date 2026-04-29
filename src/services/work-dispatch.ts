@@ -7,8 +7,7 @@ import {
   storeListSessionsByEnvironment,
   storeGetEnvironment,
 } from "../store";
-import { config } from "../config";
-import { getBaseUrl } from "../config";
+import { config, getBaseUrl } from "../config";
 import type { WorkResponse } from "../types/api";
 
 /** Encode work secret as base64 JSON (no JWT — just API key as token) */
@@ -80,7 +79,7 @@ export function stopWork(workId: string) {
 }
 
 export function heartbeatWork(workId: string): { lease_extended: boolean; state: string; last_heartbeat: string; ttl_seconds: number } {
-  storeUpdateWorkItem(workId, {} as any); // just bump updatedAt
+  storeUpdateWorkItem(workId, {}); // bump updatedAt
   const item = storeGetWorkItem(workId);
   const now = new Date();
   return {
