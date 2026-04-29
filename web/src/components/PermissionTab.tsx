@@ -369,7 +369,7 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
       <div>
         <Label className="text-sm font-medium">全局策略</Label>
         <p className="text-xs text-muted-foreground mb-1">
-          设置后所有工具继承此策略，未设置则使用 OpenCode 内置默认值
+          设置后所有工具继承此策略，未设置则使用 Agent引擎 内置默认值
         </p>
         <Select value={globalStrategy} onValueChange={v => {
           const next = v === "__unset__" ? "" : v as ToggleValue;
