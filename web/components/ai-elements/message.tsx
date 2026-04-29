@@ -28,6 +28,7 @@ import {
     lazy,
     memo,
     Suspense,
+    useCallback,
     useContext,
     useEffect,
     useState,
@@ -341,52 +342,79 @@ export type MessageResponseProps = {
     children?: string;
     className?: string;
     mode?: "static" | "streaming";
+    sessionId?: string;
 };
 
 export const MessageResponse = memo(
-    ({ className, children, ...props }: MessageResponseProps) => (
-        <StreamdownErrorBoundary fallback={children}>
-            <Suspense
-                fallback={
-                    <div
+    ({ className, children, sessionId, ...props }: MessageResponseProps) => {
+        const urlTransform = useCallback(
+            (url: string) => {
+                if (!sessionId) return url;
+                // Rewrite relative paths like ./user/xxx, user/xxx, /user/xxx
+                const match = url.match(/^(?:\.?\/)?(user\/.*)$/);
+                if (match) {
+                    return `/web/sessions/${sessionId}/${match[1]}?preview=true`;
+                }
+                return url;
+            },
+            [sessionId],
+        );
+
+        return (
+            <StreamdownErrorBoundary fallback={children}>
+                <Suspense
+                    fallback={
+                        <div
+                            className={cn(
+                                "whitespace-pre-wrap break-words",
+                                className,
+                            )}>
+                            {children}
+                        </div>
+                    }>
+                    <LazyStreamdown
+                        allowedTags={{
+                            iframe: ["src", "width", "height", "title", "sandbox", "loading"],
+                        }}
+                        components={{
+                            img: ({ src, alt, ...rest }: Record<string, unknown>) => (
+                                <img
+                                    src={src as string}
+                                    alt={(alt as string) || ""}
+                                    style={{ maxWidth: "100%", maxHeight: "50vh", objectFit: "contain" }}
+                                    {...Object.fromEntries(
+                                        Object.entries(rest).filter(([k]) => !["children", "node"].includes(k)),
+                                    )}
+                                />
+                            ),
+                            iframe: ({ src, width, height, title, ...rest }: Record<string, unknown>) => (
+                                <iframe
+                                    src={src as string}
+                                    width={(width as string) || "100%"}
+                                    height={(height as string) || "400"}
+                                    title={title as string}
+                                    sandbox="allow-scripts allow-same-origin allow-popups"
+                                    loading="lazy"
+                                    style={{ border: "1px solid #e5e7eb", borderRadius: 8 }}
+                                    {...Object.fromEntries(
+                                        Object.entries(rest).filter(([k]) => !["children", "node"].includes(k)),
+                                    )}
+                                />
+                            ),
+                        }}
+                        urlTransform={urlTransform}
                         className={cn(
-                            "whitespace-pre-wrap break-words",
+                            "size-full break-words [overflow-wrap:anywhere] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
                             className,
-                        )}>
+                        )}
+                        {...props}>
                         {children}
-                    </div>
-                }>
-                <LazyStreamdown
-                    allowedTags={{
-                        iframe: ["src", "width", "height", "title", "sandbox", "loading"],
-                    }}
-                    components={{
-                        iframe: ({ src, width, height, title, ...rest }: Record<string, unknown>) => (
-                            <iframe
-                                src={src as string}
-                                width={(width as string) || "100%"}
-                                height={(height as string) || "400"}
-                                title={title as string}
-                                sandbox="allow-scripts allow-same-origin allow-popups"
-                                loading="lazy"
-                                style={{ border: "1px solid #e5e7eb", borderRadius: 8 }}
-                                {...Object.fromEntries(
-                                    Object.entries(rest).filter(([k]) => !["children", "node"].includes(k)),
-                                )}
-                            />
-                        ),
-                    }}
-                    className={cn(
-                        "size-full break-words [overflow-wrap:anywhere] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-                        className,
-                    )}
-                    {...props}>
-                    {children}
-                </LazyStreamdown>
-            </Suspense>
-        </StreamdownErrorBoundary>
-    ),
-    (prevProps, nextProps) => prevProps.children === nextProps.children,
+                    </LazyStreamdown>
+                </Suspense>
+            </StreamdownErrorBoundary>
+        );
+    },
+    (prevProps, nextProps) => prevProps.children === nextProps.children && prevProps.sessionId === nextProps.sessionId,
 );
 
 MessageResponse.displayName = "MessageResponse";

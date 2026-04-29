@@ -84,9 +84,10 @@ export function UserBubble({ entry }: UserBubbleProps) {
 interface AssistantBubbleProps {
   entry: AssistantMessageEntry;
   isStreaming?: boolean;
+  sessionId?: string;
 }
 
-export function AssistantBubble({ entry, isStreaming }: AssistantBubbleProps) {
+export function AssistantBubble({ entry, isStreaming, sessionId }: AssistantBubbleProps) {
   return (
     <div className="flex gap-4 items-start">
       {/* Agent avatar */}
@@ -124,7 +125,7 @@ export function AssistantBubble({ entry, isStreaming }: AssistantBubbleProps) {
           // 普通消息块 — 直接输出，无包裹卡片
           return (
             <div key={i} className="message-content text-text-primary leading-[1.75]">
-              <MessageResponse>{chunk.text}</MessageResponse>
+              <MessageResponse sessionId={sessionId}>{chunk.text}</MessageResponse>
             </div>
           );
         })}

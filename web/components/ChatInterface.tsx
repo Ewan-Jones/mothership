@@ -808,6 +808,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         }}
         emptyTitle={sessionReady ? "开始对话" : undefined}
         emptyDescription={sessionReady ? "输入消息开始与 ACP agent 聊天" : undefined}
+        sessionId={activeSessionId ?? undefined}
       />
 
       {/* Permission panel — fixed above input */}
