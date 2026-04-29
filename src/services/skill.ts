@@ -1,7 +1,8 @@
-import { readdir, readFile, writeFile, mkdir, rename, rm, cp } from "node:fs/promises";
+import { readdir, readFile, writeFile, mkdir, rename, rm, cp, mkdtemp } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 
 export const OLD_SKILLS_DIR = join(homedir(), ".config", "opencode", "skills");
 export const SKILLS_DIR = join(homedir(), ".agents", "skills");
@@ -27,6 +28,32 @@ export interface SkillDetail {
   enabled: boolean;
   path: string;
   metadata: Record<string, string>;
+}
+
+export interface UploadSkillFile {
+  skillName: string;
+  relativePath: string;
+  content: string;
+}
+
+export type ImportConflictStrategy = "ignore" | "overwrite";
+
+export interface ImportSkillsConflict {
+  name: string;
+  enabled: boolean;
+  path: string;
+}
+
+export interface ImportSkillsResult {
+  imported: SkillInfo[];
+  skipped: string[];
+  conflicts: ImportSkillsConflict[];
+}
+
+interface SkillDirSnapshot {
+  name: string;
+  enabledBackupPath: string | null;
+  disabledBackupPath: string | null;
 }
 
 async function ensureDisabledDir(): Promise<void> {
@@ -83,6 +110,103 @@ function buildSkillMd(name: string, description: string, content: string, metada
   return `---\n${frontmatter}\n---\n${content}`;
 }
 
+function createSkillValidationError(message: string): Error & { code: string } {
+  const error = new Error(message) as Error & { code: string };
+  error.code = "VALIDATION_ERROR";
+  return error;
+}
+
+function normalizeUploadPath(relativePath: string): string {
+  const normalized = relativePath.replaceAll("\\", "/").trim();
+  if (!normalized || normalized === "." || normalized.startsWith("/")) {
+    throw createSkillValidationError("上传文件路径无效");
+  }
+
+  const segments = normalized.split("/");
+  if (segments.some((segment) => !segment || segment === "." || segment === "..")) {
+    throw createSkillValidationError("上传文件路径无效");
+  }
+
+  return segments.join("/");
+}
+
+function groupUploadFiles(files: UploadSkillFile[]): Map<string, UploadSkillFile[]> {
+  const grouped = new Map<string, UploadSkillFile[]>();
+
+  for (const file of files) {
+    const skillName = file.skillName.trim();
+    if (!skillName) {
+      throw createSkillValidationError("上传文件缺少 skill 名称");
+    }
+    if (skillName.includes("/") || skillName.includes("\\")) {
+      throw createSkillValidationError(`Skill 名称不合法: ${skillName}`);
+    }
+
+    const normalizedPath = normalizeUploadPath(file.relativePath);
+    const items = grouped.get(skillName) ?? [];
+    if (items.some((item) => item.relativePath === normalizedPath)) {
+      throw createSkillValidationError(`Skill "${skillName}" 包含重复文件: ${normalizedPath}`);
+    }
+    items.push({ ...file, skillName, relativePath: normalizedPath });
+    grouped.set(skillName, items);
+  }
+
+  return grouped;
+}
+
+async function snapshotSkillDir(name: string, backupRoot: string): Promise<SkillDirSnapshot> {
+  const enabledDir = join(SKILLS_DIR, name);
+  const disabledDir = join(DISABLED_DIR, name);
+  const enabledBackupPath = existsSync(enabledDir) ? join(backupRoot, "enabled", name) : null;
+  const disabledBackupPath = existsSync(disabledDir) ? join(backupRoot, "disabled", name) : null;
+
+  if (enabledBackupPath) {
+    await mkdir(dirname(enabledBackupPath), { recursive: true });
+    await cp(enabledDir, enabledBackupPath, { recursive: true });
+  }
+  if (disabledBackupPath) {
+    await mkdir(dirname(disabledBackupPath), { recursive: true });
+    await cp(disabledDir, disabledBackupPath, { recursive: true });
+  }
+
+  return { name, enabledBackupPath, disabledBackupPath };
+}
+
+async function restoreSkillDir(snapshot: SkillDirSnapshot): Promise<void> {
+  const enabledDir = join(SKILLS_DIR, snapshot.name);
+  const disabledDir = join(DISABLED_DIR, snapshot.name);
+
+  await rm(enabledDir, { recursive: true, force: true });
+  await rm(disabledDir, { recursive: true, force: true });
+
+  if (snapshot.enabledBackupPath && existsSync(snapshot.enabledBackupPath)) {
+    await mkdir(dirname(enabledDir), { recursive: true });
+    await cp(snapshot.enabledBackupPath, enabledDir, { recursive: true });
+  }
+  if (snapshot.disabledBackupPath && existsSync(snapshot.disabledBackupPath)) {
+    await ensureDisabledDir();
+    await cp(snapshot.disabledBackupPath, disabledDir, { recursive: true });
+  }
+}
+
+async function writeImportedSkill(name: string, files: UploadSkillFile[]): Promise<void> {
+  const skillDir = join(SKILLS_DIR, name);
+  await mkdir(skillDir, { recursive: true });
+
+  for (const file of files) {
+    const targetPath = join(skillDir, normalizeUploadPath(file.relativePath));
+    await mkdir(dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, file.content, "utf-8");
+  }
+}
+
+async function readImportedSkillInfo(name: string): Promise<SkillInfo> {
+  const mdPath = join(SKILLS_DIR, name, "SKILL.md");
+  const raw = await readFile(mdPath, "utf-8");
+  const { metadata } = parseFrontmatter(raw);
+  return { name, enabled: true, description: metadata.description ?? "", path: mdPath };
+}
+
 export async function listSkills(): Promise<SkillInfo[]> {
   const skills: SkillInfo[] = [];
   // 扫描已启用的 skills
@@ -127,6 +251,86 @@ export async function getSkill(name: string): Promise<SkillDetail | null> {
     path: filePath,
     metadata: Object.fromEntries(Object.entries(metadata).filter(([k]) => k !== "name" && k !== "description")),
   };
+}
+
+export async function importSkillDirectories(
+  files: UploadSkillFile[],
+  strategy?: ImportConflictStrategy,
+): Promise<ImportSkillsResult> {
+  if (files.length === 0) {
+    throw createSkillValidationError("未提供任何上传文件");
+  }
+
+  const grouped = groupUploadFiles(files);
+  if (grouped.size === 0) {
+    throw createSkillValidationError("未解析出任何 skill");
+  }
+
+  const conflicts: ImportSkillsConflict[] = [];
+  for (const [name, skillFiles] of grouped) {
+    if (!skillFiles.some((file) => file.relativePath === "SKILL.md")) {
+      throw createSkillValidationError(`Skill "${name}" 缺少 SKILL.md`);
+    }
+
+    const enabledPath = join(SKILLS_DIR, name, "SKILL.md");
+    const disabledPath = join(DISABLED_DIR, name, "SKILL.md");
+    if (existsSync(enabledPath)) {
+      conflicts.push({ name, enabled: true, path: enabledPath });
+    } else if (existsSync(disabledPath)) {
+      conflicts.push({ name, enabled: false, path: disabledPath });
+    }
+  }
+
+  if (conflicts.length > 0 && !strategy) {
+    return { imported: [], skipped: [], conflicts };
+  }
+
+  const conflictNames = new Set(conflicts.map((item) => item.name));
+  const skipped = strategy === "ignore" ? [...conflictNames] : [];
+  const pendingEntries = [...grouped.entries()].filter(([name]) => strategy !== "ignore" || !conflictNames.has(name));
+
+  if (pendingEntries.length === 0) {
+    return { imported: [], skipped, conflicts: [] };
+  }
+
+  const backupRoot = await mkdtemp(join(tmpdir(), "rcs-skill-import-"));
+  const snapshots = new Map<string, SkillDirSnapshot>();
+  const attemptedNames: string[] = [];
+  const writtenNames: string[] = [];
+
+  try {
+    if (strategy === "overwrite") {
+      for (const [name] of pendingEntries) {
+        if (!conflictNames.has(name)) continue;
+        const snapshot = await snapshotSkillDir(name, backupRoot);
+        snapshots.set(name, snapshot);
+        await deleteSkillInternal(name);
+      }
+    }
+
+    for (const [name, skillFiles] of pendingEntries) {
+      attemptedNames.push(name);
+      await writeImportedSkill(name, skillFiles);
+      writtenNames.push(name);
+    }
+
+    const imported = [];
+    for (const name of writtenNames) {
+      imported.push(await readImportedSkillInfo(name));
+    }
+
+    return { imported, skipped, conflicts: [] };
+  } catch (error) {
+    for (const name of attemptedNames) {
+      await deleteSkillInternal(name);
+    }
+    for (const snapshot of snapshots.values()) {
+      await restoreSkillDir(snapshot);
+    }
+    throw error;
+  } finally {
+    await rm(backupRoot, { recursive: true, force: true });
+  }
 }
 
 export async function setSkill(name: string, data: { description: string; content: string; metadata?: Record<string, string> }): Promise<SkillInfo> {

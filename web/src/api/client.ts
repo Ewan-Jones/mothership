@@ -1,6 +1,6 @@
 import type { Session, Environment, EnvironmentDetail, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent, ChannelProviderInfo, ChannelInfo } from "../types";
 import type { FileListResponse, FileContent, FileUploadResult, FileWriteResult } from "../types";
-import type { ProviderInfo, ProviderDetail, ModelConfig, AgentInfo, AgentDetail, SkillInfo, SkillDetail, McpServerInfo, McpServerDetail, McpServerConfig, McpToolInfo, McpInspectResult, ApiResponse } from "../types/config";
+import type { ProviderInfo, ProviderDetail, ModelConfig, AgentInfo, AgentDetail, SkillInfo, SkillDetail, McpServerInfo, McpServerDetail, McpServerConfig, McpToolInfo, McpInspectResult, ApiResponse, SkillUploadResponse, SkillUploadConflictResponse } from "../types/config";
 
 
 const BASE = "";
@@ -268,6 +268,26 @@ export function apiEnableSkill(name: string) {
 }
 export function apiDisableSkill(name: string) {
   return apiConfigAction<{ name: string; enabled: boolean }>("skills", "disable", { name });
+}
+
+export async function apiUploadSkills(formData: FormData) {
+  const res = await fetch("/web/config/skills/upload", {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const errorPayload = data?.error ?? { code: "UNKNOWN_ERROR", message: res.statusText };
+    const error = new Error(errorPayload.message || errorPayload.code) as Error & {
+      code?: string;
+      data?: SkillUploadConflictResponse;
+    };
+    error.code = errorPayload.code;
+    error.data = data?.data;
+    throw error;
+  }
+  return data.data as SkillUploadResponse;
 }
 
 // --- MCP ---

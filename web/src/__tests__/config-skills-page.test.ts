@@ -1,5 +1,11 @@
 import { describe, test, expect } from "bun:test";
-import { validateSkillForm, buildSkillMetadata } from "../pages/SkillsPage";
+import {
+  validateSkillForm,
+  getUploadResultMessage,
+  getUploadConflictData,
+  getInvalidUploadSkillNames,
+  getUploadItemSummaries,
+} from "../pages/SkillsPage";
 
 describe("validateSkillForm", () => {
   test("empty name returns error", () => {
@@ -15,16 +21,50 @@ describe("validateSkillForm", () => {
   });
 });
 
-describe("buildSkillMetadata", () => {
-  test("all empty returns undefined", () => {
-    expect(buildSkillMetadata("", "")).toBeUndefined();
+describe("getUploadResultMessage", () => {
+  test("only imported", () => {
+    expect(getUploadResultMessage(2, 0)).toBe("已导入 2 个技能");
   });
 
-  test("only license", () => {
-    expect(buildSkillMetadata("MIT", "")).toEqual({ license: "MIT" });
+  test("imported with skipped", () => {
+    expect(getUploadResultMessage(2, 1)).toBe("已导入 2 个技能，跳过 1 个冲突技能");
+  });
+});
+
+describe("getUploadConflictData", () => {
+  test("extracts conflict payload from upload error", () => {
+    const error = Object.assign(new Error("冲突"), {
+      code: "SKILL_CONFLICT",
+      data: {
+        conflicts: [{ name: "existing", enabled: true, path: "/tmp/existing/SKILL.md" }],
+        allowedStrategies: ["ignore", "overwrite"],
+      },
+    });
+    expect(getUploadConflictData(error)).toEqual(error.data);
   });
 
-  test("both fields", () => {
-    expect(buildSkillMetadata("MIT", "v1.0")).toEqual({ license: "MIT", compatibility: "v1.0" });
+  test("returns null for non-conflict error", () => {
+    expect(getUploadConflictData(new Error("plain"))).toBeNull();
+  });
+});
+
+describe("getUploadItemSummaries", () => {
+  test("marks invalid item when SKILL.md is missing", () => {
+    expect(getUploadItemSummaries([
+      { skillName: "skill-a", fileCount: 2, hasSkillMd: true, files: [] },
+      { skillName: "broken", fileCount: 1, hasSkillMd: false, files: [] },
+    ])).toEqual([
+      "skill-a (2 个文件)",
+      "broken (1 个文件，缺少 SKILL.md)",
+    ]);
+  });
+});
+
+describe("getInvalidUploadSkillNames", () => {
+  test("returns only invalid directory names", () => {
+    expect(getInvalidUploadSkillNames([
+      { skillName: "skill-a", fileCount: 2, hasSkillMd: true, files: [] },
+      { skillName: "broken", fileCount: 1, hasSkillMd: false, files: [] },
+    ])).toEqual(["broken"]);
   });
 });

@@ -7,6 +7,8 @@ import {
   deleteSkill,
   enableSkill,
   disableSkill,
+  importSkillDirectories,
+  type ImportConflictStrategy,
 } from "../../../services/skill";
 
 const app = new Hono();
@@ -15,8 +17,8 @@ function successResponse(data: unknown) {
   return { success: true, data };
 }
 
-function errorResponse(code: string, message: string) {
-  return { success: false, error: { code, message } };
+function errorResponse(code: string, message: string, data?: unknown) {
+  return { success: false, error: { code, message }, ...(data !== undefined ? { data } : {}) };
 }
 
 async function handleList(c: any) {
@@ -79,6 +81,75 @@ async function handleDisable(c: any, body: { name?: string }) {
   return c.json(successResponse({ name: body.name, enabled: false }));
 }
 
+interface UploadManifestEntry {
+  skillName: string;
+  relativePath: string;
+}
+
+async function handleUpload(c: any) {
+  const formData = await c.req.formData().catch(() => null);
+  if (!formData) {
+    return c.json(errorResponse("VALIDATION_ERROR", "上传表单解析失败"), 400);
+  }
+
+  const manifestRaw = formData.get("manifest");
+  if (typeof manifestRaw !== "string") {
+    return c.json(errorResponse("VALIDATION_ERROR", "缺少 manifest"), 400);
+  }
+
+  let manifest: UploadManifestEntry[];
+  try {
+    const parsed = JSON.parse(manifestRaw);
+    if (!Array.isArray(parsed)) {
+      throw new Error("manifest must be an array");
+    }
+    manifest = parsed;
+  } catch {
+    return c.json(errorResponse("VALIDATION_ERROR", "manifest 格式无效"), 400);
+  }
+
+  const conflictStrategyValue = formData.get("conflictStrategy");
+  let conflictStrategy: ImportConflictStrategy | undefined;
+  if (typeof conflictStrategyValue === "string" && conflictStrategyValue) {
+    if (conflictStrategyValue !== "ignore" && conflictStrategyValue !== "overwrite") {
+      return c.json(errorResponse("VALIDATION_ERROR", "冲突策略无效"), 400);
+    }
+    conflictStrategy = conflictStrategyValue;
+  }
+
+  const files = formData.getAll("files").filter((item: unknown): item is File => item instanceof File);
+  if (manifest.length !== files.length) {
+    return c.json(errorResponse("VALIDATION_ERROR", "上传文件与 manifest 数量不一致"), 400);
+  }
+
+  try {
+    const uploadFiles = await Promise.all(
+      manifest.map(async (entry, index) => ({
+        skillName: entry.skillName,
+        relativePath: entry.relativePath,
+        content: await files[index].text(),
+      })),
+    );
+
+    const result = await importSkillDirectories(uploadFiles, conflictStrategy);
+    if (result.conflicts.length > 0) {
+      return c.json(
+        errorResponse("SKILL_CONFLICT", "检测到同名技能冲突", {
+          conflicts: result.conflicts,
+          allowedStrategies: ["ignore", "overwrite"],
+        }),
+        409,
+      );
+    }
+    return c.json(successResponse(result));
+  } catch (error) {
+    const code = error instanceof Error && "code" in error && typeof error.code === "string" ? error.code : "UNKNOWN_ERROR";
+    const message = error instanceof Error ? error.message : "技能导入失败";
+    const status = code === "VALIDATION_ERROR" ? 400 : 500;
+    return c.json(errorResponse(code, message), status);
+  }
+}
+
 type SkillBody = { action: string; name?: string; data?: { description: string; content: string; metadata?: Record<string, string> } };
 
 app.post("/config/skills", sessionAuth, async (c) => {
@@ -96,5 +167,7 @@ app.post("/config/skills", sessionAuth, async (c) => {
       return c.json(errorResponse("VALIDATION_ERROR", `Unknown action: ${action}`), 400);
   }
 });
+
+app.post("/config/skills/upload", sessionAuth, handleUpload);
 
 export default app;

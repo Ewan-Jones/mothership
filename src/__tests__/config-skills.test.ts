@@ -8,6 +8,8 @@ import { existsSync } from "node:fs";
 const tempDir = await mkdtemp(join(tmpdir(), "skill-route-test-"));
 const skillsDir = join(tempDir, "skills");
 const disabledDir = join(skillsDir, "_disabled");
+let importResult: { imported: any[]; skipped: string[]; conflicts: any[] } = { imported: [], skipped: [], conflicts: [] };
+let importError: (Error & { code?: string }) | null = null;
 
 // Helper to create a skill SKILL.md
 async function createSkill(dir: string, name: string, description: string, content: string, extraMeta?: Record<string, string>) {
@@ -129,6 +131,10 @@ mock.module("../services/skill", () => ({
     await rename(from, to);
     return true;
   },
+  importSkillDirectories: async () => {
+    if (importError) throw importError;
+    return importResult;
+  },
 }));
 
 const skillsRoute = (await import("../routes/web/config/skills")).default;
@@ -138,6 +144,8 @@ describe("Skills Config Route", () => {
     if (existsSync(skillsDir)) await rm(skillsDir, { recursive: true, force: true });
     if (existsSync(disabledDir)) await rm(disabledDir, { recursive: true, force: true });
     await mkdir(skillsDir, { recursive: true });
+    importResult = { imported: [], skipped: [], conflicts: [] };
+    importError = null;
   });
 
   test("list 返回空列表", async () => {
@@ -326,6 +334,85 @@ describe("Skills Config Route", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "unknown" }),
     }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  test("upload 冲突时返回 409 和策略", async () => {
+    importResult = {
+      imported: [],
+      skipped: [],
+      conflicts: [{ name: "existing", enabled: true, path: join(skillsDir, "existing", "SKILL.md") }],
+    };
+    const formData = new FormData();
+    formData.append("manifest", JSON.stringify([{ skillName: "existing", relativePath: "SKILL.md" }]));
+    formData.append("files", new File(["---\nname: \"existing\"\n---\n# Existing"], "SKILL.md"));
+
+    const res = await skillsRoute.request(new Request("http://localhost/config/skills/upload", {
+      method: "POST",
+      body: formData,
+    }));
+
+    expect(res.status).toBe(409);
+    const json = await res.json();
+    expect(json.error.code).toBe("SKILL_CONFLICT");
+    expect(json.data.allowedStrategies).toEqual(["ignore", "overwrite"]);
+    expect(json.data.conflicts).toHaveLength(1);
+  });
+
+  test("upload ignore 成功返回 imported 和 skipped", async () => {
+    importResult = {
+      imported: [{ name: "fresh", enabled: true, description: "Fresh", path: join(skillsDir, "fresh", "SKILL.md") }],
+      skipped: ["existing"],
+      conflicts: [],
+    };
+    const formData = new FormData();
+    formData.append("manifest", JSON.stringify([
+      { skillName: "fresh", relativePath: "SKILL.md" },
+      { skillName: "fresh", relativePath: "references/ref.md" },
+    ]));
+    formData.append("conflictStrategy", "ignore");
+    formData.append("files", new File(["---\ndescription: \"Fresh\"\n---\n# Fresh"], "SKILL.md"));
+    formData.append("files", new File(["ref"], "ref.md"));
+
+    const res = await skillsRoute.request(new Request("http://localhost/config/skills/upload", {
+      method: "POST",
+      body: formData,
+    }));
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.data.imported[0].name).toBe("fresh");
+    expect(json.data.skipped).toEqual(["existing"]);
+  });
+
+  test("upload 缺少 manifest 返回 VALIDATION_ERROR", async () => {
+    const formData = new FormData();
+    formData.append("files", new File(["x"], "SKILL.md"));
+
+    const res = await skillsRoute.request(new Request("http://localhost/config/skills/upload", {
+      method: "POST",
+      body: formData,
+    }));
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  test("upload 服务校验错误映射为 400", async () => {
+    importError = Object.assign(new Error("Skill 缺少 SKILL.md"), { code: "VALIDATION_ERROR" });
+    const formData = new FormData();
+    formData.append("manifest", JSON.stringify([{ skillName: "broken", relativePath: "notes.md" }]));
+    formData.append("files", new File(["# Broken"], "notes.md"));
+
+    const res = await skillsRoute.request(new Request("http://localhost/config/skills/upload", {
+      method: "POST",
+      body: formData,
+    }));
+
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error.code).toBe("VALIDATION_ERROR");

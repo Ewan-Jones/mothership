@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, afterAll } from "bun:test";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
-import { mkdtemp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile, cp } from "node:fs/promises";
 import { existsSync } from "node:fs";
 
 // Since skill.ts uses module-level constants, we re-implement the functions
@@ -28,6 +28,32 @@ interface SkillDetail {
   metadata: Record<string, string>;
 }
 
+interface UploadSkillFile {
+  skillName: string;
+  relativePath: string;
+  content: string;
+}
+
+type ImportConflictStrategy = "ignore" | "overwrite";
+
+interface ImportSkillsConflict {
+  name: string;
+  enabled: boolean;
+  path: string;
+}
+
+interface ImportSkillsResult {
+  imported: SkillInfo[];
+  skipped: string[];
+  conflicts: ImportSkillsConflict[];
+}
+
+interface SkillDirSnapshot {
+  name: string;
+  enabledBackupPath: string | null;
+  disabledBackupPath: string | null;
+}
+
 function parseFrontmatter(raw: string): { metadata: Record<string, string>; content: string } {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
   if (!match) return { metadata: {}, content: raw };
@@ -45,8 +71,91 @@ function buildSkillMd(name: string, description: string, content: string, metada
   return `---\n${frontmatter}\n---\n${content}`;
 }
 
+function createValidationError(message: string): Error & { code: string } {
+  const error = new Error(message) as Error & { code: string };
+  error.code = "VALIDATION_ERROR";
+  return error;
+}
+
+function normalizeUploadPath(relativePath: string): string {
+  const normalized = relativePath.replaceAll("\\", "/").trim();
+  if (!normalized || normalized === "." || normalized.startsWith("/")) {
+    throw createValidationError("上传文件路径无效");
+  }
+  const segments = normalized.split("/");
+  if (segments.some((segment) => !segment || segment === "." || segment === "..")) {
+    throw createValidationError("上传文件路径无效");
+  }
+  return segments.join("/");
+}
+
+function groupUploadFiles(files: UploadSkillFile[]): Map<string, UploadSkillFile[]> {
+  const grouped = new Map<string, UploadSkillFile[]>();
+  for (const file of files) {
+    const skillName = file.skillName.trim();
+    if (!skillName) throw createValidationError("上传文件缺少 skill 名称");
+    if (skillName.includes("/") || skillName.includes("\\")) throw createValidationError(`Skill 名称不合法: ${skillName}`);
+    const normalizedPath = normalizeUploadPath(file.relativePath);
+    const items = grouped.get(skillName) ?? [];
+    if (items.some((item) => item.relativePath === normalizedPath)) {
+      throw createValidationError(`Skill "${skillName}" 包含重复文件: ${normalizedPath}`);
+    }
+    items.push({ ...file, skillName, relativePath: normalizedPath });
+    grouped.set(skillName, items);
+  }
+  return grouped;
+}
+
 async function ensureDisabledDir(): Promise<void> {
   if (!existsSync(DISABLED_DIR)) await mkdir(DISABLED_DIR, { recursive: true });
+}
+
+async function snapshotSkillDir(name: string, backupRoot: string): Promise<SkillDirSnapshot> {
+  const enabledDir = join(SKILLS_DIR, name);
+  const disabledDirPath = join(DISABLED_DIR, name);
+  const enabledBackupPath = existsSync(enabledDir) ? join(backupRoot, "enabled", name) : null;
+  const disabledBackupPath = existsSync(disabledDirPath) ? join(backupRoot, "disabled", name) : null;
+  if (enabledBackupPath) {
+    await mkdir(dirname(enabledBackupPath), { recursive: true });
+    await cp(enabledDir, enabledBackupPath, { recursive: true });
+  }
+  if (disabledBackupPath) {
+    await mkdir(dirname(disabledBackupPath), { recursive: true });
+    await cp(disabledDirPath, disabledBackupPath, { recursive: true });
+  }
+  return { name, enabledBackupPath, disabledBackupPath };
+}
+
+async function restoreSkillDir(snapshot: SkillDirSnapshot): Promise<void> {
+  await rm(join(SKILLS_DIR, snapshot.name), { recursive: true, force: true });
+  await rm(join(DISABLED_DIR, snapshot.name), { recursive: true, force: true });
+  if (snapshot.enabledBackupPath && existsSync(snapshot.enabledBackupPath)) {
+    await cp(snapshot.enabledBackupPath, join(SKILLS_DIR, snapshot.name), { recursive: true });
+  }
+  if (snapshot.disabledBackupPath && existsSync(snapshot.disabledBackupPath)) {
+    await mkdir(DISABLED_DIR, { recursive: true });
+    await cp(snapshot.disabledBackupPath, join(DISABLED_DIR, snapshot.name), { recursive: true });
+  }
+}
+
+async function writeImportedSkill(name: string, files: UploadSkillFile[]): Promise<void> {
+  const skillDir = join(SKILLS_DIR, name);
+  await mkdir(skillDir, { recursive: true });
+  for (const file of files) {
+    const targetPath = join(skillDir, normalizeUploadPath(file.relativePath));
+    await mkdir(dirname(targetPath), { recursive: true });
+    if (file.content === "__FAIL__") {
+      throw new Error("simulated write failure");
+    }
+    await writeFile(targetPath, file.content, "utf-8");
+  }
+}
+
+async function readImportedSkillInfo(name: string): Promise<SkillInfo> {
+  const mdPath = join(SKILLS_DIR, name, "SKILL.md");
+  const raw = await readFile(mdPath, "utf-8");
+  const { metadata } = parseFrontmatter(raw);
+  return { name, enabled: true, description: metadata.description ?? "", path: mdPath };
 }
 
 async function listSkills(): Promise<SkillInfo[]> {
@@ -131,6 +240,65 @@ async function disableSkill(name: string): Promise<boolean> {
   if (!existsSync(from)) return false;
   await rename(from, to);
   return true;
+}
+
+async function importSkillDirectories(files: UploadSkillFile[], strategy?: ImportConflictStrategy): Promise<ImportSkillsResult> {
+  if (files.length === 0) throw createValidationError("未提供任何上传文件");
+  const grouped = groupUploadFiles(files);
+  const conflicts: ImportSkillsConflict[] = [];
+
+  for (const [name, skillFiles] of grouped) {
+    if (!skillFiles.some((file) => file.relativePath === "SKILL.md")) {
+      throw createValidationError(`Skill "${name}" 缺少 SKILL.md`);
+    }
+    const enabledPath = join(SKILLS_DIR, name, "SKILL.md");
+    const disabledPath = join(DISABLED_DIR, name, "SKILL.md");
+    if (existsSync(enabledPath)) conflicts.push({ name, enabled: true, path: enabledPath });
+    else if (existsSync(disabledPath)) conflicts.push({ name, enabled: false, path: disabledPath });
+  }
+
+  if (conflicts.length > 0 && !strategy) return { imported: [], skipped: [], conflicts };
+
+  const conflictNames = new Set(conflicts.map((item) => item.name));
+  const skipped = strategy === "ignore" ? [...conflictNames] : [];
+  const pendingEntries = [...grouped.entries()].filter(([name]) => strategy !== "ignore" || !conflictNames.has(name));
+  const backupRoot = await mkdtemp(join(tempDir, "backup-"));
+  const snapshots = new Map<string, SkillDirSnapshot>();
+  const attemptedNames: string[] = [];
+  const writtenNames: string[] = [];
+
+  try {
+    if (strategy === "overwrite") {
+      for (const [name] of pendingEntries) {
+        if (!conflictNames.has(name)) continue;
+        const snapshot = await snapshotSkillDir(name, backupRoot);
+        snapshots.set(name, snapshot);
+        await deleteSkillInternal(name);
+      }
+    }
+
+    for (const [name, skillFiles] of pendingEntries) {
+      attemptedNames.push(name);
+      await writeImportedSkill(name, skillFiles);
+      writtenNames.push(name);
+    }
+
+    return {
+      imported: await Promise.all(writtenNames.map((name) => readImportedSkillInfo(name))),
+      skipped,
+      conflicts: [],
+    };
+  } catch (error) {
+    for (const name of attemptedNames) {
+      await deleteSkillInternal(name);
+    }
+    for (const snapshot of snapshots.values()) {
+      await restoreSkillDir(snapshot);
+    }
+    throw error;
+  } finally {
+    await rm(backupRoot, { recursive: true, force: true });
+  }
 }
 
 // Helper: create a skill directory with SKILL.md
@@ -255,6 +423,66 @@ Check all the things.`;
     expect(metadata.description).toBe("Review pull requests");
     expect(metadata.version).toBe("1.0");
     expect(content).toBe("# PR Review\n\nCheck all the things.");
+  });
+
+  test("importSkillDirectories 冲突探测时不写盘", async () => {
+    await createSkillFile(SKILLS_DIR, "existing", "Existing", "# Existing");
+    const result = await importSkillDirectories([
+      { skillName: "existing", relativePath: "SKILL.md", content: buildSkillMd("existing", "New", "# New") },
+      { skillName: "existing", relativePath: "references/ref.md", content: "ref" },
+    ]);
+    expect(result.imported).toEqual([]);
+    expect(result.skipped).toEqual([]);
+    expect(result.conflicts).toHaveLength(1);
+    const raw = await readFile(join(SKILLS_DIR, "existing", "SKILL.md"), "utf-8");
+    expect(raw).toContain("Existing");
+    expect(existsSync(join(SKILLS_DIR, "existing", "references", "ref.md"))).toBe(false);
+  });
+
+  test("importSkillDirectories ignore 仅导入非冲突 skill", async () => {
+    await createSkillFile(SKILLS_DIR, "existing", "Existing", "# Existing");
+    const result = await importSkillDirectories([
+      { skillName: "existing", relativePath: "SKILL.md", content: buildSkillMd("existing", "New", "# New") },
+      { skillName: "fresh", relativePath: "SKILL.md", content: buildSkillMd("fresh", "Fresh desc", "# Fresh") },
+      { skillName: "fresh", relativePath: "references/ref.md", content: "fresh-ref" },
+    ], "ignore");
+    expect(result.skipped).toEqual(["existing"]);
+    expect(result.imported).toHaveLength(1);
+    expect(result.imported[0].name).toBe("fresh");
+    expect(existsSync(join(SKILLS_DIR, "fresh", "references", "ref.md"))).toBe(true);
+  });
+
+  test("importSkillDirectories overwrite 整目录替换", async () => {
+    await createSkillFile(SKILLS_DIR, "existing", "Existing", "# Existing");
+    await mkdir(join(SKILLS_DIR, "existing", "references"), { recursive: true });
+    await writeFile(join(SKILLS_DIR, "existing", "references", "old.md"), "old", "utf-8");
+    const result = await importSkillDirectories([
+      { skillName: "existing", relativePath: "SKILL.md", content: buildSkillMd("existing", "Replaced", "# Replaced") },
+      { skillName: "existing", relativePath: "guides/new.md", content: "new" },
+    ], "overwrite");
+    expect(result.imported[0].description).toBe("Replaced");
+    expect(existsSync(join(SKILLS_DIR, "existing", "references", "old.md"))).toBe(false);
+    expect(existsSync(join(SKILLS_DIR, "existing", "guides", "new.md"))).toBe(true);
+  });
+
+  test("importSkillDirectories 写入失败时回滚", async () => {
+    await createSkillFile(SKILLS_DIR, "existing", "Existing", "# Existing");
+    await writeFile(join(SKILLS_DIR, "existing", "legacy.txt"), "legacy", "utf-8");
+    await expect(importSkillDirectories([
+      { skillName: "existing", relativePath: "SKILL.md", content: buildSkillMd("existing", "Updated", "# Updated") },
+      { skillName: "new-skill", relativePath: "SKILL.md", content: buildSkillMd("new-skill", "New", "# New") },
+      { skillName: "new-skill", relativePath: "broken.md", content: "__FAIL__" },
+    ], "overwrite")).rejects.toThrow("simulated write failure");
+    const raw = await readFile(join(SKILLS_DIR, "existing", "SKILL.md"), "utf-8");
+    expect(raw).toContain("Existing");
+    expect(existsSync(join(SKILLS_DIR, "existing", "legacy.txt"))).toBe(true);
+    expect(existsSync(join(SKILLS_DIR, "new-skill"))).toBe(false);
+  });
+
+  test("importSkillDirectories 缺少 SKILL.md 返回 VALIDATION_ERROR", async () => {
+    await expect(importSkillDirectories([
+      { skillName: "broken", relativePath: "notes.md", content: "# Broken" },
+    ])).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 });
 

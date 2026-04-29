@@ -214,6 +214,42 @@ export interface SkillDetail {
     metadata: Record<string, string>;
 }
 
+export interface UploadManifestEntry {
+    skillName: string;
+    relativePath: string;
+}
+
+export interface UploadSkillFileItem {
+    relativePath: string;
+    file: File;
+}
+
+export interface UploadSkillSummary {
+    skillName: string;
+    fileCount: number;
+    hasSkillMd: boolean;
+    files: UploadSkillFileItem[];
+}
+
+export type SkillUploadConflictStrategy = "ignore" | "overwrite";
+
+export interface SkillUploadResponse {
+    imported: SkillInfo[];
+    skipped: string[];
+    conflicts: SkillUploadConflict[];
+}
+
+export interface SkillUploadConflict {
+    name: string;
+    enabled: boolean;
+    path: string;
+}
+
+export interface SkillUploadConflictResponse {
+    conflicts: SkillUploadConflict[];
+    allowedStrategies: SkillUploadConflictStrategy[];
+}
+
 // --- MCP ---
 
 /** 用于前端列表展示的 MCP 服务器信息 */

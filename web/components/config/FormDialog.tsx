@@ -45,8 +45,10 @@ export function FormDialog({
 
   const formContent = (
     <>
-      {children}
-      <DialogFooter>
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {children}
+      </div>
+      <DialogFooter className="shrink-0 border-t bg-background pt-4">
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           取消
         </Button>
@@ -59,18 +61,18 @@ export function FormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${width} max-h-[85vh] grid-rows-[auto_1fr_auto]`}>
-        <DialogHeader>
+      <DialogContent className={`${width} flex max-h-[85vh] flex-col`}>
+        <DialogHeader className="shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {formConfig ? (
           <FormProvider {...methods}>
-            <form onSubmit={handleFormSubmit} className="space-y-4 overflow-y-auto min-h-0">
+            <form onSubmit={handleFormSubmit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
               {formContent}
             </form>
           </FormProvider>
         ) : (
-          <form onSubmit={handleFormSubmit as React.FormEventHandler} className="space-y-4 overflow-y-auto min-h-0">
+          <form onSubmit={handleFormSubmit as React.FormEventHandler} className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
             {formContent}
           </form>
         )}

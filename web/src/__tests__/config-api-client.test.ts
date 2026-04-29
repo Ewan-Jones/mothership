@@ -69,4 +69,42 @@ describe("config api client", () => {
     const { apiGetProvider } = await import("../api/client");
     expect(apiGetProvider("xxx")).rejects.toThrow("Not found");
   });
+
+  test("apiUploadSkills 发送 FormData 且不设置 JSON header", async () => {
+    fetchMock.body = { success: true, data: { imported: [], skipped: [], conflicts: [] } };
+    const { apiUploadSkills } = await import("../api/client");
+    const formData = new FormData();
+    formData.append("manifest", "[]");
+    await apiUploadSkills(formData);
+    const call = (globalThis.fetch as ReturnType<typeof mock>).mock.calls[0];
+    expect(call[0]).toBe("/web/config/skills/upload");
+    expect(call[1].method).toBe("POST");
+    expect(call[1].body).toBe(formData);
+    expect(call[1].headers).toBeUndefined();
+  });
+
+  test("apiUploadSkills 409 错误保留 code 和 data", async () => {
+    fetchMock.status = 409;
+    fetchMock.body = {
+      success: false,
+      error: { code: "SKILL_CONFLICT", message: "检测到同名技能冲突" },
+      data: {
+        conflicts: [{ name: "existing", enabled: true, path: "/tmp/existing/SKILL.md" }],
+        allowedStrategies: ["ignore", "overwrite"],
+      },
+    };
+    const { apiUploadSkills } = await import("../api/client");
+    const formData = new FormData();
+    formData.append("manifest", "[]");
+    try {
+      await apiUploadSkills(formData);
+      throw new Error("expected apiUploadSkills to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      const uploadError = error as Error & { code?: string; data?: { conflicts: unknown[]; allowedStrategies: string[] } };
+      expect(uploadError.code).toBe("SKILL_CONFLICT");
+      expect(uploadError.data?.conflicts).toHaveLength(1);
+      expect(uploadError.data?.allowedStrategies).toEqual(["ignore", "overwrite"]);
+    }
+  });
 });
