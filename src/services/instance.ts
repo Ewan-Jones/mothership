@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import * as net from "node:net";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { createApiKey } from "../auth/api-key-service";
 import { getBaseUrl } from "../config";
 import { log } from "../logger";
@@ -206,6 +207,29 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
 
   const cwd = env.workspacePath || env.directory;
   if (!cwd || !existsSync(cwd)) throw new Error(`Workspace directory does not exist: ${cwd}`);
+
+  // Inject default_agent into workspace config
+  if (env.agentName) {
+    try {
+      const configDir = join(cwd, ".opencode");
+      const configPath = join(configDir, "opencode.json");
+      let config: Record<string, unknown> = {};
+
+      if (existsSync(configPath)) {
+        const raw = readFileSync(configPath, "utf-8");
+        config = JSON.parse(raw);
+      }
+
+      config.default_agent = env.agentName;
+
+      if (!existsSync(configDir)) {
+        mkdirSync(configDir, { recursive: true });
+      }
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+    } catch (err) {
+      log(`[instance] Failed to write .opencode/opencode.json: ${err}`);
+    }
+  }
 
   // Allocate port
   const port = allocatePort();

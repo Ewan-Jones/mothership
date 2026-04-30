@@ -70,6 +70,7 @@ export interface Session {
   title?: string;
   status: string;
   environment_id?: string;
+  agent_name?: string | null;
   source?: string;
   created_at?: number;
   updated_at?: number;

@@ -1,6 +1,7 @@
 import {
   storeCreateSession,
   storeGetSession,
+  storeGetEnvironment,
   storeIsSessionOwner,
   storeGetSessionOwners,
   storeBindSession,
@@ -19,9 +20,11 @@ const WEB_SESSION_PREFIX = "session_";
 const CLOSED_SESSION_STATUSES = new Set(["archived", "inactive"]);
 
 function toResponse(row: { id: string; environmentId: string | null; title: string | null; status: string; source: string; permissionMode: string | null; workerEpoch: number; username: string | null; createdAt: Date; updatedAt: Date }): SessionResponse {
+  const env = row.environmentId ? storeGetEnvironment(row.environmentId) : null;
   return {
     id: row.id,
     environment_id: row.environmentId,
+    agent_name: env?.agentName ?? null,
     title: row.title,
     status: row.status,
     source: row.source,

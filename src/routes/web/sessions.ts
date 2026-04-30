@@ -3,6 +3,7 @@ import type { Next } from "hono";
 import { sessionAuth, uuidAuth, getUuidFromRequest } from "../../auth/middleware";
 import {
   storeGetSession,
+  storeGetEnvironment,
   storeListSessionsByUserId,
 } from "../../store";
 import { getEventBus } from "../../transport/event-bus";
@@ -11,9 +12,11 @@ import { resolveExistingWebSessionId, resolveOwnedWebSessionId } from "../../ser
 const app = new Hono();
 
 function toSessionResponse(row: { id: string; environmentId: string | null; title: string | null; status: string; source: string; permissionMode: string | null; workerEpoch: number; username: string | null; createdAt: Date; updatedAt: Date }) {
+  const env = row.environmentId ? storeGetEnvironment(row.environmentId) : null;
   return {
     id: row.id,
     environment_id: row.environmentId,
+    agent_name: env?.agentName ?? null,
     title: row.title,
     status: row.status,
     source: row.source,

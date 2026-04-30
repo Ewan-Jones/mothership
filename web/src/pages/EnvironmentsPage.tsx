@@ -32,6 +32,8 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
   const [agentOptions, setAgentOptions] = useState<string[]>([]);
   const [enteringEnvId, setEnteringEnvId] = useState<string | null>(null);
   const [instancesMap, setInstancesMap] = useState<Record<string, EnvironmentInstance[]>>({});
+  const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
+  const [stopTarget, setStopTarget] = useState<{ instanceId: string; envName: string } | null>(null);
 
   const loadEnvs = useCallback(async () => {
     try {
@@ -136,6 +138,7 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
     setEnteringEnvId(env.id);
     try {
       const result = await apiEnterEnvironment(env.id);
+      await new Promise((r) => setTimeout(r, 500));
       onNavigateToSession(result.session_id, { cwd: env.workspace_path });
     } catch (err) {
       alert((err as Error).message);
@@ -149,6 +152,7 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
     setEnteringEnvId(env.id);
     try {
       const result = await apiEnterEnvironment(env.id, instanceNumber);
+      await new Promise((r) => setTimeout(r, 500));
       onNavigateToSession(result.session_id, { cwd: env.workspace_path });
     } catch (err) {
       alert((err as Error).message);
@@ -162,6 +166,7 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
     setEnteringEnvId(env.id);
     try {
       const spawnResult = await apiSpawnInstanceFromEnvironment(env.id);
+      await new Promise((r) => setTimeout(r, 500));
       onNavigateToSession(spawnResult.session_id ?? "", { cwd: env.workspace_path });
       await loadEnvs();
     } catch (err) {
@@ -174,11 +179,26 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
   const handleStopInstance = useCallback(async (instanceId: string) => {
     try {
       await apiDeleteInstance(instanceId);
+      await new Promise((r) => setTimeout(r, 500));
       await loadEnvs();
     } catch (err) {
       alert((err as Error).message);
     }
   }, [loadEnvs]);
+
+  const confirmStopInstance = useCallback(async () => {
+    if (!stopTarget) return;
+    try {
+      await apiDeleteInstance(stopTarget.instanceId);
+      await new Promise((r) => setTimeout(r, 500));
+      await loadEnvs();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setStopConfirmOpen(false);
+      setStopTarget(null);
+    }
+  }, [stopTarget, loadEnvs]);
 
   const handleViewSecret = useCallback(async (id: string) => {
     try {
@@ -285,8 +305,9 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
                           onClick={() => {
                             const instances = instancesMap[env.id] ?? [];
                             const active = instances.find(i => i.status === "running" || i.status === "starting");
-                            if (active) handleStopInstance(active.id);
-                            else handleStopInstance(env.instance_id!);
+                            const targetId = active ? active.id : env.instance_id!;
+                            setStopTarget({ instanceId: targetId, envName: env.name });
+                            setStopConfirmOpen(true);
                           }}
                           title="停止实例"
                         >
@@ -487,6 +508,16 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
           title="确认删除"
           description="确定要删除此智能体吗？此操作不可撤销。"
           onConfirm={handleDelete}
+        />
+
+        {/* Stop Instance Confirm Dialog */}
+        <ConfirmDialog
+          open={stopConfirmOpen}
+          onOpenChange={(open) => { setStopConfirmOpen(open); if (!open) setStopTarget(null); }}
+          title="确认停止实例"
+          description={`确定要停止智能体「${stopTarget?.envName ?? ""}」的运行实例吗？正在进行的对话将被中断。`}
+          variant="destructive"
+          onConfirm={confirmStopInstance}
         />
       </div>
     </div>

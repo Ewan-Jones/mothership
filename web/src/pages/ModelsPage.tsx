@@ -18,6 +18,7 @@ import {
   apiGetModels,
 } from "../api/client";
 import type { ProviderInfo, ProviderModel, ModelConfig } from "../types/config";
+import { dispatchConfigChange } from "../lib/config-events";
 
 const NPM_OPTIONS = [
   { id: "openai-compatible", label: "OpenAI 兼容", npm: "@ai-sdk/openai-compatible" },
@@ -142,6 +143,7 @@ function ModelSubrow({ providerId, models, onModelChange }: { providerId: string
       }
       setModelDialogOpen(false);
       onModelChange("save", providerId, mfId.trim());
+      dispatchConfigChange("models");
     } catch (e) {
       toast.error("保存失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
@@ -158,6 +160,7 @@ function ModelSubrow({ providerId, models, onModelChange }: { providerId: string
       const mid = deleteConfirm.modelId;
       setDeleteConfirm(null);
       onModelChange("delete", pid, mid);
+      dispatchConfigChange("models");
     } catch (e) {
       toast.error("删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
@@ -398,6 +401,7 @@ export function ModelsPage() {
       toast.success(editingProvider ? "服务商已更新" : "服务商已创建");
       setDialogOpen(false);
       loadAll();
+      dispatchConfigChange("providers");
     } catch (e) {
       toast.error("保存失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
@@ -433,6 +437,7 @@ export function ModelsPage() {
         p.id === testResult.name ? { ...p, modelCount: p.modelCount + 1 } : p
       ));
       toast.success(`模型 ${modelId} 已添加`);
+      dispatchConfigChange("models");
     } catch (e) {
       toast.error("添加失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
@@ -446,6 +451,7 @@ export function ModelsPage() {
       toast.success("服务商已删除");
       setConfirmOpen(false);
       loadAll();
+      dispatchConfigChange("providers");
     } catch (e) {
       toast.error("删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
@@ -459,6 +465,7 @@ export function ModelsPage() {
       setBatchConfirmOpen(false);
       setSelected([]);
       loadAll();
+      dispatchConfigChange("providers");
     } catch (e) {
       toast.error("批量删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }

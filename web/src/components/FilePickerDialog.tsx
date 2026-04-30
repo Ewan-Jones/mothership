@@ -73,7 +73,7 @@ export function FilePickerDialog({ open, sessionId, onClose, onSelect }: FilePic
     setLoading(true);
     setError(null);
     try {
-      await apiUploadFile(sessionId, currentDir, Array.from(files));
+      await apiUploadFile(sessionId, "user", Array.from(files));
       await loadDirectory(currentDir);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -141,7 +141,7 @@ export function FilePickerDialog({ open, sessionId, onClose, onSelect }: FilePic
               <ArrowLeft className="h-3.5 w-3.5" />
             </Button>
             <span className="text-xs text-text-muted font-display">
-              user/{currentDir}
+              {currentDir || "/"}
             </span>
           </div>
         )}

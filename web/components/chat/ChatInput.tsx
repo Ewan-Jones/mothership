@@ -7,6 +7,7 @@ import type { AvailableCommand } from "../../src/acp/types";
 import type { FileInfo } from "../../src/types";
 import { CommandMenu } from "./CommandMenu";
 import { FilePickerDialog } from "../../src/components/FilePickerDialog";
+import { apiUploadFile } from "../../src/api/client";
 import imageCompression from "browser-image-compression";
 
 // 图片压缩配置
@@ -142,17 +143,50 @@ export function ChatInput({
     setImages((prev) => [...prev, ...newImages]);
   }, [supportsImages]);
 
-  // 选择文件
+  // 选择文件（图片走 base64，其他文件上传到 user/ 文件夹）
   const handleFileSelect = useCallback(async () => {
-    if (!fileInputRef.current) return;
+    if (!fileInputRef.current || !sessionId) return;
     const files = fileInputRef.current.files;
     if (!files || files.length === 0) return;
 
-    const newImages = await processImageFiles(Array.from(files));
-    setImages((prev) => [...prev, ...newImages]);
+    const imageFiles: File[] = [];
+    const otherFiles: File[] = [];
+
+    for (const f of Array.from(files)) {
+      if (f.type.startsWith("image/")) {
+        imageFiles.push(f);
+      } else {
+        otherFiles.push(f);
+      }
+    }
+
+    // 图片：走 base64 压缩流程
+    if (imageFiles.length > 0) {
+      const newImages = await processImageFiles(imageFiles);
+      setImages((prev) => [...prev, ...newImages]);
+    }
+
+    // 非图片：上传到 user/ 文件夹并添加为附件引用
+    if (otherFiles.length > 0) {
+      try {
+        await apiUploadFile(sessionId, "user", otherFiles);
+        const newAttachments: FileAttachment[] = otherFiles.map((f) => ({
+          name: f.name,
+          path: `user/${f.name}`,
+        }));
+        setAttachments((prev) => {
+          const existing = new Set(prev.map((a) => a.path));
+          const unique = newAttachments.filter((a) => !existing.has(a.path));
+          return [...prev, ...unique];
+        });
+      } catch (err) {
+        console.error("Failed to upload files:", err);
+      }
+    }
+
     // 清空 input 以便重复选择
     fileInputRef.current.value = "";
-  }, []);
+  }, [sessionId]);
 
   const removeImage = useCallback((index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
@@ -268,7 +302,7 @@ export function ChatInput({
         {/* 输入区域 — Anthropic 单行紧凑布局 */}
         <div className="flex items-end gap-2 px-3 py-2.5">
           {/* 左侧附件按钮 */}
-          {supportsImages && (
+          {sessionId && (
             <>
               <Button
                 type="button"
@@ -284,7 +318,6 @@ export function ChatInput({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
                 multiple
                 className="hidden"
                 onChange={handleFileSelect}

@@ -26,6 +26,7 @@ import type {
   SkillUploadConflictStrategy,
   UploadSkillSummary,
 } from "../types/config";
+import { dispatchConfigChange } from "../lib/config-events";
 
 type CreateMode = "text" | "upload";
 
@@ -174,6 +175,7 @@ export function SkillsPage() {
       toast.success(editingSkill ? "技能已更新" : "技能已创建");
       setDialogOpen(false);
       await loadSkills();
+      dispatchConfigChange("skills");
     } catch (e) {
       toast.error("保存失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
@@ -206,6 +208,7 @@ export function SkillsPage() {
       setDialogOpen(false);
       resetUploadState();
       await loadSkills();
+      dispatchConfigChange("skills");
     } catch (error) {
       const conflictData = getUploadConflictData(error);
       if (conflictData) {
@@ -239,6 +242,7 @@ export function SkillsPage() {
         toast.success(`已启用 "${skill.name}"`);
       }
       await loadSkills();
+      dispatchConfigChange("skills");
     } catch (e) {
       toast.error("操作失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
@@ -251,6 +255,7 @@ export function SkillsPage() {
       toast.success("技能已删除");
       setConfirmOpen(false);
       await loadSkills();
+      dispatchConfigChange("skills");
     } catch (e) {
       toast.error("删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
@@ -276,6 +281,7 @@ export function SkillsPage() {
       setBatchConfirmOpen(false);
       setSelected([]);
       await loadSkills();
+      dispatchConfigChange("skills");
     } catch (e) {
       toast.error("批量操作失败: " + (e instanceof Error ? e.message : "未知错误"));
     }

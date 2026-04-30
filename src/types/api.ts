@@ -48,6 +48,7 @@ export interface SessionSummaryResponse {
 export interface SessionResponse {
   id: string;
   environment_id: string | null;
+  agent_name: string | null;
   title: string | null;
   status: string;
   source: string;

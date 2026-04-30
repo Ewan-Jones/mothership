@@ -28,6 +28,7 @@ import {
 } from "../api/client";
 import type { AgentInfo } from "../types/config";
 import { PermissionTab } from "../components/PermissionTab";
+import { dispatchConfigChange } from "../lib/config-events";
 
 export function isValidAgentNameInput(name: string): boolean {
     return (
@@ -246,6 +247,7 @@ export function AgentsPage() {
             }
             setDialogOpen(false);
             loadAgents();
+            dispatchConfigChange("agents");
         } catch (e) {
             toast.error(
                 "保存失败: " + (e instanceof Error ? e.message : "未知错误"),
@@ -274,6 +276,7 @@ export function AgentsPage() {
             toast.success("Agent已删除");
             setConfirmOpen(false);
             loadAgents();
+            dispatchConfigChange("agents");
         } catch (e) {
             toast.error(
                 "删除失败: " + (e instanceof Error ? e.message : "未知错误"),
@@ -289,6 +292,7 @@ export function AgentsPage() {
             setBatchConfirmOpen(false);
             setSelected([]);
             loadAgents();
+            dispatchConfigChange("agents");
         } catch (e) {
             toast.error(
                 "批量删除失败: " +

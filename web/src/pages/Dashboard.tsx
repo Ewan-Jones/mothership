@@ -5,6 +5,7 @@ import {
 } from "../api/client";
 import type { Environment, Session } from "../types";
 import type { AgentInfo } from "../types/config";
+import { useConfigChangeListener } from "../lib/config-events";
 import {
   Cpu, Bot, Wrench, Plug, Clock, Activity, MessageSquare,
   Zap, ShieldCheck, Layers, Server, Radio, type LucideIcon,
@@ -49,6 +50,19 @@ function useStats() {
     });
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  // 监听配置变更事件（来自其他页面的保存/删除操作）
+  useConfigChangeListener(() => { load(); }, [load]);
+
+  // 页面重新获得焦点时刷新（用户从其他 tab 切回来）
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [load]);
+
   return state;
 }
 

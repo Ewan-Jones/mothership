@@ -86,6 +86,7 @@ describe("Session Service - Extended Tests", () => {
       const resp = {
         id: record.id,
         environment_id: record.environmentId,
+        agent_name: null,
         title: record.title,
         status: record.status,
         source: record.source,

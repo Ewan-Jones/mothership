@@ -16,6 +16,7 @@ import {
     storeGetSession,
     storeListEnvironmentsByUserId,
 } from "../../store";
+import { resolveExistingSessionId } from "../../services/session";
 
 const TEXT_EXTENSIONS = new Set([
     ".txt",
@@ -109,7 +110,8 @@ async function resolveWorkspacePath(
     relativePath: string,
     userId?: string,
 ): Promise<ResolvedWorkspacePath | null> {
-    const session = storeGetSession(sessionId);
+    const internalId = resolveExistingSessionId(sessionId);
+    const session = internalId ? storeGetSession(internalId) : undefined;
     let envId = session?.environmentId;
 
     if (!envId && userId) {
