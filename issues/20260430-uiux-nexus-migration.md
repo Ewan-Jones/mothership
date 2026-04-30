@@ -42,11 +42,11 @@
 **现状**: 主字体 Inter, 等宽 JetBrains Mono
 **目标**: Display = Geist Sans, Body = DM Sans, Mono = JetBrains Mono
 
-- [ ] 添加 Geist Sans 字体引入 (CDN 或本地)
-- [ ] 添加 DM Sans 字体引入 (Google Fonts)
-- [ ] 保留 JetBrains Mono (已有)
-- [ ] 定义字体变量: `--font-display`, `--font-body`, `--font-mono`
-- [ ] 更新全局 `font-family` 为 `--font-body`，基础字号 `13px`
+- [x] 添加 Geist Sans 字体引入 (CDN 或本地)
+- [x] 添加 DM Sans 字体引入 (Google Fonts)
+- [x] 保留 JetBrains Mono (已有)
+- [x] 定义字体变量: `--font-display`, `--font-body`, `--font-mono`
+- [x] 更新全局 `font-family` 为 `--font-body`，基础字号 `13px`
 
 **影响文件**: `web/src/index.css`, `web/index.html` (字体 link)
 
