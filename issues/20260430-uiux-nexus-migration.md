@@ -67,15 +67,15 @@
 **现状**: `web/src/components/shell/AppShell.tsx` — 水平 Header + 横向 Tab 导航
 **目标**: 左侧 Sidebar（可折叠）+ 右侧主内容区
 
-- [ ] 新建 `web/src/components/shell/Sidebar.tsx`
-- [ ] 实现折叠/展开切换（`collapsed` state，宽度 240px ↔ 60px 动画）
-- [ ] Brand 区域: 图标 "R" + 文字 "RCS" + 折叠按钮
-- [ ] 导航分组:
+- [x] 新建 `web/src/components/shell/Sidebar.tsx`
+- [x] 实现折叠/展开切换（`collapsed` state，宽度 240px ↔ 60px 动画）
+- [x] Brand 区域: 图标 "R" + 文字 "RCS" + 折叠按钮
+- [x] 导航分组:
   - "控制台" 组: 概览、智能体、模型、会话
   - "配置" 组: Skills、MCP、定时任务、Channels、API Key
-- [ ] 导航项: Lucide 图标 + 文字标签，active 态有左侧 3px 品牌色指示条
-- [ ] 底部状态面板: Agents 运行数 (LIVE badge)、活跃会话数、events/min
-- [ ] 折叠态: 只显示图标，label 隐藏，状态面板缩为圆点
+- [x] 导航项: Lucide 图标 + 文字标签，active 态有左侧 3px 品牌色指示条
+- [x] 底部状态面板: Agents 运行数 (LIVE badge)、活跃会话数、events/min
+- [x] 折叠态: 只显示图标，label 隐藏，状态面板缩为圆点
 
 **影响文件**: 新建 `Sidebar.tsx`, 修改 `AppShell.tsx`
 

@@ -479,6 +479,10 @@ Permission 选项（`web/src/components/PermissionTab.tsx`）：
 
 ## 代码风格
 
+### 前端约束
+
+- **禁止外部字体链接**：不使用 CDN / Google Fonts / jsdelivr 等外部字体资源，统一使用系统原生字体栈（`system-ui`, `-apple-system`, `ui-monospace` 等），保留中文 fallback
+
 ### 命名约定
 
 | 类型 | 风格 | 示例 |
