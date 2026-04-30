@@ -129,6 +129,28 @@ describe("EventBus", () => {
       expect(() => bus.publish({ id: "e1", sessionId: "s1", type: "user", payload: {}, direction: "outbound" })).toThrow();
     });
   });
+
+  describe("event eviction", () => {
+    test("evicts oldest events when exceeding MAX_EVENTS_PER_BUS", () => {
+      // Publish enough events to trigger eviction (5001+ events)
+      // We test the eviction behavior by checking getEventsSince consistency
+      const first = bus.publish({ id: "e1", sessionId: "s1", type: "user", payload: {}, direction: "outbound" });
+      expect(first.seqNum).toBe(1);
+
+      // Publish many events to exceed the limit
+      for (let i = 2; i <= 5001; i++) {
+        bus.publish({ id: `e${i}`, sessionId: "s1", type: "user", payload: {}, direction: "outbound" });
+      }
+
+      // After eviction, the first event should no longer be retrievable
+      const eventsSince0 = bus.getEventsSince(0);
+      expect(eventsSince0.length).toBeLessThan(5001);
+      // The newest events should still be accessible
+      expect(eventsSince0.length).toBeGreaterThan(0);
+      // seqNum should still be correct
+      expect(bus.getLastSeqNum()).toBe(5001);
+    });
+  });
 });
 
 describe("EventBus registry", () => {

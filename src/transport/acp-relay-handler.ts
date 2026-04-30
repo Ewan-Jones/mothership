@@ -36,6 +36,28 @@ const agentLocalWsMap = new Map<string, AgentLocalConn>(); // agentId → localW
 const RELAY_KEEPALIVE_INTERVAL_MS = 20_000;
 const INSTANCE_LOCAL_WS_HOST = "127.0.0.1";
 
+/**
+ * Filter and forward lines from acp-link to the frontend.
+ * Skips keep_alive messages and errors caused by keep_alive.
+ */
+function forwardFilteredLines(text: string, send: (line: string) => void): void {
+  for (const line of text.split("\n").filter((l: string) => l.trim())) {
+    try {
+      const msg = JSON.parse(line);
+      if (msg.type === "keep_alive") continue;
+      const errMsg = typeof msg.message === "string"
+        ? msg.message
+        : typeof msg.payload?.message === "string"
+          ? msg.payload.message
+          : null;
+      if (msg.type === "error" && errMsg?.includes("keep_alive")) continue;
+      send(line);
+    } catch (err) {
+      logError("[ACP-Relay] Error forwarding to frontend:", err);
+    }
+  }
+}
+
 /** Send a JSON message to relay WS */
 function sendToRelayWs(ws: WSContext, msg: object): void {
   if (ws.readyState !== 1) return;
@@ -103,22 +125,7 @@ function openInstanceRelay(ws: WSContext, relayWsId: string, agentId: string, us
     existingConn.ws.onmessage = (event) => {
       if (ws.readyState !== 1) return;
       const text = typeof event.data === "string" ? event.data : String(event.data);
-      for (const line of text.split("\n").filter((l: string) => l.trim())) {
-        try {
-          // Filter out keep_alive and errors caused by keep_alive
-          const msg = JSON.parse(line);
-          if (msg.type === "keep_alive") continue;
-          const errMsg = typeof msg.message === "string"
-            ? msg.message
-            : typeof msg.payload?.message === "string"
-              ? msg.payload.message
-              : null;
-          if (msg.type === "error" && errMsg?.includes("keep_alive")) continue;
-          ws.send(line);
-        } catch (err) {
-          logError("[ACP-Relay] Error forwarding to frontend:", err);
-        }
-      }
+      forwardFilteredLines(text, (line) => ws.send(line));
     };
 
     // Notify frontend that agent is connected
@@ -172,22 +179,7 @@ function openInstanceRelay(ws: WSContext, relayWsId: string, agentId: string, us
   localWs.onmessage = (event) => {
     if (ws.readyState !== 1) return;
     const text = typeof event.data === "string" ? event.data : String(event.data);
-    for (const line of text.split("\n").filter((l: string) => l.trim())) {
-      try {
-        // Filter out keep_alive and errors caused by keep_alive
-        const msg = JSON.parse(line);
-        if (msg.type === "keep_alive") continue;
-        const errMsg = typeof msg.message === "string"
-          ? msg.message
-          : typeof msg.payload?.message === "string"
-            ? msg.payload.message
-            : null;
-        if (msg.type === "error" && errMsg?.includes("keep_alive")) continue;
-        ws.send(line);
-      } catch (err) {
-        logError("[ACP-Relay] Error forwarding to frontend:", err);
-      }
-    }
+    forwardFilteredLines(text, (line) => ws.send(line));
   };
 
   localWs.onclose = (event) => {

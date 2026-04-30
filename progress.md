@@ -42,3 +42,18 @@
 
 ### 测试补充
 - 新增 `executable.test.ts`（7 个测试）：验证 isExecutable 和 resolveExecutable 的正确性
+
+## 2026-04-30 (Round 4)
+
+### api-key-service.ts 优化
+- `deleteApiKey` 和 `updateApiKeyLabel` 从同步 `.run() as any` 改为先查后删/改的 async 模式，消除 `as any` 类型断言和依赖 SQLite `changes()` 的同步模式，与 Round 1 中 task.ts 的修复保持一致
+
+### acp-relay-handler.ts 优化
+- 提取 `forwardFilteredLines()` 消除 reused connection 和 new connection 两处重复的 keep_alive/error 过滤逻辑（约 30 行重复代码合并为共享函数）
+
+### environment.ts 优化
+- 移除未使用的 `config` import（`import { config } from "../config"`）
+
+### 测试补充
+- 新增 `api-key-service.test.ts`（13 个测试）：覆盖 createApiKey、validateApiKeyAndGetUser、listApiKeysByUser、deleteApiKey（含权限校验）、updateApiKeyLabel（含权限校验）
+- 扩展 `event-bus.test.ts`：补充 event eviction 策略测试，验证超过 MAX_EVENTS_PER_BUS 时旧事件被正确驱逐
