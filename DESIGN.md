@@ -1,6 +1,6 @@
 # RCS UX 升级设计方案 — "Nexus Command Center"
 
-> 沉浸式仪表盘风格 · AI Agent 控制中枢 · 数据驱动可视化
+> 明亮科技风 · AI Agent 控制中枢 · 数据驱动可视化 · 清爽专业
 
 ---
 
@@ -8,9 +8,9 @@
 
 ### 1.1 核心隐喻
 
-将 RCS 定位为 **"AI Agent 的任务控制中心"**—— 类似 NASA Mission Control 或 Grafana 的信息密度感，但注入 AI 产品的生命力。用户打开控制面板的第一眼，应该感受到：
+将 RCS 定位为 **"AI Agent 的任务控制中心"**—— 类似 Stripe/Linear 的清爽专业感，注入 AI 产品的生命力。用户打开控制面板的第一眼，应该感受到：
 
-- **脉搏感**：Agent 在运行、数据在流动、系统在呼吸
+- **清爽感**：白色基底、通透的层次、呼吸般的留白
 - **掌控感**：一切状态一目了然，关键操作触手可及
 - **高级感**：精致的排版、考究的色彩、克制的动效
 
@@ -22,11 +22,11 @@
 | **状态即视觉** | Agent 状态、会话进度用颜色和动效表达，而非文字标签 |
 | **渐进式复杂度** | 默认视图简洁有力，悬停/展开显示深度信息 |
 | **克制的动效** | 每个动画都有明确目的（反馈/引导/表达状态），不为炫而炫 |
-| **深色为骨** | 以深色主题为默认设计基准，亮色为适配 |
+| **明亮为骨** | 以白色明亮主题为默认设计基准，深色为可选适配 |
 
 ### 1.3 视觉关键词
 
-`Mission Control` · `Terminal Chic` · `Data-Luxe` · `Breathing Interface`
+`Clean Tech` · `Bright Studio` · `Data-Clarity` · `Stripe-esque`
 
 ---
 
@@ -44,76 +44,80 @@
 警告色：    Solar Amber      #FBBF24  (amber-400)
 ```
 
-**选择理由**：Indigo 比 Blue 更具科技辨识度，搭配 Cyan 形成冷色系的双色层级，在深色背景上有极高的视觉穿透力。
+**选择理由**：Indigo 比 Blue 更具科技辨识度，搭配 Cyan 形成冷色系的双色层级，在白色背景上既有活力又不失专业。
 
-### 2.2 深色主题色板（默认）
+### 2.2 明亮主题色板（默认）
 
 ```css
-/* Surface 层级 — 深邃但不压抑 */
---surface-void:     #09090B;   /* 最底层背景 */
---surface-base:     #0F1117;   /* 主背景 */
---surface-elevated: #181B25;   /* 卡片/面板 */
---surface-overlay:  #1E2230;   /* 悬浮层 */
---surface-hover:    #252A3A;   /* 悬停态 */
+/* Surface 层级 — 通透的白色层次 */
+--surface-void:     #F8FAFC;   /* 最底层背景 — 极淡灰蓝 */
+--surface-base:     #FFFFFF;   /* 主背景 — 纯白 */
+--surface-elevated: #FFFFFF;   /* 卡片/面板 — 纯白+微阴影 */
+--surface-overlay:  #F1F5F9;   /* 悬浮层 — 淡蓝灰 */
+--surface-hover:    #EEF2FF;   /* 悬停态 — 淡靛蓝 */
 
-/* 边框 — 隐约存在 */
+/* 边框 — 柔和存在 */
+--border-subtle:    rgba(0, 0, 0, 0.05);
+--border-default:   rgba(0, 0, 0, 0.10);
+--border-active:    rgba(99, 102, 241, 0.35);
+
+/* 文字层级 */
+--text-bright:      #0F172A;   /* 标题/重点 — 深墨色 */
+--text-primary:     #334155;   /* 正文 — 深灰蓝 */
+--text-secondary:   #64748B;   /* 次要 — 中灰蓝 */
+--text-dim:         #94A3B8;   /* 提示/占位 — 浅灰蓝 */
+
+/* 语义色 */
+--status-active:    #10B981;   /* 运行中 — 翠绿 */
+--status-idle:      #6366F1;   /* 空闲 — 靛蓝 */
+--status-error:     #EF4444;   /* 错误 — 红色 */
+--status-warning:   #F59E0B;   /* 警告 — 琥珀 */
+```
+
+### 2.3 深色主题色板（可选适配）
+
+```css
+--surface-void:     #09090B;
+--surface-base:     #0F1117;
+--surface-elevated: #181B25;
+--surface-overlay:  #1E2230;
+--surface-hover:    #252A3A;
+
 --border-subtle:    rgba(255, 255, 255, 0.06);
 --border-default:   rgba(255, 255, 255, 0.10);
 --border-active:    rgba(99, 102, 241, 0.40);
 
-/* 文字层级 */
---text-bright:      #F4F4F5;   /* 标题/重点 */
---text-primary:     #D4D4D8;   /* 正文 */
---text-secondary:   #A1A1AA;   /* 次要 */
---text-dim:         #71717A;   /* 提示/占位 */
-
-/* 语义色 — 带发光感 */
---status-active:    #34D399;   /* 运行中 — 呼吸绿光 */
---status-idle:      #818CF8;   /* 空闲 — 柔和紫 */
---status-error:     #F87171;   /* 错误 — 红色脉冲 */
---status-warning:   #FBBF24;   /* 警告 — 琥珀 */
+--text-bright:      #F4F4F5;
+--text-primary:     #D4D4D8;
+--text-secondary:   #A1A1AA;
+--text-dim:         #71717A;
 ```
 
-### 2.3 亮色主题色板
+### 2.4 状态视觉反馈
+
+Agent 状态通过颜色圆点 + 微妙的阴影变化表达，在白色背景上以柔和阴影代替发光效果：
 
 ```css
---surface-void:     #F8F9FB;
---surface-base:     #FFFFFF;
---surface-elevated: #FFFFFF;
---surface-overlay:  #F1F5F9;
---surface-hover:    #E2E8F0;
-
---border-subtle:    rgba(0, 0, 0, 0.06);
---border-default:   rgba(0, 0, 0, 0.10);
---border-active:    rgba(99, 102, 241, 0.35);
-```
-
-### 2.4 状态发光效果
-
-Agent 状态不只是颜色，而是有"呼吸感"的光晕：
-
-```css
-/* 运行中的 Agent — 绿色脉冲光晕 */
+/* 运行中的 Agent — 柔和绿色阴影 */
 .glow-active {
-  box-shadow: 0 0 12px rgba(52, 211, 153, 0.3),
-              0 0 24px rgba(52, 211, 153, 0.1);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
   animation: glow-breathe 3s ease-in-out infinite;
 }
 
 @keyframes glow-breathe {
-  0%, 100% { box-shadow: 0 0 8px rgba(52, 211, 153, 0.2); }
-  50%      { box-shadow: 0 0 16px rgba(52, 211, 153, 0.4); }
+  0%, 100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.10); }
+  50%      { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.20); }
 }
 
-/* 错误状态 — 红色急促脉冲 */
+/* 错误状态 — 红色脉冲 */
 .glow-error {
-  box-shadow: 0 0 12px rgba(248, 113, 113, 0.3);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
   animation: glow-alert 1.5s ease-in-out infinite;
 }
 
 @keyframes glow-alert {
-  0%, 100% { box-shadow: 0 0 8px rgba(248, 113, 113, 0.2); }
-  50%      { box-shadow: 0 0 20px rgba(248, 113, 113, 0.5); }
+  0%, 100% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.10); }
+  50%      { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25); }
 }
 ```
 
@@ -191,7 +195,7 @@ Section:    14px  font-weight: 600  text-transform: uppercase  letter-spacing: 0
 ```css
 .sidebar {
   width: 240px;
-  background: var(--surface-void);
+  background: var(--surface-base);        /* 白色 */
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -212,13 +216,14 @@ Section:    14px  font-weight: 600  text-transform: uppercase  letter-spacing: 0
 }
 
 .nav-item:hover {
-  background: var(--surface-hover);
+  background: var(--surface-hover);       /* 淡靛蓝 */
   color: var(--text-primary);
 }
 
 .nav-item.active {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(99, 102, 241, 0.08);   /* 极淡靛蓝底 */
   color: var(--brand);
+  font-weight: 500;
 }
 
 /* 活跃指示器 — 左侧竖线 */
@@ -234,18 +239,22 @@ Section:    14px  font-weight: 600  text-transform: uppercase  letter-spacing: 0
 }
 ```
 
-#### 侧边栏底部 — 实时状态面板
+#### 侧边栏底部 — 实时状态面板（v2 增强）
 
 侧边栏底部嵌入一个迷你的实时状态区，显示：
 
 ```
 ┌─────────────────────────┐
-│ ● 3 Agents 运行中        │
-│ ● 12 活跃会话            │
-│ ↑ 2.4k events/min       │
-│ ○ 系统正常               │
+│ ● 3 Agents 运行中  LIVE │  ← LIVE 脉冲徽章
+│ ● 12 活跃会话        12 │  ← 等宽数字
+│ ↑ 2.4k events/min  2.4k │  ← 等宽数字
 └─────────────────────────┘
 ```
+
+**v2 增强**：
+- 品牌 Logo 区带渐变背景 `linear-gradient(to bottom, #FFFFFF, #F8FAFC)` 和阴影 `box-shadow: 0 2px 8px rgba(99,102,241,0.25)`
+- LIVE 徽章：绿色背景 + 脉冲动画 `counter-glow`，表达系统活跃状态
+- 等宽数值右对齐，字体 `JetBrains Mono` 600 weight
 
 用小圆点和颜色传达系统脉搏，不需要点击展开就能感知系统状态。
 
@@ -265,37 +274,91 @@ Section:    14px  font-weight: 600  text-transform: uppercase  letter-spacing: 0
 
 ### 5.1 页面结构
 
+**布局方案**：三栏命令中心（v2 升级版，已实现在 `design-preview.html`）
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│  概览指标栏 (KPI Strip)                                  │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐          │
-│  │  5   │ │  12  │ │  3   │ │ 99.2%│ │ 1.2k │          │
-│  │Agents│ │会话数│ │ 运行 │ │可用率│ │事件  │          │
-│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘          │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌─────────────────────────┐ ┌───────────────────────┐  │
-│  │                         │ │                       │  │
-│  │   Agent 拓扑/状态图      │ │   活动时间线           │  │
-│  │   (实时更新)             │ │   (最近事件流)         │  │
-│  │                         │ │                       │  │
-│  │    [节点动画]            │ │   ○ Agent-X 完成任务   │  │
-│  │                         │ │   ○ Agent-Y 请求权限   │  │
-│  │                         │ │   ○ Agent-Z 工具调用   │  │
-│  │                         │ │                       │  │
-│  └─────────────────────────┘ └───────────────────────┘  │
-│                                                         │
-│  ┌─────────────────────────────────────────────────────┐│
-│  │  Agent 列表 (Table View / Card View 切换)           ││
-│  │                                                     ││
-│  │  名称          状态      会话数    最后活动     操作  ││
-│  │  ─────────────────────────────────────────────────  ││
-│  │  ● agent-prod  ● 运行中   4       3秒前      [→]   ││
-│  │  ○ agent-dev   ○ 空闲     2       5分钟前    [→]   ││
-│  │  ○ agent-test  ○ 离线     0       2小时前    [→]   ││
-│  └─────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  概览指标栏 (KPI Strip) — 5 张卡片                                │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                   │
+│  │  5   │ │  12  │ │  3   │ │ 99.2%│ │ 1.2k │                   │
+│  │Agents│ │会话数│ │ 运行 │ │可用率│ │事件  │                   │
+│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘                   │
+├───────────┬─────────────────────────┬────────────────────────────┤
+│ ACTIVE    │                         │                            │
+│ AGENTS    │   Agent 拓扑 (Enhanced)  │   活动时间线 (Compact)      │
+│ (260px)   │                         │   (320px)                  │
+│           │   [数据粒子漂移动画]       │                            │
+│ ┌───────┐ │                         │   ○ agent-prod 完成审查     │
+│ │prod   │ │        ┌──────┐          │   ○ agent-dev 请求权限      │
+│ │●运行中 │ │    ────┤RCS   ├────     │   ○ agent-build 调用grep   │
+│ │4会话  │ │   ╱    │Hub   │    ╲    │   ○ agent-test 超时重试    │
+│ │━━━━━━ │ │  ╱     └──────┘     ╲   │                            │
+│ └───────┘ │ ●prod  ◉dev  ●build     │                            │
+│ ┌───────┐ │                         │                            │
+│ │dev    │ │   [节点脉冲光环]          │                            │
+│ │●运行中 │ │   [连线渐变粒子]          │                            │
+│ │━━━━━━━ │ │                         │                            │
+│ └───────┘ │                         │                            │
+│ ┌───────┐ │                         │                            │
+│ │build  │ │                         │                            │
+│ │◉空闲   │ │                         │                            │
+│ │━━━━   │ │                         │                            │
+│ └───────┘ │                         │                            │
+├───────────┴─────────────────────────┴────────────────────────────┤
+│  Agent 列表 (Table View / Card View 切换)                        │
+│  ┌─ 表格模式 ──────────────────────────────────────────────────┐ │
+│  │  名称         状态      会话    最后活动    模型        操作  │ │
+│  │  agent-prod   ●运行中    4      3秒前    sonnet-4-6   [→]  │ │
+│  │  agent-dev    ◉空闲      2      5分钟前  opus-4-7     [→]  │ │
+│  │  agent-build  ●运行中    1      12分钟前 gpt-4o       [→]  │ │
+│  │  agent-test   ⚠错误      0      2小时前  deepseek-r1  [↻]  │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│  ┌─ 卡片模式 ──────────────────────────────────────────────────┐ │
+│  │ [icon] agent-prod   运行中  │ [icon] agent-dev    空闲      │ │
+│  │ claude-sonnet-4-6           │ claude-opus-4-7              │ │
+│  │  4 会话  │  1.2k Events     │  2 会话  │  890 Events       │ │
+│  │  3秒前活跃          [→]     │  5分钟前活跃         [→]     │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+#### 三栏布局设计要点
+
+| 栏位 | 宽度 | 内容 | 交互 |
+|------|------|------|------|
+| **左栏** — Agent Quick Cards | 260px | 紧凑状态卡，左彩色竖线指示器、会话数/最后活动时间、活跃度进度条 | 悬停右移 shadow lift，点击跳转 Agent 详情 |
+| **中栏** — 增强拓扑 | 1fr | 大型 SVG 节点图，数据粒子沿连线漂移、运行中节点脉冲光环、悬停放大 | 点击节点跳转对应 Agent 对话 |
+| **右栏** — 活动时间线 | 320px | 6 条最近事件，紧凑排版 (12px)，10s 自动轮播新事件入场 | 自动滚动，8 秒间隔追加新事件 |
+
+#### Agent Quick Cards 规范
+
+```css
+/* 每个 Agent 紧凑卡片 */
+.agent-quick-card {
+  border-left: 3px solid (状态色);
+  padding: 12px 14px;
+}
+
+/* 状态色映射 */
+.running → #10B981 (emerald)
+.idle    → #6366F1 (indigo)  
+.warning → #F59E0B (amber)
+.error   → #EF4444 (red)
+
+/* 底部活跃度进度条 */
+.agent-quick-card-bar-fill {
+  height: 2px; border-radius: 1px;
+}
+.running → width: 85%
+.idle    → width: 45%
+```
+
+#### 增强拓扑动效
+
+- **数据粒子**：沿连线匀速漂移，3 个粒子错峰 (0s / 0.3s / 0.5s 延迟)
+- **脉冲光环**：运行中节点外圈 scale(1)→scale(2) 透明度 0.3→0，2s 循环
+- **呼吸边框**：glow-breathe 动画 (3s 循环)，节点边框阴影波动
+- **悬停放大**：transform: scale(1.05)，0.3s 过渡
 
 ### 5.2 KPI 指标条
 
@@ -323,6 +386,7 @@ Section:    14px  font-weight: 600  text-transform: uppercase  letter-spacing: 0
   padding: 16px 20px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 /* 数值 — 大号等宽字体 */
@@ -432,9 +496,14 @@ Section:    14px  font-weight: 600  text-transform: uppercase  letter-spacing: 0
 ┌──────────────────────────────────────────────────────────┐
 │ [← 返回]  Session: agent-prod / session-abc123           │
 │           ● Running · Started 5min ago                    │
+├──────────────────────────────────────────────────────────┤
+│ ┌ Model │ Tokens  │ Tools │ Duration ──────────────────┐ │
+│ │ sonnet │ 4.6k/   │ 21    │ 5m 23s                    │ │
+│ │ -4-6   │ 200k    │ calls │                           │ │
+│ └──────────────────────────────────────────────────────┘ │
 ├───────────────────────┬──────────────────────────────────┤
 │                       │                                  │
-│   Chat 消息流          │   Context Panel (可折叠)          │
+│   Chat 消息流          │   Context Panel (可折叠)    [◀]  │
 │                       │                                  │
 │   ┌─────────────────┐ │   ┌──────────────────────────┐  │
 │   │ User message    │ │   │ Agent Info               │  │
@@ -442,19 +511,27 @@ Section:    14px  font-weight: 600  text-transform: uppercase  letter-spacing: 0
 │                       │   │ Tokens: 1.2k / 3.4k      │  │
 │   ┌─────────────────┐ │   │ Duration: 5m 23s          │  │
 │   │ Assistant       │ │   │                          │  │
-│   │ response with   │ │   │ Tools Used               │  │
-│   │ code blocks     │ │   │ ████████░░ bash (8)      │  │
-│   │                 │ │   │ ██████░░░░ edit (6)      │  │
-│   │ [tool_use]      │ │   │ ███░░░░░░░ grep (3)     │  │
-│   │  └ bash         │ │   │                          │  │
-│   │  └ edit         │ │   │ Permission Requests      │  │
-│   │                 │ │   │ ● bash: 3 pending        │  │
-│   └─────────────────┘ │   └──────────────────────────┘  │
+│   │ response        │ │   │ Tools Used               │  │
+│   │                 │ │   │ ████████░░ bash (8)      │  │
+│   │ [tool_use]      │ │   │ ██████░░░░ edit (6)      │  │
+│   │  └ bash (执行中) │ │   │ ███░░░░░░░ grep (3)     │  │
+│   │  └ edit (完成)  │ │   │                          │  │
+│   │                 │ │   │ Permission Requests      │  │
+│   └─────────────────┘ │   │ ● bash: 3 pending        │  │
+│                       │   └──────────────────────────┘  │
+│   ● ● ● (typing...)   │                                  │
 │                       │                                  │
 │ ═════════════════════ │                                  │
-│ [输入消息...]          │                                  │
+│ [输入消息...]     [→]  │                                  │
 └───────────────────────┴──────────────────────────────────┘
 ```
+
+#### v2 升级要点
+
+- **会话状态条**：4 个微型数据块横排 (Model / Tokens / Tools / Duration)，替换单独的 meta 文字行
+- **Context Panel 折叠**：侧边圆形按钮切换展开/折叠，`grid-template-columns: 1fr 320px` → `1fr 0px`，300ms 平滑过渡
+- **打字指示器**：三点弹跳动画 (1.4s 循环，逐级 0.2s 延迟)，Assistant 思考时显示
+- **聊天交互**：输入消息后显示 typing indicator → 1.5-2.5s 后助手回复入场 (message-enter 动画)
 
 ### 6.2 消息流增强
 
@@ -580,7 +657,7 @@ import { motion } from "motion/react";
 }
 .agent-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 ```
 
@@ -647,7 +724,7 @@ Agent 状态变化时，背景色和发光效果平滑过渡：
 /* 可交互卡片 — 悬停提升 */
 .card-interactive:hover {
   border-color: var(--border-default);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
   transform: translateY(-1px);
 }
 
@@ -700,7 +777,7 @@ Danger:     red-500 填充 / ghost + red-500 文字
 
 ### 9.4 状态指示器
 
-替代当前的简单圆点，用带光晕的指示器：
+替代当前的简单圆点，用带柔和阴影的指示器（适合白色背景）：
 
 ```tsx
 function StatusDot({ status }: { status: string }) {
@@ -708,7 +785,7 @@ function StatusDot({ status }: { status: string }) {
     <span className="relative flex h-2.5 w-2.5">
       {/* 外圈呼吸光晕 — 仅 running/active 状态 */}
       {(status === "running" || status === "active") && (
-        <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-30" />
+        <span className="absolute inset-0 rounded-full bg-emerald-500 animate-pulse opacity-20" />
       )}
       {/* 实心圆点 */}
       <span className={cn(
@@ -804,7 +881,7 @@ function StatusDot({ status }: { status: string }) {
 | 图表渲染 | Recharts 使用 `React.memo` 避免不必要的重绘 |
 | 实时数据 | 使用 requestAnimationFrame 节流数字动画 |
 | SVG 节点图 | 虚拟化：超过 50 个节点时只渲染视口内的节点 |
-| 暗色模式 | 使用 CSS 变量切换，不重新渲染组件 |
+| 暗色模式 | 使用 CSS 变量切换，不重新渲染组件。白色主题为默认，深色为可选 |
 
 ---
 
@@ -823,12 +900,60 @@ function StatusDot({ status }: { status: string }) {
 
 | 产品 | 借鉴点 |
 |------|--------|
-| **Linear** | 侧边栏交互、键盘快捷键、过渡动画 |
-| **Grafana** | KPI 指标条、数据密度、状态色彩 |
-| **Vercel Dashboard** | 深色主题、极简排版、Geist 字体 |
+| **Linear** | 侧边栏交互、键盘快捷键、过渡动画、白色清爽感 |
+| **Stripe** | 明亮科技风、品牌色点缀、表格密度、数据卡片 |
+| **Notion** | 白色基底、留白节奏、清爽排版 |
+| **Vercel Dashboard** | 极简排版、Geist 字体、Indigo 色系 |
 | **Raycast** | Command+K 全局搜索、层级导航 |
-| **Warp Terminal** | 赛博风格、终端美学、发光效果 |
 
 ---
 
 *本方案由 RCS 团队与 Claude 协作制定，作为 UX 升级的指导性文档。各 Phase 可根据实际开发资源灵活调整优先级。*
+
+---
+
+## 15. v2 布局升级记录 (2026-04-30)
+
+### 已变更
+
+| 模块 | 变更内容 | 文件 |
+|------|---------|------|
+| **Dashboard** | 2 列 → 3 列布局：左栏 Agent Quick Cards (260px) + 中栏增强拓扑 (1fr) + 右栏紧凑时间线 (320px) | `design-preview.html` |
+| **Dashboard** | Agent 列表新增表格/卡片双视图切换 (`.agent-card-grid`) | `design-preview.html` |
+| **Dashboard** | 拓扑 SVG 增强：数据粒子漂移动画、脉冲光环、悬停放大 | `design-preview.html` |
+| **Dashboard** | Agent Quick Cards：状态色左竖线、活跃度进度条、悬停右移效果 | `design-preview.html` |
+| **会话详情** | 新增会话状态条 (Model / Tokens / Tools / Duration 横排数据块) | `design-preview.html` |
+| **会话详情** | Context Panel 可折叠 (圆形按钮切换，300ms 过渡) | `design-preview.html` |
+| **会话详情** | 打字指示器 (三点弹跳动画) + 聊天输入交互 | `design-preview.html` |
+| **会话详情** | 消息间距节奏调整：同一角色 4px，角色切换 12px | `design-preview.html` |
+| **侧边栏** | 品牌区渐变背景 + Logo 阴影 | `design-preview.html` |
+| **侧边栏** | 状态面板新增 LIVE 脉冲徽章和等宽数字 | `design-preview.html` |
+
+### CSS 新增变量
+
+```css
+/* 3 列网格 */
+.dash-row-3col { grid-template-columns: 260px 1fr 320px; }
+
+/* Agent Quick Card 状态色竖线 */
+.agent-quick-card.running::after { background: #10B981; }
+.agent-quick-card.idle::after    { background: #6366F1; }
+.agent-quick-card.warning::after { background: #F59E0B; }
+.agent-quick-card.error::after   { background: #EF4444; }
+
+/* 数据粒子漂移 */
+@keyframes particle-drift {
+  0%, 100% { opacity: 0.4; transform: translateX(0); }
+  50%      { opacity: 1; transform: translateX(8px); }
+}
+
+/* 打字弹跳 */
+@keyframes typing-bounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* Context Panel 折叠过渡 */
+.session-layout.panel-collapsed { grid-template-columns: 1fr 0px; }
+.context-panel.collapsed { width: 0; opacity: 0; overflow: hidden; }
+```
