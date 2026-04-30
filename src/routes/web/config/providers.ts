@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { sessionAuth } from "../../../auth/middleware";
 import { getSection, modifySection } from "../../../services/config";
+import { invalidateAvailableCache } from "./models";
 
 type ProviderConfig = {
   npm?: string;
@@ -103,6 +104,7 @@ async function handleSet(name: string, data: Record<string, unknown>) {
     keyHint = toKeyHint(updated.options?.apiKey as string | undefined);
     return current;
   });
+  invalidateAvailableCache();
   return ok({ id: name, keyHint });
 }
 
@@ -155,6 +157,7 @@ async function handleDelete(name: string) {
     return current;
   });
   if (notFound) return err("NOT_FOUND", `Provider '${name}' not found`);
+  invalidateAvailableCache();
   return ok(null);
 }
 
@@ -181,6 +184,7 @@ async function handleAddModel(providerName: string, data: Record<string, unknown
   });
   if (result === "provider_not_found") return err("NOT_FOUND", `Provider '${providerName}' not found`);
   if (result === "already_exists") return err("VALIDATION_ERROR", `Model '${modelId}' already exists`);
+  invalidateAvailableCache();
   return ok({ modelId });
 }
 
@@ -216,6 +220,7 @@ async function handleUpdateModel(providerName: string, modelId: string, data: Re
   });
   if (result === "provider_not_found") return err("NOT_FOUND", `Provider '${providerName}' not found`);
   if (result === "model_not_found") return err("NOT_FOUND", `Model '${modelId}' not found`);
+  invalidateAvailableCache();
   return ok({ modelId });
 }
 
@@ -240,6 +245,7 @@ async function handleRemoveModel(providerName: string, modelId: string) {
   });
   if (result === "provider_not_found") return err("NOT_FOUND", `Provider '${providerName}' not found`);
   if (result === "model_not_found") return err("NOT_FOUND", `Model '${modelId}' not found`);
+  invalidateAvailableCache();
   return ok(null);
 }
 

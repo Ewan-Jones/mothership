@@ -76,6 +76,10 @@ async function handleSet(data: { model?: string; small_model?: string; permissio
   });
 }
 
+export function invalidateAvailableCache() {
+  cachedAvailable = null;
+}
+
 async function handleRefresh() {
   const available = await getAvailable(true);
   return ok({ count: available.length });
