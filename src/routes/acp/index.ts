@@ -188,6 +188,7 @@ app.get(
 
     const userId = session.user.id;
     const agentId = c.req.param("agentId")!;
+    const sessionId = c.req.query("sessionId");
 
     // Verify agent belongs to this user
     const env = storeGetEnvironment(agentId);
@@ -206,7 +207,7 @@ app.get(
     log(`[ACP-Relay] Upgrade accepted: relayWsId=${relayWsId} agentId=${agentId}`);
     return {
       onOpen(_evt: any, ws: any) {
-        handleRelayOpen(ws, relayWsId, agentId, userId);
+        handleRelayOpen(ws, relayWsId, agentId, userId, sessionId);
       },
       onMessage(evt: any, ws: any) {
         const data =

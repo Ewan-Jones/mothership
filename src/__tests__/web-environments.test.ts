@@ -19,11 +19,33 @@ mock.module("../auth/better-auth", () => ({
   },
 }));
 
+// Mock instance service
+mock.module("../services/instance", () => ({
+  findRunningInstanceByEnvironment: mock(() => undefined),
+  spawnInstanceFromEnvironment: mock(async (_userId: string, _envId: string) => ({
+    id: "inst_test_auto",
+    userId: _userId,
+    port: 8888,
+    pid: 12345,
+    status: "running",
+    command: "acp-link ...",
+    error: null,
+    apiKey: "test_key",
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    environmentId: _envId,
+    sessionId: "session_auto_spawned",
+    instanceNumber: 1,
+  })),
+  listInstancesByEnvironment: mock(() => []),
+  getRunningInstancesByEnvironment: mock(() => []),
+}));
+
 const { storeReset, storeCreateEnvironment, storeGetEnvironment } = await import("../store");
 const { db } = await import("../db");
 const { user } = await import("../db/schema");
 const { eq } = await import("drizzle-orm");
 const { Hono } = await import("hono");
+const instanceMock = await import("../services/instance");
 const webEnvironments = (await import("../routes/web/environments")).default;
 
 const testApp = new Hono();
@@ -51,6 +73,12 @@ describe("Web Environments CRUD API", () => {
   beforeEach(() => {
     storeReset();
     ensureTestUser();
+    (instanceMock.listInstancesByEnvironment as any).mockClear?.();
+    (instanceMock.listInstancesByEnvironment as any).mockReturnValue?.([]);
+    (instanceMock.getRunningInstancesByEnvironment as any).mockClear?.();
+    (instanceMock.getRunningInstancesByEnvironment as any).mockReturnValue?.([]);
+    (instanceMock.spawnInstanceFromEnvironment as any).mockClear?.();
+    (instanceMock.findRunningInstanceByEnvironment as any).mockClear?.();
   });
 
   test("POST /web/environments — registers successfully", async () => {
@@ -153,5 +181,107 @@ describe("Web Environments CRUD API", () => {
     expect(body.ok).toBe(true);
 
     expect(storeGetEnvironment(env.id)).toBeUndefined();
+  });
+
+  test("GET /web/environments — returns instances array and instances_count", async () => {
+    const envName = `env-inst-count-${Date.now()}`;
+    storeCreateEnvironment({ name: envName, workspacePath: "/tmp/ws1", userId: "test-user-1", status: "idle" });
+
+    const res = await testApp.request("/web/environments");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    const added = body.find((e: any) => e.name === envName);
+    expect(added).toBeDefined();
+    expect(Array.isArray(added.instances)).toBe(true);
+    expect(added.instances_count).toBe(0);
+  });
+
+  test("GET /web/environments — includes active instance data", async () => {
+    const env = storeCreateEnvironment({ name: `env-inst-data-${Date.now()}`, workspacePath: "/tmp/ws2", userId: "test-user-1", status: "idle" });
+    (instanceMock.listInstancesByEnvironment as any).mockReturnValue([{
+      id: "inst_1",
+      instanceNumber: 1,
+      status: "running",
+      sessionId: "session_a",
+      port: 8888,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+    }]);
+
+    const res = await testApp.request("/web/environments");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    const found = body.find((e: any) => e.id === env.id);
+    expect(found).toBeDefined();
+    expect(found.instances).toHaveLength(1);
+    expect(found.instances[0].instance_number).toBe(1);
+    expect(found.instances[0].status).toBe("running");
+    expect(found.instances_count).toBe(1);
+  });
+
+  test("POST /:id/enter with empty body auto-creates instance", async () => {
+    const env = storeCreateEnvironment({ name: `env-enter-auto-${Date.now()}`, workspacePath: "/tmp/ws3", userId: "test-user-1", status: "idle" });
+
+    const res = await testApp.request(`/web/environments/${env.id}/enter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.instance_id).toBeDefined();
+    expect(body.instance_number).toBe(1);
+  });
+
+  test("POST /:id/enter with instance_number selects specific instance", async () => {
+    const env = storeCreateEnvironment({ name: `env-enter-num-${Date.now()}`, workspacePath: "/tmp/ws4", userId: "test-user-1", status: "idle" });
+    (instanceMock.getRunningInstancesByEnvironment as any).mockReturnValue([
+      { id: "inst_1", instanceNumber: 1, status: "running", sessionId: "session_a", port: 8888, createdAt: new Date() },
+      { id: "inst_2", instanceNumber: 2, status: "running", sessionId: "session_b", port: 8889, createdAt: new Date() },
+    ]);
+
+    const res = await testApp.request(`/web/environments/${env.id}/enter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instance_number: 2 }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.instance_number).toBe(2);
+    expect(body.instance_id).toBe("inst_2");
+  });
+
+  test("POST /:id/enter with non-existent instance_number returns 404", async () => {
+    const env = storeCreateEnvironment({ name: `env-enter-404-${Date.now()}`, workspacePath: "/tmp/ws5", userId: "test-user-1", status: "idle" });
+    (instanceMock.getRunningInstancesByEnvironment as any).mockReturnValue([
+      { id: "inst_1", instanceNumber: 1, status: "running", sessionId: "session_a", port: 8888, createdAt: new Date() },
+    ]);
+
+    const res = await testApp.request(`/web/environments/${env.id}/enter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instance_number: 5 }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  test("GET /:id/instances returns active instance list", async () => {
+    const env = storeCreateEnvironment({ name: `env-list-inst-${Date.now()}`, workspacePath: "/tmp/ws6", userId: "test-user-1", status: "idle" });
+    (instanceMock.listInstancesByEnvironment as any).mockReturnValue([
+      { id: "inst_1", instanceNumber: 1, status: "running", sessionId: "session_a", port: 8888, createdAt: new Date("2026-01-01T00:00:00Z") },
+      { id: "inst_2", instanceNumber: 2, status: "starting", sessionId: "session_b", port: 8889, createdAt: new Date("2026-01-02T00:00:00Z") },
+    ]);
+
+    const res = await testApp.request(`/web/environments/${env.id}/instances`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.environment_id).toBe(env.id);
+    expect(body.instances).toHaveLength(2);
+    expect(body.instances[0].instance_number).toBe(1);
+    expect(body.instances[1].instance_number).toBe(2);
+  });
+
+  test("GET /:id/instances returns 404 for non-existent environment", async () => {
+    const res = await testApp.request("/web/environments/env_noexist/instances");
+    expect(res.status).toBe(404);
   });
 });

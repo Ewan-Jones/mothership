@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { createApiKey } from "../auth/api-key-service";
 import { getBaseUrl } from "../config";
 import { log } from "../logger";
-import { storeGetEnvironment, storeCreateSession, storeListSessionsByEnvironment } from "../store";
+import { storeGetEnvironment, storeCreateSession } from "../store";
 import { closeInstanceLocalWs } from "../transport/acp-relay-handler";
 import { resolveExecutable } from "../utils/executable";
 
@@ -21,6 +21,7 @@ export interface SpawnedInstance {
   createdAt: Date;
   environmentId?: string;
   sessionId?: string;
+  instanceNumber: number;
 }
 
 const PORT_MIN = 8888;
@@ -29,7 +30,15 @@ const ACP_LINK_BIND_HOST = "0.0.0.0";
 
 const instances = new Map<string, SpawnedInstance>();
 const allocatingPorts = new Set<number>();
+const envInstanceCounters = new Map<string, number>();
 let spawnImpl: typeof spawn = spawn;
+
+function getNextInstanceNumber(environmentId: string): number {
+  const current = envInstanceCounters.get(environmentId) ?? 0;
+  const next = current + 1;
+  envInstanceCounters.set(environmentId, next);
+  return next;
+}
 
 function allocatePort(): number | null {
   const occupied = new Set<number>();
@@ -78,6 +87,7 @@ export async function spawnInstance(userId: string): Promise<SpawnedInstance> {
       id, userId, port, pid: null,
       status: "starting", command, error: null, apiKey,
       createdAt: new Date(),
+      instanceNumber: 1,
     };
     instances.set(id, instance);
 
@@ -125,6 +135,24 @@ export function findRunningInstanceByEnvironment(environmentId: string): Spawned
   );
 }
 
+export function findInstanceBySessionId(sessionId: string): SpawnedInstance | undefined {
+  return Array.from(instances.values()).find(
+    (i) => i.sessionId === sessionId && i.status !== "stopped" && i.status !== "error",
+  );
+}
+
+export function listInstancesByEnvironment(environmentId: string): SpawnedInstance[] {
+  return Array.from(instances.values()).filter(
+    (i) => i.environmentId === environmentId && i.status !== "stopped" && i.status !== "error",
+  );
+}
+
+export function getRunningInstancesByEnvironment(environmentId: string): SpawnedInstance[] {
+  return Array.from(instances.values()).filter(
+    (i) => i.environmentId === environmentId && i.status === "running",
+  );
+}
+
 export function getInstance(id: string): SpawnedInstance | undefined {
   return instances.get(id);
 }
@@ -137,7 +165,7 @@ export function stopInstance(id: string, userId: string): { ok: boolean; error?:
 
   // Close the shared local WS to acp-link before killing the process
   if (inst.environmentId) {
-    closeInstanceLocalWs(inst.environmentId);
+    closeInstanceLocalWs(id);
   }
 
   if (!inst.pid) { inst.status = "stopped"; return { ok: true }; }
@@ -167,26 +195,14 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
   const env = storeGetEnvironment(environmentId);
   if (!env) throw new Error("Environment not found");
   if (env.userId !== userId) throw new Error("Not your environment");
-  // Check if a running instance already exists for this environment
-  const hasRunningInstance = Array.from(instances.values()).some(
-    (i) => i.environmentId === environmentId && i.status !== "stopped" && i.status !== "error",
-  );
-  if (hasRunningInstance) throw new Error("Environment already has a running instance");
 
-  // Eagerly create session so the frontend can navigate to it immediately
-  let sessionId: string;
-  const existing = storeListSessionsByEnvironment(environmentId);
-  if (existing.length > 0) {
-    sessionId = existing[0].id;
-  } else {
-    const session = storeCreateSession({
-      environmentId,
-      title: env.agentName || env.name,
-      source: "acp",
-      userId,
-    });
-    sessionId = session.id;
-  }
+  const session = storeCreateSession({
+    environmentId,
+    title: env.agentName || env.name,
+    source: "acp",
+    userId,
+  });
+  const sessionId = session.id;
 
   const cwd = env.workspacePath || env.directory;
   if (!cwd || !existsSync(cwd)) throw new Error(`Workspace directory does not exist: ${cwd}`);
@@ -207,6 +223,7 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
       createdAt: new Date(),
       environmentId,
       sessionId,
+      instanceNumber: getNextInstanceNumber(environmentId),
     };
     instances.set(id, instance);
 

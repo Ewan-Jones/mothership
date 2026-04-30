@@ -14,6 +14,7 @@ function toResponse(inst: SpawnedInstance) {
     group_id: inst.apiKey,
     environment_id: inst.environmentId ?? null,
     session_id: inst.sessionId ?? null,
+    instance_number: inst.instanceNumber,
     created_at: Math.floor(inst.createdAt.getTime() / 1000),
   };
 }

@@ -88,5 +88,7 @@ The system cannot find the file specified.
 
 ---
 
-1. 模型配置后, agent 侧没有立刻更新
-2. 如果中途改动 agent 配置, 智能体不会更新, 需要重启实例
+- [x] 模型配置后, agent 侧没有立刻更新
+- [ ] 如果中途改动 agent 配置, 智能体不会更新, 需要重启实例
+- [ ] 工作区里面的主 Agent 配置没有同步到 session 里面
+- [ ] 发出消息后, 直接截断, 没有返回消息(可能为推理服务不行)

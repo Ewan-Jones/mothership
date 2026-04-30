@@ -1,4 +1,4 @@
-import type { Session, Environment, EnvironmentDetail, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent, ChannelProviderInfo, ChannelInfo } from "../types";
+import type { Session, Environment, EnvironmentDetail, EnvironmentInstance, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent, ChannelProviderInfo, ChannelInfo } from "../types";
 import type { FileListResponse, FileContent, FileUploadResult, FileWriteResult } from "../types";
 import type { ProviderInfo, ProviderDetail, ModelConfig, AgentInfo, AgentDetail, SkillInfo, SkillDetail, McpServerInfo, McpServerDetail, McpServerConfig, McpToolInfo, McpInspectResult, ApiResponse, SkillUploadResponse, SkillUploadConflictResponse } from "../types/config";
 
@@ -67,12 +67,23 @@ export function apiDeleteEnvironment(id: string) {
 export interface EnterEnvironmentResponse {
   session_id: string;
   instance_id: string;
+  instance_number: number;
   instance_status: string;
   environment_id: string;
 }
 
-export function apiEnterEnvironment(environmentId: string) {
-  return api<EnterEnvironmentResponse>("POST", `/web/environments/${environmentId}/enter`);
+export function apiEnterEnvironment(environmentId: string, instanceNumber?: number) {
+  const body = instanceNumber !== undefined ? { instance_number: instanceNumber } : undefined;
+  return api<EnterEnvironmentResponse>("POST", `/web/environments/${environmentId}/enter`, body);
+}
+
+export interface ListEnvironmentInstancesResponse {
+  environment_id: string;
+  instances: EnvironmentInstance[];
+}
+
+export function apiListEnvironmentInstances(environmentId: string) {
+  return api<ListEnvironmentInstancesResponse>("GET", `/web/environments/${environmentId}/instances`);
 }
 
 // --- Control ---
@@ -115,6 +126,7 @@ export interface InstanceInfo {
   group_id: string;
   environment_id: string | null;
   session_id: string | null;
+  instance_number: number;
   created_at: number;
 }
 
@@ -122,6 +134,8 @@ export interface CreateInstanceResponse {
   id: string;
   port: number;
   status: string;
+  instance_number: number;
+  session_id: string | null;
   created_at: number;
 }
 

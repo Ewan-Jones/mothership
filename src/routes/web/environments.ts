@@ -12,8 +12,9 @@ import {
 import type { EnvironmentRecord } from "../../store";
 import { getSection } from "../../services/config";
 import {
-    findRunningInstanceByEnvironment,
     spawnInstanceFromEnvironment,
+    listInstancesByEnvironment,
+    getRunningInstancesByEnvironment,
 } from "../../services/instance";
 import { mkdirSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
@@ -88,13 +89,23 @@ app.get("/environments", sessionAuth, async (c) => {
         });
         sessions = [session];
       }
-      // Check for running instance
-      const runningInst = findRunningInstanceByEnvironment(env.id);
+      // Get active instances for this environment
+      const activeInstances = listInstancesByEnvironment(env.id);
+      const firstInstance = activeInstances[0];
       return {
         ...sanitizeResponse(env),
         session_id: sessions[0].id,
-        instance_status: runningInst ? runningInst.status : null,
-        instance_id: runningInst ? runningInst.id : null,
+        instance_status: firstInstance ? firstInstance.status : null,
+        instance_id: firstInstance ? firstInstance.id : null,
+        instances: activeInstances.map((inst) => ({
+          id: inst.id,
+          instance_number: inst.instanceNumber,
+          status: inst.status,
+          session_id: inst.sessionId ?? null,
+          port: inst.port,
+          created_at: Math.floor(inst.createdAt.getTime() / 1000),
+        })),
+        instances_count: activeInstances.length,
       };
     }), 200);
 });
@@ -307,23 +318,37 @@ app.post("/environments/:id/enter", sessionAuth, async (c) => {
         );
     }
 
-    // Check for existing running instance
-    let inst = findRunningInstanceByEnvironment(envId);
-    if (!inst) {
-        // Spawn a new instance
+    let body: any = {};
+    try { body = await c.req.json(); } catch { /* empty body is ok */ }
+    const instanceNumber = body.instance_number as number | undefined;
+
+    let inst: import("../../services/instance").SpawnedInstance | undefined;
+
+    if (instanceNumber !== undefined) {
+      // Find instance by number
+      const runningInstances = getRunningInstancesByEnvironment(envId);
+      inst = runningInstances.find((i) => i.instanceNumber === instanceNumber);
+      if (!inst) {
+        return c.json(
+          { error: { type: "NOT_FOUND", message: `实例 ${instanceNumber} 不存在或未运行` } },
+          404,
+        );
+      }
+    } else {
+      // Default: find or spawn first running instance
+      const runningInstances = getRunningInstancesByEnvironment(envId);
+      if (runningInstances.length > 0) {
+        inst = runningInstances[0];
+      } else {
         try {
-            inst = await spawnInstanceFromEnvironment(user.id, envId);
+          inst = await spawnInstanceFromEnvironment(user.id, envId);
         } catch (err: any) {
-            // Race condition: another request may have spawned one
-            if (err.message?.includes("already has a running instance")) {
-                inst = findRunningInstanceByEnvironment(envId);
-            } else {
-                return c.json(
-                    { error: { type: "CONFIG_WRITE_ERROR", message: err.message } },
-                    500,
-                );
-            }
+          return c.json(
+            { error: { type: "CONFIG_WRITE_ERROR", message: err.message } },
+            500,
+          );
         }
+      }
     }
 
     if (!inst) {
@@ -352,8 +377,35 @@ app.post("/environments/:id/enter", sessionAuth, async (c) => {
     return c.json({
         session_id: sessionId,
         instance_id: inst.id,
+        instance_number: inst.instanceNumber,
         instance_status: inst.status,
         environment_id: envId,
+    }, 200);
+});
+
+/** GET /web/environments/:id/instances — List active instances for an environment */
+app.get("/environments/:id/instances", sessionAuth, async (c) => {
+    const user = c.get("user")!;
+    const envId = c.req.param("id")!;
+    const env = storeGetEnvironment(envId);
+    if (!env || env.userId !== user.id) {
+        return c.json(
+            { error: { type: "NOT_FOUND", message: "环境不存在" } },
+            404,
+        );
+    }
+
+    const activeInstances = listInstancesByEnvironment(envId);
+    return c.json({
+        environment_id: envId,
+        instances: activeInstances.map((inst) => ({
+          id: inst.id,
+          instance_number: inst.instanceNumber,
+          status: inst.status,
+          session_id: inst.sessionId ?? null,
+          port: inst.port,
+          created_at: Math.floor(inst.createdAt.getTime() / 1000),
+        })),
     }, 200);
 });
 

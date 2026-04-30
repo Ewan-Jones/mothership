@@ -12,6 +12,7 @@ function toResponse(inst: any) {
     status: inst.status,
     error: inst.error,
     group_id: inst.apiKey,
+    instance_number: inst.instanceNumber,
     created_at: Math.floor(inst.createdAt.getTime() / 1000),
   };
 }
@@ -27,6 +28,7 @@ const mockSpawnInstance = mock<(userId: string) => Promise<{
   error: null;
   apiKey: string;
   createdAt: Date;
+  instanceNumber: number;
 }>>(async (userId: string) => ({
   id: "inst_abc123",
   userId,
@@ -37,6 +39,7 @@ const mockSpawnInstance = mock<(userId: string) => Promise<{
   error: null,
   apiKey: "rcs_test_api_key",
   createdAt: new Date("2026-01-01T00:00:00Z"),
+  instanceNumber: 1,
 }));
 
 const mockListInstances = mock<(userId: string) => Array<{
@@ -49,6 +52,7 @@ const mockListInstances = mock<(userId: string) => Array<{
   error: null;
   apiKey: string;
   createdAt: Date;
+  instanceNumber: number;
 }>>((_userId: string) => [
   {
     id: "inst_abc123",
@@ -60,6 +64,7 @@ const mockListInstances = mock<(userId: string) => Array<{
     error: null,
     apiKey: "rcs_test_api_key",
     createdAt: new Date("2026-01-01T00:00:00Z"),
+    instanceNumber: 1,
   },
   {
     id: "inst_def456",
@@ -71,6 +76,7 @@ const mockListInstances = mock<(userId: string) => Array<{
     error: null,
     apiKey: "rcs_test_api_key2",
     createdAt: new Date("2026-01-02T00:00:00Z"),
+    instanceNumber: 2,
   },
 ]);
 
@@ -196,5 +202,20 @@ describe("Instance Routes", () => {
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error.message).toBe("Not your instance");
+  });
+
+  test("POST /web/instances — response includes instance_number", async () => {
+    const res = await app.request("/web/instances", { method: "POST" });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.instance_number).toBe(1);
+  });
+
+  test("GET /web/instances — each item includes instance_number", async () => {
+    const res = await app.request("/web/instances");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body[0].instance_number).toBe(1);
+    expect(body[1].instance_number).toBe(2);
   });
 });

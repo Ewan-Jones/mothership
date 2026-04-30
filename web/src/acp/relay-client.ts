@@ -5,9 +5,13 @@ import type { ACPSettings } from "./types";
  * Build the RCS relay WebSocket URL for a given agent.
  * Uses cookie-based auth (better-auth session).
  */
-export function buildRelayUrl(agentId: string): string {
+export function buildRelayUrl(agentId: string, sessionId?: string): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/acp/relay/${agentId}`;
+  const base = `${protocol}//${window.location.host}/acp/relay/${agentId}`;
+  if (sessionId) {
+    return `${base}?sessionId=${encodeURIComponent(sessionId)}`;
+  }
+  return base;
 }
 
 /**
@@ -16,8 +20,8 @@ export function buildRelayUrl(agentId: string): string {
  * the frontend and the target acp-link instance.
  * Authentication is handled via cookies (better-auth session).
  */
-export function createRelayClient(agentId: string): ACPClient {
-  const relayUrl = buildRelayUrl(agentId);
+export function createRelayClient(agentId: string, sessionId?: string): ACPClient {
+  const relayUrl = buildRelayUrl(agentId, sessionId);
   const settings: ACPSettings = { proxyUrl: relayUrl };
   return new ACPClient(settings);
 }

@@ -161,6 +161,7 @@ acp-link 有两种认证方式（优先级从高到低）：
 - `keep_alive` 消息在 relay 层被拦截，不透传到前端（防止 "Unknown message type: keep_alive" 错误）
 - `list_sessions` 消息由 relay 层拦截，服务端直接按 ACP `AgentSessionInfo` 格式响应（支持 `cwd` 过滤）
 - relay 断连时不关闭 acp-link 子进程（只关闭 WebSocket 连接），仅用户显式删除时才终止进程
+- 多实例隔离：relay URL 携带 `?sessionId=xxx` 参数，`agentLocalWsMap` 按 **instanceId** 做 key（非 agentId），同一环境多个实例各有独立的本地 WS 连接
 - 消息流向：
   - 前端 → relay → acp-link（`direction: "outbound"`）
   - acp-link → relay → 前端（`direction: "inbound"`）
@@ -468,6 +469,9 @@ Permission 选项（`web/src/components/PermissionTab.tsx`）：
 10. **relay 断连不杀进程**：前端断连（刷新、关闭 dashboard）不应终止 acp-link 子进程，只在用户显式点击删除时才关闭。前端断连只关闭 WebSocket 连接
 11. **keep_alive 不透传前端**：relay 层拦截 `keep_alive` 消息，不转发给前端，否则前端报 "Unknown message type: keep_alive"
 12. **文件 API 路径**：文件系统路由已改为 `/web/sessions/:id/user/*`（不是 `/files/*`），前端 API client 同步使用 `/user` 路径
+13. **API 响应兼容**：改造 API 响应格式时，必须保留旧字段（如 `instance_status`、`instance_id`）直到前端所有引用处都已迁移，否则 `isOnline` 等检查会失效
+14. **多实例 relay 路由**：`agentLocalWsMap` 按 instanceId 做 key，不是 agentId。relay URL 须携带 `?sessionId=` 参数才能路由到正确实例，否则所有实例消息混入同一信道
+15. **Split Button 可见性**：多实例下拉按钮应在环境在线时就显示（而非仅在多实例时），用户需要随时能"新建实例"
 
 ## 代码风格
 

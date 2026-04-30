@@ -20,10 +20,14 @@ import {
     MessageSquare,
     Clock,
     KeyRound,
+    Monitor,
 } from "lucide-react";
 
 const Dashboard = lazy(() =>
     import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })),
+);
+const EnvironmentsPage = lazy(() =>
+    import("./pages/EnvironmentsPage").then((m) => ({ default: m.EnvironmentsPage })),
 );
 const SessionDetail = lazy(() =>
     import("./pages/SessionDetail").then((m) => ({ default: m.SessionDetail })),
@@ -48,7 +52,7 @@ const ChannelsPage = lazy(() =>
 );
 
 export function parseConfigView(pathname: string): string | null {
-    const configViews = ["models", "agents", "skills", "mcp", "tasks", "channels"];
+    const configViews = ["models", "agents", "skills", "mcp", "tasks", "channels", "environments"];
     const segment = pathname.replace(/^\/ctrl\/?/, "").split("/")[0];
     return configViews.includes(segment) ? segment : null;
 }
@@ -63,7 +67,8 @@ type ViewId =
     | "skills"
     | "mcp"
     | "tasks"
-    | "channels";
+    | "channels"
+    | "environments";
 
 export default function App() {
     const { data: session, isPending } = useSession();
@@ -77,7 +82,7 @@ export default function App() {
     const parseRoute = useCallback(() => {
         const path = window.location.pathname;
         const params = new URLSearchParams(window.location.search);
-        const configViews = ["models", "agents", "skills", "mcp", "tasks", "channels"];
+        const configViews = ["models", "agents", "skills", "mcp", "tasks", "channels", "environments"];
         const segment = path.replace(/^\/ctrl\/?/, "").split("/")[0];
         if (configViews.includes(segment)) {
             setConfigView(segment);
@@ -128,6 +133,8 @@ export default function App() {
         }
         const query = params.toString();
         window.history.pushState(null, "", `/ctrl/${sessionId}/${query ? `?${query}` : ""}`);
+        setConfigView(null);
+        setShowApiKeys(false);
         setCurrentSessionId(sessionId);
         setCurrentSessionCwd(options?.cwd ?? null);
     }, []);
@@ -173,10 +180,17 @@ export default function App() {
         () => [
             {
                 id: "dashboard",
+                label: "概览",
+                icon: <Monitor className="h-4 w-4" />,
+                active: activeView === "dashboard",
+                onClick: navigateToDashboard,
+            },
+            {
+                id: "environments",
                 label: "智能体",
                 icon: <Bot className="h-4 w-4" />,
-                active: activeView === "dashboard" || activeView === "session",
-                onClick: navigateToDashboard,
+                active: activeView === "environments" || activeView === "session",
+                onClick: () => navigateToConfig("environments"),
             },
             {
                 id: "models",
@@ -273,6 +287,8 @@ export default function App() {
                         <TasksPage />
                     ) : configView === "channels" ? (
                         <ChannelsPage />
+                    ) : configView === "environments" ? (
+                        <EnvironmentsPage onNavigateToSession={navigateToSession} />
                     ) : currentSessionId ? (
                         <SessionDetail
                             key={currentSessionId}

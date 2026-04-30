@@ -411,7 +411,7 @@ function ACPSessionDetail({ sessionId, agentId, initialCwd }: { sessionId: strin
   const clientRef = useRef<ACPClient | null>(null);
 
   useEffect(() => {
-    const relayClient = createRelayClient(agentId);
+    const relayClient = createRelayClient(agentId, sessionId);
 
     relayClient.setConnectionStateHandler((state, err) => {
       setConnectionState(state);

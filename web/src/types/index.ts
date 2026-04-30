@@ -14,6 +14,17 @@ export interface Environment {
   session_id?: string;
   instance_status?: string | null;
   instance_id?: string | null;
+  instances?: EnvironmentInstance[];
+  instances_count?: number;
+}
+
+export interface EnvironmentInstance {
+  id: string;
+  instance_number: number;
+  status: "starting" | "running" | "stopped" | "error";
+  session_id: string | null;
+  port: number;
+  created_at: number;
 }
 
 export interface EnvironmentDetail extends Environment {

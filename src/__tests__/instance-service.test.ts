@@ -45,6 +45,31 @@ mock.module("../transport/acp-relay-handler", () => ({
   closeInstanceLocalWs: mock(() => {}),
 }));
 
+mock.module("../store", () => ({
+  storeGetEnvironment: mock((id: string) => ({
+    id,
+    userId: "test-user",
+    agentName: "test-agent",
+    name: "test-env",
+    workspacePath: process.cwd(),
+    secret: "env_secret_test123",
+  })),
+  storeCreateSession: mock((req: any) => ({
+    id: `session_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    environmentId: req.environmentId,
+    title: req.title,
+    status: "idle",
+    source: req.source,
+    userId: req.userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })),
+}));
+
+mock.module("../utils/executable", () => ({
+  resolveExecutable: mock(() => process.cwd() + "/node_modules/.bin/acp-link"),
+}));
+
 // Import after mocks are set up
 const {
   spawnInstance,
@@ -53,6 +78,9 @@ const {
   stopInstance,
   stopAllInstances,
   setInstanceSpawnForTesting,
+  listInstancesByEnvironment,
+  getRunningInstancesByEnvironment,
+  spawnInstanceFromEnvironment,
 } = await import("../services/instance");
 
 describe("InstanceService", () => {
@@ -235,5 +263,77 @@ describe("InstanceService", () => {
     // but the function should complete without error
     expect(inst1After).toBeDefined();
     expect(inst2After).toBeDefined();
+  });
+});
+
+describe("InstanceService multi-instance", () => {
+  let originalCwd = process.cwd();
+  let testCwd: string | null = null;
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    testCwd = mkdtempSync(join(tmpdir(), "instance-multi-"));
+    process.chdir(testCwd);
+    setInstanceSpawnForTesting(mockSpawn as unknown as typeof import("node:child_process").spawn);
+  });
+
+  afterEach(() => {
+    stopAllInstances();
+    setInstanceSpawnForTesting(null);
+    process.chdir(originalCwd);
+    if (testCwd) {
+      rmSync(testCwd, { recursive: true, force: true });
+      testCwd = null;
+    }
+  });
+
+  test("multiple instances can be created for the same environment", async () => {
+    const inst1 = await spawnInstanceFromEnvironment("test-user", "env_test_1");
+    const inst2 = await spawnInstanceFromEnvironment("test-user", "env_test_1");
+    expect(inst1.id).not.toBe(inst2.id);
+    expect(inst1.status).toBe("running");
+    expect(inst2.status).toBe("running");
+  });
+
+  test("instance numbers are strictly increasing", async () => {
+    const inst1 = await spawnInstanceFromEnvironment("test-user", "env_test_num");
+    const inst2 = await spawnInstanceFromEnvironment("test-user", "env_test_num");
+    const inst3 = await spawnInstanceFromEnvironment("test-user", "env_test_num");
+    expect(inst1.instanceNumber).toBe(1);
+    expect(inst2.instanceNumber).toBe(2);
+    expect(inst3.instanceNumber).toBe(3);
+  });
+
+  test("instance numbers are not recycled after stop", async () => {
+    const inst1 = await spawnInstanceFromEnvironment("test-user", "env_test_recycle");
+    stopInstance(inst1.id, "test-user");
+    const inst2 = await spawnInstanceFromEnvironment("test-user", "env_test_recycle");
+    expect(inst2.instanceNumber).toBe(2);
+  });
+
+  test("listInstancesByEnvironment returns only active instances", async () => {
+    const inst1 = await spawnInstanceFromEnvironment("test-user", "env_test_list");
+    const inst2 = await spawnInstanceFromEnvironment("test-user", "env_test_list");
+    const inst3 = await spawnInstanceFromEnvironment("test-user", "env_test_list");
+    stopInstance(inst1.id, "test-user");
+    const active = listInstancesByEnvironment("env_test_list");
+    expect(active).toHaveLength(2);
+    expect(active.every(i => i.status !== "stopped" && i.status !== "error")).toBe(true);
+  });
+
+  test("getRunningInstancesByEnvironment returns only running instances", async () => {
+    const inst1 = await spawnInstanceFromEnvironment("test-user", "env_test_running");
+    const inst2 = await spawnInstanceFromEnvironment("test-user", "env_test_running");
+    const running = getRunningInstancesByEnvironment("env_test_running");
+    expect(running).toHaveLength(2);
+    expect(running.every(i => i.status === "running")).toBe(true);
+  });
+
+  test("each instance gets an independent session", async () => {
+    const inst1 = await spawnInstanceFromEnvironment("test-user", "env_test_session");
+    const inst2 = await spawnInstanceFromEnvironment("test-user", "env_test_session");
+    expect(inst1.sessionId).toBeTruthy();
+    expect(inst2.sessionId).toBeTruthy();
+    expect(inst1.sessionId).not.toBe(inst2.sessionId);
   });
 });

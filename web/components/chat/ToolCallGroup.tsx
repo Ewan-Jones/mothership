@@ -2,10 +2,9 @@ import { useState } from "react";
 import type { ToolCallEntry, ToolCallData } from "../../src/lib/types";
 import { cn } from "../../src/lib/utils";
 import { ToolPermissionButtons } from "../ai-elements/permission-request";
-import { Button } from "../ui/button";
 
 // =============================================================================
-// 工具调用折叠组 — Anthropic: subtle card, left-border accent, compact layout
+// 工具调用表格式列表 — 无折叠，始终展开，类似 table 的 row list
 // =============================================================================
 
 interface ToolCallGroupProps {
@@ -14,133 +13,157 @@ interface ToolCallGroupProps {
 }
 
 export function ToolCallGroup({ entries, onPermissionRespond }: ToolCallGroupProps) {
-  const [expanded, setExpanded] = useState(false);
-
   if (entries.length === 0) return null;
-
-  const summary = buildSummary(entries);
 
   return (
     <div className="pl-10">
-      <div className="rounded-lg border border-border bg-surface-2/50 overflow-hidden">
-        {/* 折叠头 */}
-        <Button
-          variant="ghost"
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-surface-1/50 justify-start font-normal"
-          onClick={() => setExpanded(!expanded)}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            className={cn("transition-transform text-text-muted", expanded && "rotate-90")}
-          >
-            <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="1.5" fill="none" />
-          </svg>
-          <span className="text-xs text-text-muted font-display">{summary}</span>
-        </Button>
+      {/* 表头 */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-dim">
+          工具调用
+        </span>
+        <span className="text-[10px] text-text-dim font-mono tabular-nums">
+          ({entries.length})
+        </span>
+      </div>
 
-        {/* 展开内容 */}
-        {expanded && (
-          <div className="border-t border-border divide-y divide-border">
-            {entries.map((entry, i) => (
-              <SingleToolCard
-                key={entry.toolCall.id || i}
-                tool={entry.toolCall}
-                compact
-                onPermissionRespond={onPermissionRespond}
-              />
-            ))}
-          </div>
-        )}
+      {/* 表格式列表 */}
+      <div className="rounded-lg border border-border bg-surface-2/50 overflow-hidden">
+        <div className="divide-y divide-border">
+          {/* 行 */}
+          {entries.map((entry, i) => (
+            <ToolCallRow
+              key={entry.toolCall.id || i}
+              tool={entry.toolCall}
+              onPermissionRespond={onPermissionRespond}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 // =============================================================================
-// 单个工具卡片 — compact, left-accent, inline status
+// 单行工具调用 — table row style, always visible
 // =============================================================================
 
-interface SingleToolCardProps {
+interface ToolCallRowProps {
   tool: ToolCallData;
-  compact?: boolean;
   onPermissionRespond?: (requestId: string, optionId: string | null, optionKind: string | null) => void;
 }
 
-function SingleToolCard({ tool, compact, onPermissionRespond }: SingleToolCardProps) {
-  const [expanded, setExpanded] = useState(!compact);
+const STATUS_CONFIG = {
+  running: { icon: "▶", label: "执行中", cls: "text-status-running", bar: "bg-status-running" },
+  complete: { icon: "✓", label: "完成", cls: "text-status-active", bar: "bg-status-active" },
+  error: { icon: "✗", label: "失败", cls: "text-status-error", bar: "bg-status-error" },
+  waiting_for_confirmation: { icon: "⚑", label: "待确认", cls: "text-brand", bar: "bg-brand" },
+  canceled: { icon: "—", label: "已取消", cls: "text-text-muted", bar: "bg-text-muted/40" },
+  rejected: { icon: "✗", label: "已拒绝", cls: "text-status-error", bar: "bg-status-error" },
+} as const;
 
-  const statusIcon = (() => {
-    switch (tool.status) {
-      case "running":
-        return <span className="text-status-running text-[10px]">&#9654;</span>;
-      case "complete":
-        return <span className="text-status-active text-[10px]">&#10003;</span>;
-      case "error":
-        return <span className="text-status-error text-[10px]">&#10005;</span>;
-      case "waiting_for_confirmation":
-        return <span className="text-brand text-[10px]">&#9083;</span>;
-      case "canceled":
-        return <span className="text-text-muted text-[10px]">&#8212;</span>;
-      case "rejected":
-        return <span className="text-status-error text-[10px]">&#10005;</span>;
-      default:
-        return null;
-    }
-  })();
+function ToolCallRow({ tool, onPermissionRespond }: ToolCallRowProps) {
+  const [showDetail, setShowDetail] = useState(false);
 
-  const hasOutput = tool.status !== "running" && tool.status !== "waiting_for_confirmation" && (tool.rawOutput || tool.content);
+  const status = STATUS_CONFIG[tool.status] || STATUS_CONFIG.canceled;
+  const toolName = simplifyToolName(tool.title);
+  const hasOutput =
+    tool.status !== "running" &&
+    tool.status !== "waiting_for_confirmation" &&
+    (tool.rawOutput || tool.content);
+  const description = getDescription(tool);
 
   return (
-    <div className={cn("px-3 py-2", compact && "py-1.5")}>
-      {/* 标题行 — 单行紧凑 */}
-      <Button
-        variant="ghost"
-        className="flex w-full items-center gap-1.5 text-left justify-start font-normal p-0 h-auto"
-        onClick={() => setExpanded(!expanded)}
-      >
-        {statusIcon}
-        <span className="text-xs font-display font-medium text-text-secondary group-hover:text-text-primary transition-colors truncate">
-          {tool.title}
-        </span>
-        {tool.status === "running" && (
-          <span className="text-[10px] text-status-running animate-pulse">running</span>
+    <div>
+      <div
+        className={cn(
+          "flex items-center gap-3 px-3 py-2 text-xs transition-colors group cursor-pointer",
+          "hover:bg-surface-1/70",
         )}
-      </Button>
+        onClick={() => setShowDetail(!showDetail)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowDetail(!showDetail); } }}
+      >
+        {/* 左侧状态条 — 3px 竖线 */}
+        <div className={cn("w-0.5 h-5 rounded-full flex-shrink-0", status.bar)} />
+
+        {/* 状态图标 */}
+        <span className={cn("w-4 flex-shrink-0 text-center text-[10px] font-bold", status.cls)}>
+          {tool.status === "running" ? (
+            <span className="inline-block animate-spin">⟳</span>
+          ) : (
+            status.icon
+          )}
+        </span>
+
+        {/* 工具名称 */}
+        <span className="w-20 flex-shrink-0 font-mono text-[11px] text-text-primary truncate">
+          {toolName}
+        </span>
+
+        {/* 详情简述 */}
+        <span className="flex-1 min-w-0 text-text-muted truncate text-[11px]">
+          {description}
+        </span>
+
+        {/* 展开指示 */}
+        {hasOutput && (
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            className={cn(
+              "flex-shrink-0 text-text-dim transition-transform",
+              showDetail && "rotate-180",
+            )}
+          >
+            <path d="M3 2L7 5L3 8" stroke="currentColor" strokeWidth="1.2" fill="none" />
+          </svg>
+        )}
+      </div>
+
+      {/* 展开详情行 */}
+      {showDetail && hasOutput && (
+        <div className="border-t border-border/50 bg-surface-1/30">
+          <div className="px-3 py-2 pl-12">
+            {tool.rawInput && Object.keys(tool.rawInput).length > 0 && (
+              <div className="mb-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-text-dim mb-1">
+                  输入
+                </div>
+                <pre className="text-[11px] bg-surface-1 rounded-md p-2 overflow-x-auto font-mono max-h-36 text-text-secondary">
+                  {truncate(JSON.stringify(tool.rawInput, null, 2), 2000)}
+                </pre>
+              </div>
+            )}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-text-dim mb-1">
+                输出
+              </div>
+              <pre
+                className={cn(
+                  "text-[11px] rounded-md p-2 overflow-x-auto font-mono max-h-36",
+                  tool.status === "error"
+                    ? "bg-status-error/8 text-status-error"
+                    : "bg-surface-1 text-text-secondary",
+                )}
+              >
+                {formatOutput(tool)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 权限请求按钮 */}
       {tool.status === "waiting_for_confirmation" && tool.permissionRequest && (
-        <div className="mt-1.5 ml-4">
+        <div className="px-3 pb-2 pl-12">
           <ToolPermissionButtons
             requestId={tool.permissionRequest.requestId}
             options={tool.permissionRequest.options}
             onRespond={onPermissionRespond || (() => {})}
           />
-        </div>
-      )}
-
-      {/* 展开详情 */}
-      {expanded && (
-        <div className="mt-1.5 ml-4 space-y-1.5">
-          {tool.rawInput && Object.keys(tool.rawInput).length > 0 && (
-            <div>
-              <pre className="text-[11px] bg-surface-1 rounded-md p-2 overflow-x-auto font-mono max-h-36 text-text-secondary">
-                {truncate(JSON.stringify(tool.rawInput, null, 2), 2000)}
-              </pre>
-            </div>
-          )}
-          {hasOutput && (
-            <div>
-              <pre className={cn(
-                "text-[11px] rounded-md p-2 overflow-x-auto font-mono max-h-36",
-                tool.status === "error" ? "bg-status-error/10 text-status-error" : "bg-surface-1 text-text-secondary",
-              )}>
-                {formatOutput(tool)}
-              </pre>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -151,31 +174,25 @@ function SingleToolCard({ tool, compact, onPermissionRespond }: SingleToolCardPr
 // 工具函数
 // =============================================================================
 
-/** 构建统计摘要 */
-function buildSummary(entries: ToolCallEntry[]): string {
-  const toolCounts = new Map<string, number>();
-  for (const entry of entries) {
-    const name = simplifyToolName(entry.toolCall.title);
-    toolCounts.set(name, (toolCounts.get(name) || 0) + 1);
-  }
-
-  const parts: string[] = [];
-  for (const [name, count] of toolCounts) {
-    parts.push(count === 1 ? name : `${count} 次${name}`);
-  }
-
-  if (parts.length === 0) return `${entries.length} 个工具调用`;
-  if (parts.length === 1) return parts[0];
-  return `${entries.length} 个工具: ${parts.join("、")}`;
-}
-
-/** 简化工具名称 */
 function simplifyToolName(title: string): string {
   const match = title.match(/^(\w+)/);
   return match ? match[1] : title;
 }
 
-/** 格式化工具输出 */
+/** Chip background color per status */
+function getDescription(tool: ToolCallData): string {
+  if (tool.description && tool.description.length > 0) return tool.description;
+  if (tool.rawInput) {
+    const str = JSON.stringify(tool.rawInput);
+    return truncate(str, 80);
+  }
+  if (tool.title) {
+    // strip common prefixes
+    return tool.title.replace(/^(Bash|Edit|Read|Write|Grep|Glob|WebFetch|WebSearch|Task)\s*:\s*/, "");
+  }
+  return "";
+}
+
 function formatOutput(tool: ToolCallData): string {
   if (tool.content && tool.content.length > 0) {
     const texts = tool.content
