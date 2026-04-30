@@ -6,10 +6,9 @@ import {
 } from "../api/client";
 import type { Session, SessionEvent } from "../types";
 import { isClosedSessionStatus, formatTime, cn } from "../lib/utils";
-import { Info } from "lucide-react";
+import { ArrowLeft, Info, Cpu, Hash, Wrench, Clock } from "lucide-react";
 import { RCSChatAdapter } from "../lib/rcs-chat-adapter";
 import type { ThreadEntry, PendingPermission } from "../lib/types";
-import { StatusBadge } from "../components/Navbar";
 import { TaskPanel } from "../components/TaskPanel";
 import {
   PermissionPromptView,
