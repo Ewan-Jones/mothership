@@ -85,10 +85,10 @@
 **现状**: 导航栏与 Header 合一
 **目标**: 独立 Topbar（56px 高）
 
-- [ ] 新建/重构 `web/src/components/shell/Topbar.tsx`
-- [ ] 左侧: 面包屑导航 (`Dashboard / 概览`)
-- [ ] 右侧: 搜索框 (Cmd+K hint) + 用户头像 (首字母)
-- [ ] 搜索框样式: 圆角边框、hover 态变化、kbd 标签
+- [x] 新建/重构 `web/src/components/shell/Topbar.tsx`
+- [x] 左侧: 面包屑导航 (`Dashboard / 概览`)
+- [x] 右侧: 搜索框 (Cmd+K hint) + 用户头像 (首字母)
+- [x] 搜索框样式: 圆角边框、hover 态变化、kbd 标签
 
 **影响文件**: 新建 `Topbar.tsx`, 修改 `AppShell.tsx`
 
