@@ -114,3 +114,8 @@
 - ModelsPage 上下文和输出限制字段添加说明文字（"模型单次对话/回复最大 token 数"）。
 - ChatInput 底部提示扩展："粘贴图片或输入 @ 引用文件"。SessionDetail ChatView 空状态描述同步扩展。
 - ACPMain 加载中文字替换为品牌 spinner。空会话列表添加"点击上方 + 创建新会话"引导文字。
+
+### Round 7.6 — loading 一致性 + UX 测试补充
+- EnvironmentsPage 加载状态从纯文字改为品牌 spinner + 上下文提示"加载智能体列表..."。全前端 loading 风格统一。
+- 新增 environments-page-ux.test.ts（7 测试）：验证无 alert、toast 错误、formError 内联验证、secretCopied 复制反馈、品牌 spinner。
+- 扩展 login-i18n.test.ts（+4 测试）：验证密码切换（Eye/EyeOff）、showPassword 动态 type、placeholder 字符要求。测试 390→401 pass。
