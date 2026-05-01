@@ -31,7 +31,7 @@ export function ContextPanel({
     <>
       {/* Toggle button */}
       <button
-        className="context-panel-toggle"
+        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-12 flex items-center justify-center rounded-l-lg border border-border border-r-0 bg-surface-1 text-text-muted cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-text-primary"
         onClick={onToggle}
         title={collapsed ? "显示上下文面板" : "隐藏上下文面板"}
         aria-label={collapsed ? "显示上下文面板" : "隐藏上下文面板"}
@@ -43,92 +43,125 @@ export function ContextPanel({
         )}
       </button>
 
-      {/* Panel — 保持 context-panel / context-panel-collapsed class 兼容布局 */}
+      {/* Panel */}
       <div
         className={cn(
-          "context-panel",
-          collapsed && "context-panel-collapsed",
+          "w-[280px] shrink-0 border-l border-border bg-surface-1 flex flex-col overflow-y-auto overflow-x-hidden transition-[width,opacity] duration-300 ease",
+          "max-md:w-full max-md:max-h-[40vh] max-md:border-l-0 max-md:border-t max-md:border-border",
+          collapsed && "!w-0 opacity-0 !border-l-0 pointer-events-none",
         )}
       >
         {/* Agent header */}
-        <div className="cp-header">
-          <div className="cp-header-row">
-            <div className="cp-avatar">⬡</div>
-            <div className="cp-agent-meta">
-              <div className="cp-agent-name">{displayAgentName}</div>
-              <div className="cp-agent-model">{modelName || "未知"}</div>
+        <div
+          className="px-4 py-3.5 border-b border-border"
+          style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-brand) 8%, transparent) 0%, transparent 60%)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
+              style={{
+                background: 'color-mix(in srgb, var(--color-brand) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-brand) 20%, transparent)',
+              }}
+            >⬡</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-semibold text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">{displayAgentName}</div>
+              <div className="text-[11px] text-text-muted mt-px font-mono">{modelName || "未知"}</div>
             </div>
           </div>
-          <div className="cp-status-row">
-            <span className="cp-status-dot" />
-            <span className="cp-status-label">Running</span>
-            {duration && <span className="cp-duration">{duration}</span>}
+          <div className="flex items-center gap-1.5 mt-2">
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-accent-green animate-[status-active-pulse_2s_ease-in-out_infinite]"
+              style={{ boxShadow: '0 0 6px color-mix(in srgb, var(--color-accent-green) 40%, transparent)' }}
+            />
+            <span className="text-[10px] font-semibold text-accent-green uppercase tracking-[0.05em]">Running</span>
+            {duration && <span className="text-[10px] text-text-dim ml-auto font-mono">{duration}</span>}
           </div>
         </div>
 
         {/* Stats row */}
-        <div className="cp-stats">
-          <div className="cp-stat">
-            <div className="cp-stat-val cp-stat-brand">{formatTokenCount(stats.estimatedTokens)}</div>
-            <div className="cp-stat-label">Tokens</div>
+        <div className="grid grid-cols-3 border-b border-border">
+          <div className="px-3 py-2.5 text-center border-r border-border">
+            <div className="text-sm font-bold font-mono text-brand">{formatTokenCount(stats.estimatedTokens)}</div>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-text-muted mt-0.5">Tokens</div>
           </div>
-          <div className="cp-stat">
-            <div className="cp-stat-val cp-stat-green">{stats.totalToolCalls}</div>
-            <div className="cp-stat-label">Tools</div>
+          <div className="px-3 py-2.5 text-center border-r border-border">
+            <div className="text-sm font-bold font-mono text-accent-green">{stats.totalToolCalls}</div>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-text-muted mt-0.5">Tools</div>
           </div>
-          <div className="cp-stat">
-            <div className="cp-stat-val cp-stat-amber">{stats.userMessages}</div>
-            <div className="cp-stat-label">Messages</div>
+          <div className="px-3 py-2.5 text-center">
+            <div className="text-sm font-bold font-mono text-accent-yellow">{stats.userMessages}</div>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-text-muted mt-0.5">Messages</div>
           </div>
         </div>
 
         {/* Token bar */}
-        <div className="cp-token">
-          <div className="cp-token-header">
-            <span className="cp-token-title">Token 用量</span>
-            <span className="cp-token-total">
+        <div className="px-4 py-3 border-b border-border">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[11px] font-semibold text-text-secondary">Token 用量</span>
+            <span className="text-[11px] font-mono text-text-primary font-semibold">
               {formatTokenCount(stats.estimatedTokens)} / 200k
             </span>
           </div>
-          <div className="cp-bar-track">
+          <div className="h-1 rounded-sm bg-surface-3 overflow-hidden flex">
             <div
-              className="cp-bar-input"
+              className="h-full bg-brand transition-[width] duration-500 ease"
               style={{ width: `${Math.min(stats.estimatedInputTokens / 2000, 50)}%` }}
             />
             <div
-              className="cp-bar-output"
+              className="h-full bg-accent-green transition-[width] duration-500 ease"
               style={{ width: `${Math.min(stats.estimatedOutputTokens / 2000, 50)}%` }}
             />
           </div>
-          <div className="cp-token-legend">
-            <span className="cp-token-legend-item">
-              <span className="cp-token-dot" style={{ background: "var(--color-brand)" }} />
-              输入 <span className="cp-token-val">{formatTokenCount(stats.estimatedInputTokens)}</span>
+          <div className="flex gap-3 mt-1.5">
+            <span className="text-[10px] text-text-muted flex items-center gap-1">
+              <span className="w-[5px] h-[5px] rounded-full inline-block" style={{ background: "var(--color-brand)" }} />
+              输入 <span className="font-mono font-semibold text-text-secondary">{formatTokenCount(stats.estimatedInputTokens)}</span>
             </span>
-            <span className="cp-token-legend-item">
-              <span className="cp-token-dot" style={{ background: "var(--color-accent-green)" }} />
-              输出 <span className="cp-token-val">{formatTokenCount(stats.estimatedOutputTokens)}</span>
+            <span className="text-[10px] text-text-muted flex items-center gap-1">
+              <span className="w-[5px] h-[5px] rounded-full inline-block" style={{ background: "var(--color-accent-green)" }} />
+              输出 <span className="font-mono font-semibold text-text-secondary">{formatTokenCount(stats.estimatedOutputTokens)}</span>
             </span>
           </div>
         </div>
 
         {/* Tool chips */}
-        <div className="cp-tools">
-          <div className="cp-tools-header">
-            <span className="cp-tools-title">工具调用</span>
-            <span className="cp-tools-total">{stats.totalToolCalls}</span>
+        <div className="px-4 py-3 flex-1">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[11px] font-semibold text-text-secondary">工具调用</span>
+            <span className="text-[10px] font-mono text-text-muted">{stats.totalToolCalls}</span>
           </div>
           {stats.totalToolCalls === 0 ? (
-            <div className="cp-tools-empty">暂无工具调用</div>
+            <div className="text-[11px] text-text-muted py-1">暂无工具调用</div>
           ) : (
-            <div className="cp-tools-grid">
+            <div className="flex flex-wrap gap-1">
               {Object.entries(stats.toolCounts)
                 .sort((a, b) => b[1] - a[1])
                 .map(([name, count]) => (
-                  <span key={name} className={cn("cp-tool-chip", name)}>
-                    <span className="cp-tool-chip-dot" />
+                  <span
+                    key={name}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-[3px] rounded-md text-[10px] font-mono font-medium border border-border bg-surface-2 text-text-secondary transition-all duration-150",
+                      "hover:border-[color-mix(in_srgb,var(--color-brand)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-brand)_6%,transparent)] hover:text-text-primary",
+                      name === "bash" && "text-accent-green border-[color-mix(in_srgb,var(--color-accent-green)_15%,transparent)]",
+                      name === "read" && "text-cyan border-[color-mix(in_srgb,var(--color-cyan)_15%,transparent)]",
+                      (name === "edit" || name === "write") && "text-brand-light border-[color-mix(in_srgb,var(--color-brand-light)_15%,transparent)]",
+                      (name === "grep" || name === "glob") && "text-accent-yellow border-[color-mix(in_srgb,var(--color-accent-yellow)_15%,transparent)]",
+                      (name === "webfetch" || name === "websearch") && "text-accent-pink border-[color-mix(in_srgb,var(--color-accent-pink)_15%,transparent)]",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "w-1 h-1 rounded-full inline-block",
+                        name === "bash" && "bg-accent-green",
+                        name === "read" && "bg-cyan",
+                        (name === "edit" || name === "write") && "bg-brand-light",
+                        (name === "grep" || name === "glob") && "bg-accent-yellow",
+                        (name === "webfetch" || name === "websearch") && "bg-accent-pink",
+                      )}
+                    />
                     {name}
-                    <span className="cp-tool-chip-count">{count}</span>
+                    <span className="font-bold text-text-primary">{count}</span>
                   </span>
                 ))}
             </div>
@@ -137,12 +170,15 @@ export function ContextPanel({
 
         {/* Permission queue */}
         {stats.pendingTools.length > 0 && (
-          <div className="cp-perm">
+          <div
+            className="px-4 py-2.5 border-t border-border"
+            style={{ background: 'color-mix(in srgb, var(--color-accent-yellow) 6%, transparent)' }}
+          >
             {stats.pendingTools.map((tool) => (
-              <div key={tool.id} className="cp-perm-row">
-                <span className="cp-perm-dot" />
-                <span className="cp-perm-text">{tool.title}</span>
-                <span className="cp-perm-badge">待确认</span>
+              <div key={tool.id} className="flex items-center gap-1.5 [&+&]:mt-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-yellow animate-[status-active-pulse_2s_ease-in-out_infinite] shrink-0" />
+                <span className="text-[11px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">{tool.title}</span>
+                <span className="text-[9px] font-bold text-accent-yellow uppercase ml-auto shrink-0">待确认</span>
               </div>
             ))}
           </div>

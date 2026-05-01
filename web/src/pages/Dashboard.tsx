@@ -182,26 +182,26 @@ function AnimatedKpiCard({
   const display = useCountUp(value, 900);
 
   return (
-    <div className="dashboard-kpi-card group">
+    <div className="relative overflow-hidden rounded-xl border border-border bg-surface-1 p-4 px-5 transition-transform duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_8px_25px_rgba(0,0,0,0.08)] hover:border-brand cursor-default group">
       {/* glow blob — top-right blurred circle */}
-      <div className="dashboard-kpi-glow" style={{ background: accentColor }} />
+      <div className="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-[0.06] blur-[30px]" style={{ background: accentColor }} />
       <div className="relative z-10 flex flex-col h-full">
-        <div className="dashboard-kpi-header">
-          <div className={cn("dashboard-kpi-icon", accentBg)} style={{ color: accentColor }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className={cn("w-[34px] h-[34px] rounded-[10px] flex items-center justify-center", accentBg)} style={{ color: accentColor }}>
             <Icon className="h-[18px] w-[18px]" />
           </div>
-          <span className="dashboard-kpi-trend">{trend}</span>
+          <span className="text-[11px] font-medium text-[#30b08f]">{trend}</span>
         </div>
-        <div className="dashboard-kpi-value" style={{ color: accentColor }}>
+        <div className="font-mono text-[30px] font-bold tracking-tight leading-none mb-1" style={{ color: accentColor }}>
           {display}{suffix ?? ""}
         </div>
-        <div className="dashboard-kpi-label">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted mt-auto">
           {label}
         </div>
       </div>
       {/* sparkline SVG decoration */}
       <svg
-        className="kpi-sparkline"
+        className="absolute bottom-0 left-0 right-0 h-[30px] opacity-10 pointer-events-none"
         viewBox="0 0 200 30"
         preserveAspectRatio="none"
         aria-hidden="true"
@@ -372,9 +372,9 @@ function TimelineItem({
   dotColor: string; title: string; time: string;
 }) {
   return (
-    <div className="dashboard-timeline-item">
+    <div className="px-3 py-2 rounded-lg transition-colors duration-150 hover:bg-surface-2">
       <div className="flex items-center gap-3">
-        <span className={cn("dashboard-timeline-dot", dotColor)} />
+        <span className={cn("inline-block w-[7px] h-[7px] rounded-full shrink-0", dotColor)} />
         <div className="min-w-0 flex-1">
           <div className="text-[12px] text-text-primary truncate">{title}</div>
           <div className="text-[10px] text-text-muted mt-0.5">{time}</div>
@@ -443,7 +443,9 @@ export function Dashboard() {
   const sparkHealth = generateSparkData(healthPct / 100, healthPct / 100, 0.7, 1);
 
   return (
-    <div className="h-full overflow-y-auto dashboard-page">
+    <div className="h-full overflow-y-auto"
+      style={{ background: 'radial-gradient(ellipse 80% 60% at 50% -20%, rgba(99, 102, 241, 0.04), transparent), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(34, 211, 238, 0.03), transparent)' }}
+    >
       <div className="mx-auto max-w-6xl px-6 py-6 space-y-5">
 
         {/* ================================================================ *
@@ -465,36 +467,36 @@ export function Dashboard() {
         {/* ================================================================ *
          *  SECTION 2 — KPI 卡片条 (5 列)
          * ================================================================ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 stagger-animate">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 [&>*]:animate-[fadeUp_0.5s_ease_forwards] [&>*]:opacity-0 [&>*:nth-child(1)]:delay-[50ms] [&>*:nth-child(2)]:delay-[100ms] [&>*:nth-child(3)]:delay-[150ms] [&>*:nth-child(4)]:delay-[200ms] [&>*:nth-child(5)]:delay-[250ms] [&>*:nth-child(6)]:delay-[300ms] [&>*:nth-child(7)]:delay-[350ms] [&>*:nth-child(8)]:delay-[400ms]">
           <AnimatedKpiCard
             icon={Bot} label="智能体" value={stats.environments.length}
             trend={`${activeEnvs.length} 活跃`}
-            accentColor="#6366F1" accentBg="dashboard-kpi-icon-brand"
+            accentColor="#6366F1" accentBg="bg-brand-subtle text-brand-light"
             sparkPath="M0,22 C20,22 30,18 50,18 C70,18 80,14 100,14 C120,14 130,8 150,8 C170,8 180,12 200,10"
           />
           <AnimatedKpiCard
             icon={MessageSquare} label="会话" value={stats.sessions.length}
             trend={`${activeSessions.length} 进行中`}
-            accentColor="#22D3EE" accentBg="dashboard-kpi-icon-cyan"
+            accentColor="#22D3EE" accentBg="bg-[rgba(34,211,238,0.12)] text-[#22D3EE]"
             sparkPath="M0,16 C30,16 45,12 60,12 C75,12 90,18 105,18 C120,18 135,10 150,10 C165,10 185,14 200,8"
           />
           <AnimatedKpiCard
             icon={Cpu} label="模型" value={modelCount}
             trend="已配置"
-            accentColor="#818CF8" accentBg="dashboard-kpi-icon-purple"
+            accentColor="#818CF8" accentBg="bg-[rgba(129,140,248,0.12)] text-[#818CF8]"
             sparkPath="M0,10 C20,10 35,14 50,14 C65,14 80,8 95,8 C110,8 130,12 150,12 C170,12 185,6 200,8"
           />
           <AnimatedKpiCard
             icon={ShieldCheck} label="可用率" value={healthPct}
             suffix="%"
             trend="健康"
-            accentColor="#10B981" accentBg="dashboard-kpi-icon-green"
+            accentColor="#10B981" accentBg="bg-[rgba(52,211,153,0.12)] text-[#10B981]"
             sparkPath="M0,6 C25,6 40,4 60,4 C80,4 95,8 115,8 C135,8 155,4 175,4 C190,4 200,6 200,6"
           />
           <AnimatedKpiCard
             icon={Clock} label="定时任务" value={stats.tasks.length}
             trend={`${enabledTasks.length} 启用`}
-            accentColor="#F59E0B" accentBg="dashboard-kpi-icon-amber"
+            accentColor="#F59E0B" accentBg="bg-[rgba(251,191,36,0.12)] text-[#F59E0B]"
             sparkPath="M0,20 C30,20 50,16 70,16 C90,16 110,14 130,14 C150,14 165,10 185,10 C195,10 200,12 200,12"
           />
         </div>

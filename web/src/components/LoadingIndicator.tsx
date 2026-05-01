@@ -39,7 +39,7 @@ export function LoadingIndicator({ verb = "Thinking", stalled = false }: Loading
         {SPINNER_CYCLE[frame]}
       </span>
       <span
-        className="glimmer-text text-sm font-medium transition-colors duration-2000"
+        className="animate-[glimmer-pulse_2s_ease-in-out_infinite] text-sm font-medium text-text-secondary transition-colors duration-2000"
         style={stalled ? undefined : undefined}
       >
         {verb}…

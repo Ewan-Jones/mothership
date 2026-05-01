@@ -276,12 +276,14 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <h1 className="sr-only">{session.title || session.id}</h1>
         {/* Session Header — Nexus Indigo style */}
-        <div className="session-header border-b border-border-subtle bg-surface-1 px-4 py-3">
+        <div className="border-b border-border-subtle bg-surface-1 px-4 py-3"
+          style={{ background: 'radial-gradient(ellipse 60% 50% at 50% -10%, rgba(99, 102, 241, 0.03), transparent), var(--color-surface-1)' }}
+        >
           <div>
             {/* Back button */}
             <a
               href="/ctrl/"
-              className="session-header-back inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-brand transition-colors no-underline mb-2"
+              className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-brand transition-colors no-underline mb-2"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span className="font-display">返回</span>
@@ -302,7 +304,7 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
                       <span className={cn(
                         "session-status-dot inline-block h-2 w-2 rounded-full",
                         sessionStatus === "running" || sessionStatus === "active"
-                          ? "bg-status-running animate-pulse-subtle"
+                          ? "bg-status-running animate-[pulse-subtle_2s_ease-in-out_infinite]"
                           : sessionStatus === "error"
                             ? "bg-status-error"
                             : "bg-text-muted",
@@ -353,25 +355,25 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
                 icon={<Cpu className="h-3.5 w-3.5" />}
                 label="Model"
                 value={session.agent_name || "default"}
-                colorClass="stat-brand"
+                colorClass="bg-brand-subtle text-brand-light"
               />
               <SessionStatCard
                 icon={<Hash className="h-3.5 w-3.5" />}
                 label="Tokens"
                 value={stats.estimatedTokens > 0 ? `~${stats.estimatedTokens.toLocaleString()}` : "—"}
-                colorClass="stat-green"
+                colorClass="bg-[rgba(52,211,153,0.12)] text-accent-green"
               />
               <SessionStatCard
                 icon={<Wrench className="h-3.5 w-3.5" />}
                 label="Tools"
                 value={String(stats.toolCalls)}
-                colorClass="stat-cyan"
+                colorClass="bg-[rgba(34,211,238,0.12)] text-cyan"
               />
               <SessionStatCard
                 icon={<Clock className="h-3.5 w-3.5" />}
                 label="Duration"
                 value={stats.durationStr}
-                colorClass="stat-amber"
+                colorClass="bg-[rgba(251,191,36,0.12)] text-accent-yellow"
               />
             </div>
 
@@ -459,8 +461,8 @@ function SessionStatCard({
   colorClass: string;
 }) {
   return (
-    <div className="session-stat-card flex items-center gap-2.5 rounded-lg border border-border-subtle bg-surface-1 px-3 py-2">
-      <div className={cn("session-stat-icon flex items-center justify-center h-7 w-7 rounded-md", colorClass)}>
+    <div className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-surface-1 px-3 py-2 transition-transform duration-150 ease-in-out hover:-translate-y-px hover:shadow-card">
+      <div className={cn("flex items-center justify-center h-7 w-7 rounded-md", colorClass)}>
         {icon}
       </div>
       <div className="min-w-0">
