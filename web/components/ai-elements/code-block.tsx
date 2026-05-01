@@ -39,37 +39,45 @@ export const CodeBlock = ({
     <CodeBlockContext.Provider value={{ code }}>
       <div
         className={cn(
-          "group relative w-full overflow-hidden rounded-md border bg-background text-foreground",
+          "code-block-wrapper group relative w-full overflow-hidden rounded-lg border border-border-subtle bg-surface-2 text-foreground",
           className
         )}
         {...props}
       >
-        <div className="relative">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <tbody>
-                {lines.map((line, i) => (
-                  <tr key={i} className="border-0">
-                    {showLineNumbers && (
-                      <td className="w-10 select-none pr-4 text-right align-top text-muted-foreground text-xs">
-                        {i + 1}
-                      </td>
-                    )}
-                    <td className="p-0">
-                      <pre className="m-0 p-0 text-sm whitespace-pre font-mono">
-                        <code className="text-sm">{line || "\u00A0"}</code>
-                      </pre>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {children && (
-            <div className="absolute top-2 right-2 flex items-center gap-2">
+        {/* Header: language label + copy button */}
+        <div className="code-block-header flex items-center justify-between px-3 py-1.5 border-b border-border-subtle bg-surface-3/50">
+          <span className="text-[11px] font-mono font-medium text-text-dim uppercase tracking-wide select-none">
+            {language || "text"}
+          </span>
+          {children ? (
+            <div className="flex items-center gap-1">
               {children}
             </div>
+          ) : (
+            <CodeBlockCopyButton />
           )}
+        </div>
+
+        {/* Code area */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <tbody>
+              {lines.map((line, i) => (
+                <tr key={i} className="border-0">
+                  {showLineNumbers && (
+                    <td className="w-10 select-none pr-4 text-right align-top text-text-dim text-xs font-mono">
+                      {i + 1}
+                    </td>
+                  )}
+                  <td className="p-0">
+                    <pre className="m-0 px-3 py-0.5 text-xs whitespace-pre-wrap break-words font-mono leading-5">
+                      <code className="text-xs">{line || "\u00A0"}</code>
+                    </pre>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </CodeBlockContext.Provider>
@@ -85,7 +93,7 @@ export type CodeBlockCopyButtonProps = ComponentProps<typeof Button> & {
 export const CodeBlockCopyButton = ({
   onCopy,
   onError,
-  timeout = 2000,
+  timeout = 1500,
   children,
   className,
   ...props
@@ -109,17 +117,30 @@ export const CodeBlockCopyButton = ({
     }
   };
 
-  const Icon = isCopied ? CheckIcon : CopyIcon;
-
   return (
-    <Button
-      className={cn("shrink-0", className)}
+    <button
+      type="button"
       onClick={copyToClipboard}
-      size="icon"
-      variant="ghost"
-      {...props}
+      className={cn(
+        "code-block-copy-btn inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium transition-all duration-200 cursor-pointer",
+        isCopied
+          ? "bg-emerald-500/15 text-emerald-600"
+          : "text-text-dim hover:text-text-primary hover:bg-surface-hover",
+        className
+      )}
+      {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
     >
-      {children ?? <Icon size={14} />}
-    </Button>
+      {isCopied ? (
+        <>
+          <CheckIcon size={12} />
+          <span>已复制</span>
+        </>
+      ) : (
+        <>
+          <CopyIcon size={12} />
+          <span>复制</span>
+        </>
+      )}
+    </button>
   );
 };
