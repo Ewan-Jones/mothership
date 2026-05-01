@@ -104,3 +104,8 @@
 - TasksPage cron 输入添加格式说明（分 时 日 月 周）和示例。任务内容 placeholder 增强为具体自然语言示例。启用/禁用文案简化为"关闭后定时任务将暂停，可通过立即执行手动运行"。
 - AgentsPage 步数字段添加推荐值（简单 10-30/复杂 50-100）。隐藏和禁用复选框添加 title 提示说明各自作用。
 - McpPage 服务器类型选择添加 Local/Remote 动态说明文字。
+
+### Round 7.4 — 登录页/IdentityPanel + 测试全修
+- LoginPage 添加密码可见性切换按钮（Eye/EyeOff 图标），placeholder 改为"至少 8 个字符"。错误提示添加红色背景圆角框更醒目。
+- IdentityPanel 扫码失败 alert() 替换为 toast.error。至此全前端零 alert()。
+- 修复 3 个 i18n 测试文件（app/dashboard/shared-components），导航项检查改为 Sidebar.tsx。前端测试从 390 pass / 10 fail 修复为 390 pass / 0 fail。
