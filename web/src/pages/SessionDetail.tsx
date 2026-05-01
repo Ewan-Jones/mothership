@@ -405,7 +405,7 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
               entries={entries}
               isLoading={isLoading}
               emptyTitle="开始对话"
-              emptyDescription="输入消息开始聊天"
+              emptyDescription="输入消息开始聊天 · 支持粘贴图片或 @ 引用文件"
             />
 
             {/* Unified Permission Panel — above input */}

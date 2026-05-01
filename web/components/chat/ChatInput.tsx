@@ -364,7 +364,7 @@ export function ChatInput({
       {/* 提示文本 */}
       <div className="text-center mt-1.5">
         <span className="text-[11px] text-text-muted font-display">
-          Enter 发送，Shift+Enter 换行
+          Enter 发送，Shift+Enter 换行 · 粘贴图片或输入 @ 引用文件
         </span>
       </div>
     </div>

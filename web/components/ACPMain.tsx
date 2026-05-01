@@ -287,15 +287,16 @@ function SidebarSessionList({
   if (loading && sessions.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
-        <span className="text-xs text-text-muted font-display">加载中...</span>
+        <div className="h-5 w-5 rounded-full border-2 border-brand border-t-transparent animate-spin" />
       </div>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="flex flex-col items-center justify-center py-8 gap-1">
         <span className="text-xs text-text-muted font-display">暂无会话</span>
+        <span className="text-[10px] text-text-muted">点击上方 + 创建新会话</span>
       </div>
     );
   }

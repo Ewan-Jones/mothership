@@ -235,11 +235,13 @@ function ModelSubrow({ providerId, models, onModelChange }: { providerId: string
               <label className="text-sm font-medium">上下文限制 (tokens)</label>
               <Input type="number" value={mfContext} onChange={(e) => setMfContext(e.target.value)}
                 placeholder="例如 128000" className="mt-1" />
+              <p className="text-xs text-muted-foreground mt-1">模型单次对话最大 token 数</p>
             </div>
             <div>
               <label className="text-sm font-medium">输出限制 (tokens)</label>
               <Input type="number" value={mfOutput} onChange={(e) => setMfOutput(e.target.value)}
                 placeholder="例如 16384" className="mt-1" />
+              <p className="text-xs text-muted-foreground mt-1">单次回复最大 token 数</p>
             </div>
           </div>
           <div>
