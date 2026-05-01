@@ -123,3 +123,7 @@
 ### Round 7.7 — 删除确认一致性 + 最终扫描
 - ApiKeyManager 删除按钮添加 ConfirmDialog 确认框（此前是唯一没有确认的删除操作）。确认框说明影响："使用该 Key 的 Agent 将无法继续连接"。
 - 最终一致性扫描：全前端零 alert()、零 confirm()、所有删除操作均有 ConfirmDialog 确认。401 pass / 0 fail。
+
+### Round 7.8 — UX 一致性全局测试套件
+- 新增 ux-consistency.test.ts（12 测试）：全局扫描所有 TSX 零 alert/confirm；验证 LoginPage 密码切换+错误样式、SessionDetail retry+内联颜色、ChatInput 提示文字、Topbar 搜索框标记、Dashboard spinner。测试 401→424 pass。
+- 八轮 Design Review 总结：28+ UX 问题修复、8 处 alert 消除、全局 loading 统一、删除确认一致、424 测试全通过。
