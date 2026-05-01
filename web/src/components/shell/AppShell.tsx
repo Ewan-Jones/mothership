@@ -44,7 +44,13 @@ export function AppShell({ currentPage, onNavigate, children }: AppShellProps) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar currentPage={currentPage} />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <main
+          className={
+            currentPage === "session"
+              ? "flex flex-1 flex-col overflow-hidden"
+              : "flex-1 overflow-y-auto p-4 sm:p-6"
+          }
+        >
           {children}
         </main>
       </div>

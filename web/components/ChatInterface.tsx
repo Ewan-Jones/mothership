@@ -888,6 +888,14 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       {!readonly && (
         <ContextPanel
           entries={entries}
+          agentName={agentId}
+          modelName={
+            client.modelState
+              ? client.modelState.availableModels.find(
+                  (m) => m.modelId === client.modelState!.currentModelId,
+                )?.name ?? client.modelState.currentModelId
+              : undefined
+          }
           collapsed={!contextPanelOpen}
           onToggle={() => setContextPanelOpen(!contextPanelOpen)}
         />

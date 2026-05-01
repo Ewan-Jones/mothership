@@ -32,8 +32,8 @@ export function ContextPanel({
       <button
         className="context-panel-toggle"
         onClick={onToggle}
-        title={collapsed ? "Show context panel" : "Hide context panel"}
-        aria-label={collapsed ? "Show context panel" : "Hide context panel"}
+        title={collapsed ? "显示上下文面板" : "隐藏上下文面板"}
+        aria-label={collapsed ? "显示上下文面板" : "隐藏上下文面板"}
       >
         {collapsed ? (
           <PanelRight className="h-3.5 w-3.5" />
@@ -51,15 +51,15 @@ export function ContextPanel({
       >
         {/* Agent Info */}
         <div className="context-section">
-          <div className="context-section-title">Agent Info</div>
-          <ContextInfoRow label="Agent" value={agentName || "default"} />
-          <ContextInfoRow label="Model" value={modelName || "unknown"} />
-          {duration && <ContextInfoRow label="Duration" value={duration} />}
+          <div className="context-section-title">智能体信息</div>
+          <ContextInfoRow label="智能体" value={agentName || "默认"} />
+          <ContextInfoRow label="模型" value={modelName || "未知"} />
+          {duration && <ContextInfoRow label="时长" value={duration} />}
         </div>
 
         {/* Token Ring */}
         <div className="context-section">
-          <div className="context-section-title">Token Usage</div>
+          <div className="context-section-title">Token 用量</div>
           <TokenRingSection
             estimatedTokens={stats.estimatedTokens}
             inputTokens={stats.estimatedInputTokens}
@@ -69,7 +69,7 @@ export function ContextPanel({
 
         {/* Tool Usage */}
         <div className="context-section">
-          <div className="context-section-title">Tool Usage</div>
+          <div className="context-section-title">工具使用</div>
           <ToolUsageSection toolCounts={stats.toolCounts} total={stats.totalToolCalls} />
         </div>
 
@@ -77,7 +77,7 @@ export function ContextPanel({
         {stats.pendingTools.length > 0 && (
           <div className="context-section">
             <div className="context-section-title">
-              Permission Queue ({stats.pendingTools.length})
+              权限队列 ({stats.pendingTools.length})
             </div>
             {stats.pendingTools.map((tool) => (
               <PermissionQueueItem key={tool.id} title={tool.title} />
@@ -162,24 +162,24 @@ function TokenRingSection({
             y={size / 2 + 10}
             textAnchor="middle"
           >
-            used
+            已用
           </text>
         </g>
       </svg>
       <div className="flex-1 space-y-1">
         <TokenBreakdownRow
           color="var(--color-brand)"
-          label="Input"
+          label="输入"
           value={inputTokens}
         />
         <TokenBreakdownRow
           color="#10B981"
-          label="Output"
+          label="输出"
           value={outputTokens}
         />
         <TokenBreakdownRow
           color="var(--color-text-muted)"
-          label="Total"
+          label="总计"
           value={estimatedTokens}
         />
       </div>
@@ -233,7 +233,7 @@ function ToolUsageSection({
 
   if (total === 0) {
     return (
-      <div className="text-[11px] text-text-muted py-1">No tool calls yet</div>
+      <div className="text-[11px] text-text-muted py-1">暂无工具调用</div>
     );
   }
 
@@ -263,7 +263,7 @@ function PermissionQueueItem({ title }: { title: string }) {
     <div className="permission-queue-item">
       <span className="permission-queue-dot" />
       <span className="permission-queue-text">{title}</span>
-      <span className="permission-queue-pending">pending</span>
+      <span className="permission-queue-pending">等待中</span>
     </div>
   );
 }

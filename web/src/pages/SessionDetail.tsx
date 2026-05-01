@@ -277,7 +277,7 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
         <h1 className="sr-only">{session.title || session.id}</h1>
         {/* Session Header — Nexus Indigo style */}
         <div className="session-header border-b border-border-subtle bg-surface-1 px-4 py-3">
-          <div className="mx-auto max-w-5xl">
+          <div>
             {/* Back button */}
             <a
               href="/ctrl/"
