@@ -99,3 +99,8 @@
 
 ### Round 7.2 — EnvironmentsPage UX 修复
 - EnvironmentsPage 所有 7 处 alert() 弹窗替换为 toast.error()，消除阻塞式浏览器原生弹窗体验。表单验证改为 Dialog 内红色内联错误文字。Secret 对话框添加"已复制!"反馈和加粗黄色警告。Topbar 搜索框标记"功能开发中"降透明度防误点。
+
+### Round 7.3 — 多页面文案与引导优化
+- TasksPage cron 输入添加格式说明（分 时 日 月 周）和示例。任务内容 placeholder 增强为具体自然语言示例。启用/禁用文案简化为"关闭后定时任务将暂停，可通过立即执行手动运行"。
+- AgentsPage 步数字段添加推荐值（简单 10-30/复杂 50-100）。隐藏和禁用复选框添加 title 提示说明各自作用。
+- McpPage 服务器类型选择添加 Local/Remote 动态说明文字。
