@@ -255,7 +255,7 @@ function ToolCallRow({ tool, onPermissionRespond }: ToolCallRowProps) {
                     <div className="px-3 py-2 pl-12">
                         {tool.rawInput &&
                             Object.keys(tool.rawInput).length > 0 && (
-                                <div className="mb-2">
+                                <div className={hasOutput ? "mb-2" : ""}>
                                     <div className="text-[10px] font-semibold uppercase tracking-wider text-text-dim mb-1">
                                         输入
                                     </div>
@@ -271,6 +271,7 @@ function ToolCallRow({ tool, onPermissionRespond }: ToolCallRowProps) {
                                     </pre>
                                 </div>
                             )}
+                        {hasOutput && (
                         <div>
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-text-dim mb-1">
                                 输出
@@ -285,6 +286,7 @@ function ToolCallRow({ tool, onPermissionRespond }: ToolCallRowProps) {
                                 {formatOutput(tool)}
                             </pre>
                         </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -4,7 +4,6 @@ node_modules
 data
 docker/opencode-data
 docker/workspaces
-web/dist
 dist
 spec
 *.log

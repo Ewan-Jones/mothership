@@ -6,7 +6,7 @@ services:
         container_name: mothership-beta
         restart: unless-stopped
         ports:
-            - "3000:3000"
+            - "3001:3000"
         environment:
             RCS_HOST: 0.0.0.0
             RCS_PORT: 3000

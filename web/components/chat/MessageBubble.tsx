@@ -53,7 +53,7 @@ export function UserBubble({ entry }: UserBubbleProps) {
                 )}
                 {/* 文本内容 — 品牌色淡底 + 折叠 */}
                 {entry.content && (
-	                <div className="relative bg-user-bubble border border-user-bubble-border overflow-hidden message-bubble-enter">
+	                <div className="relative bg-user-bubble border border-user-bubble-border rounded-2xl overflow-hidden message-bubble-enter">
                         <div
                             ref={contentRef}
                             className={cn(

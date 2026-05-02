@@ -1,4 +1,4 @@
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1 AS base
 WORKDIR /app
 
 FROM base AS deps
@@ -21,7 +21,7 @@ RUN bun install -g opencode-ai@latest --registry=https://registry.npmmirror.com 
 
 ############### production image ###############
 
-FROM oven/bun:1-alpine AS runtime
+FROM oven/bun:1 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -33,8 +33,20 @@ ENV PATH=/root/.bun/bin:${PATH}
 ENV OPENCODE_DISABLE_AUTOUPDATE=1
 ENV OPENCODE_DISABLE_TELEMETRY=1
 
-# Copy the musl variant of opencode binary (Alpine uses musl, not glibc)
-COPY --from=opencode-build /root/.bun/install/global/node_modules/opencode-linux-arm64-musl/bin/opencode /usr/local/bin/opencode
+# Install Python 3 and common tools (Debian/glibc base, use TUNA mirror)
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
+    sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null; \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+       python3 python3-pip python3-venv \
+       curl git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the glibc variant of opencode binary (Debian uses glibc, not musl)
+RUN --mount=type=bind,from=opencode-build,target=/tmp/opencode-build \
+    cp "$(find /tmp/opencode-build/root/.bun/install/global/node_modules/ \
+      -path '*/opencode-linux-*/bin/opencode' ! -path '*-musl*' | head -1)" \
+      /usr/local/bin/opencode
 
 RUN bun install -g acp-link \
     && rm -rf /root/.bun/install/cache /tmp/bun-*

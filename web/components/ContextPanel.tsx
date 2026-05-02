@@ -28,18 +28,18 @@ export function ContextPanel({
   const displayAgentName = useMemo(() => simplifyDisplayName(agentName), [agentName]);
 
   return (
-    <>
-      {/* Toggle button */}
+    <div className="relative flex shrink-0">
+      {/* Toggle button — pinned to the left edge (divider line) */}
       <button
-        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-12 flex items-center justify-center rounded-l-lg border border-border border-r-0 bg-surface-1 text-text-muted cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-text-primary"
+        className="absolute left-0 -translate-x-full top-1/2 -translate-y-1/2 z-10 w-6 h-12 flex items-center justify-center rounded-l-lg border border-border border-r-0 bg-surface-1 text-text-muted cursor-pointer transition-colors duration-150 hover:bg-surface-2 hover:text-text-primary"
         onClick={onToggle}
         title={collapsed ? "显示上下文面板" : "隐藏上下文面板"}
         aria-label={collapsed ? "显示上下文面板" : "隐藏上下文面板"}
       >
         {collapsed ? (
-          <PanelRight className="h-3.5 w-3.5" />
-        ) : (
           <PanelRightClose className="h-3.5 w-3.5" />
+        ) : (
+          <PanelRight className="h-3.5 w-3.5" />
         )}
       </button>
 
@@ -184,7 +184,7 @@ export function ContextPanel({
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

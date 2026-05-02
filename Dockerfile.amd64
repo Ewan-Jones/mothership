@@ -1,4 +1,4 @@
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1 AS base
 WORKDIR /app
 
 # Build server.js (frontend is built on host beforehand with `bun run build:web`)
@@ -17,7 +17,7 @@ RUN bun install -g opencode-ai@latest --registry=https://registry.npmmirror.com 
 
 ############### production image ###############
 
-FROM oven/bun:1-alpine AS runtime
+FROM oven/bun:1 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -29,10 +29,17 @@ ENV PATH=/root/.bun/bin:${PATH}
 ENV OPENCODE_DISABLE_AUTOUPDATE=1
 ENV OPENCODE_DISABLE_TELEMETRY=1
 
-# Copy the musl variant of opencode binary (Alpine uses musl, not glibc)
+# Install Python 3 and common tools (Debian/glibc base)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       python3 python3-pip python3-venv \
+       curl git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the glibc variant of opencode binary (Debian uses glibc, not musl)
 RUN --mount=type=bind,from=opencode-build,target=/tmp/opencode-build \
     cp "$(find /tmp/opencode-build/root/.bun/install/global/node_modules/ \
-      -path '*/opencode-linux-*-musl/bin/opencode' | head -1)" \
+      -path '*/opencode-linux-*/bin/opencode' ! -path '*-musl*' | head -1)" \
       /usr/local/bin/opencode
 
 RUN bun install -g acp-link \
