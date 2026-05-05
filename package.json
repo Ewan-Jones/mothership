@@ -1,8 +1,9 @@
 {
-    "name": "@anthropic/remote-control-server",
+    "name": "agent-harness",
     "version": "0.1.0",
     "type": "module",
     "scripts": {
+        "postinstall": "bunx peri-cli install acpx-g && bunx peri-cli add-env",
         "dev": "bun run src/index.ts",
         "dev:web": "cd web && bunx vite",
         "start": "bun run src/index.ts",
