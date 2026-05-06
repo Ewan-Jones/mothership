@@ -1,5 +1,14 @@
 import { describe, test, expect } from "bun:test";
-import { isValidAgentNameInput, isValidStepsInput } from "../pages/AgentsPage";
+import {
+    isValidAgentNameInput,
+    isValidStepsInput,
+    filterSubagents,
+    getDisplayAgents,
+    getSubagentColumnKeys,
+    getFullAgentColumnKeys,
+    buildSubagentFormData,
+} from "../pages/AgentsPage";
+import type { AgentInfo } from "../types/config";
 
 describe("isValidAgentNameInput", () => {
   test("valid name", () => {
@@ -75,5 +84,155 @@ describe("isValidStepsInput — Task 5 回归", () => {
   test("小数被 parseInt 截断为整数", () => {
     // parseInt("1.5") = 1, 所以 isValidStepsInput("1.5") = true
     expect(isValidStepsInput("1.5")).toBe(true);
+  });
+});
+
+const mockAgents: AgentInfo[] = [
+  { name: "agent-a", builtIn: false, model: "gpt-4", mode: "primary" },
+  { name: "agent-b", builtIn: true, model: "gpt-4", mode: "subagent" },
+  { name: "agent-c", builtIn: false, model: "gpt-3.5", mode: null },
+  { name: "agent-d", builtIn: false, model: "gpt-4", mode: "subagent" },
+];
+
+describe("filterSubagents", () => {
+  test("仅返回 mode=subagent 的条目", () => {
+    const result = filterSubagents(mockAgents);
+    expect(result).toHaveLength(2);
+    expect(result.map((a) => a.name)).toEqual(["agent-b", "agent-d"]);
+  });
+
+  test("无 mode=subagent 时返回空数组", () => {
+    const noSubs = mockAgents.filter((a) => a.mode !== "subagent");
+    expect(filterSubagents(noSubs)).toEqual([]);
+  });
+
+  test("mode=null 不匹配", () => {
+    const result = filterSubagents(mockAgents);
+    expect(result.find((a) => a.name === "agent-c")).toBeUndefined();
+  });
+});
+
+describe("getDisplayAgents", () => {
+  test("pageTab=all 返回全量", () => {
+    expect(getDisplayAgents(mockAgents, "all")).toHaveLength(4);
+  });
+
+  test("pageTab=subagent 返回过滤后数据", () => {
+    expect(getDisplayAgents(mockAgents, "subagent")).toHaveLength(2);
+  });
+
+  test("pageTab=primary 返回主智能体", () => {
+    const result = getDisplayAgents(mockAgents, "primary");
+    expect(result).toHaveLength(2);
+    expect(result.map((a) => a.name)).toEqual(["agent-a", "agent-c"]);
+  });
+
+  test("空列表 pageTab=subagent 返回空数组", () => {
+    expect(getDisplayAgents([], "subagent")).toEqual([]);
+  });
+
+  test("空列表 pageTab=primary 返回空数组", () => {
+    expect(getDisplayAgents([], "primary")).toEqual([]);
+  });
+});
+
+describe("getSubagentColumnKeys", () => {
+  test("返回正确的 4 个列 key", () => {
+    const keys = getSubagentColumnKeys();
+    expect(keys).toEqual(["name", "builtIn", "model", "description"]);
+  });
+
+  test("不包含 mode 和 default", () => {
+    const keys = getSubagentColumnKeys();
+    expect(keys).not.toContain("mode");
+    expect(keys).not.toContain("default");
+  });
+});
+
+describe("getFullAgentColumnKeys", () => {
+  test("返回正确的 5 个列 key", () => {
+    const keys = getFullAgentColumnKeys();
+    expect(keys).toEqual(["name", "builtIn", "model", "mode", "default"]);
+  });
+
+  test("不包含 description", () => {
+    const keys = getFullAgentColumnKeys();
+    expect(keys).not.toContain("description");
+  });
+});
+
+describe("buildSubagentFormData", () => {
+  test("基本构建", () => {
+    const data = buildSubagentFormData({
+      name: "my-sub",
+      model: "gpt-4",
+      description: "test desc",
+      prompt: "do something",
+      steps: "50",
+      disable: false,
+    });
+    expect(data).toEqual({
+      mode: "subagent",
+      model: "gpt-4",
+      steps: 50,
+      prompt: "do something",
+      description: "test desc",
+      disable: false,
+    });
+  });
+
+  test("空字符串转 undefined", () => {
+    const data = buildSubagentFormData({
+      name: "my-sub",
+      model: "",
+      description: "",
+      prompt: "",
+      steps: "30",
+      disable: false,
+    });
+    expect(data.model).toBeUndefined();
+    expect(data.prompt).toBeUndefined();
+    expect(data.description).toBeUndefined();
+  });
+
+  test("steps 解析为数字", () => {
+    const data = buildSubagentFormData({
+      name: "my-sub",
+      model: "gpt-4",
+      description: "",
+      prompt: "",
+      steps: "100",
+      disable: false,
+    });
+    expect(data.steps).toBe(100);
+  });
+
+  test("disable 透传", () => {
+    const data = buildSubagentFormData({
+      name: "my-sub",
+      model: "gpt-4",
+      description: "",
+      prompt: "",
+      steps: "50",
+      disable: true,
+    });
+    expect(data.disable).toBe(true);
+  });
+
+  test("不含高级字段", () => {
+    const data = buildSubagentFormData({
+      name: "my-sub",
+      model: "gpt-4",
+      description: "",
+      prompt: "",
+      steps: "50",
+      disable: false,
+    });
+    expect(data).not.toHaveProperty("variant");
+    expect(data).not.toHaveProperty("temperature");
+    expect(data).not.toHaveProperty("top_p");
+    expect(data).not.toHaveProperty("color");
+    expect(data).not.toHaveProperty("hidden");
+    expect(data).not.toHaveProperty("permission");
   });
 });

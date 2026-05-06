@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Bot, Plus, Pencil, Trash2, Loader2, Power, ChevronDown, RotateCw, LayoutGrid, List, ArrowRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { AgentsPage } from "./AgentsPage";
 
 interface EnvironmentsPageProps {
   onNavigateToSession?: (sessionId: string, options?: { cwd?: string }) => void;
@@ -39,6 +40,7 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
   const [stopTarget, setStopTarget] = useState<{ instanceId: string; envName: string } | null>(null);
   const [refreshingEnvId, setRefreshingEnvId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "card">("card");
+  const [envTab, setEnvTab] = useState<"environments" | "subagents">("environments");
 
   const loadEnvs = useCallback(async () => {
     try {
@@ -324,7 +326,33 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-text-primary">智能体</h1>
           <div className="flex items-center gap-3">
+            {/* Tab Switch */}
+            <div className="flex gap-1 rounded-lg bg-surface-2 p-1">
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  envTab === "environments"
+                    ? "bg-surface-1 text-text-primary shadow-sm"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+                onClick={() => setEnvTab("environments")}
+              >
+                智能体
+              </button>
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  envTab === "subagents"
+                    ? "bg-surface-1 text-text-primary shadow-sm"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+                onClick={() => setEnvTab("subagents")}
+              >
+                智能体模板
+              </button>
+            </div>
             {/* View Toggle */}
+            {envTab === "environments" && (
             <div className="flex gap-0.5 rounded-lg border border-border-subtle bg-surface-0 p-0.5">
               <button
                 type="button"
@@ -351,14 +379,19 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
                 <LayoutGrid className="h-3.5 w-3.5" />
               </button>
             </div>
+            )}
+            {envTab === "environments" && (
             <Button onClick={openCreateDialog} size="sm">
               <Plus className="mr-1 h-4 w-4" />
               创建智能体
             </Button>
+            )}
           </div>
         </div>
 
-        {envs.length === 0 ? (
+        {envTab === "subagents" ? (
+          <AgentsPage initialTab="subagent" />
+        ) : envs.length === 0 ? (
           <button
             type="button"
             onClick={openCreateDialog}
