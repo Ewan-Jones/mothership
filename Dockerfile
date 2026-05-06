@@ -13,12 +13,6 @@ COPY components.json ./
 RUN bun run build:web
 RUN bun build src/index.ts --outfile=dist/server.js --target=bun
 
-# Install opencode in a separate stage, then copy only the binary
-FROM base AS opencode-build
-RUN bun install -g opencode-ai@latest --registry=https://registry.npmmirror.com \
-    && rm -rf /root/.bun/install/cache /tmp/bun-*
-
-
 ############### production image ###############
 
 FROM oven/bun:1 AS runtime
@@ -42,14 +36,15 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.li
        curl git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the glibc variant of opencode binary (Debian uses glibc, not musl)
-RUN --mount=type=bind,from=opencode-build,target=/tmp/opencode-build \
-    cp "$(find /tmp/opencode-build/root/.bun/install/global/node_modules/ \
-      -path '*/opencode-linux-*/bin/opencode' ! -path '*-musl*' | head -1)" \
-      /usr/local/bin/opencode
 
-RUN bun install -g acp-link acpx peri-cli \
-    && rm -rf /root/.bun/install/cache /tmp/bun-*
+RUN bun install -g opencode-ai@latest --registry=https://registry.npmmirror.com
+RUN bun install -g acp-link --registry=https://registry.npmmirror.com
+RUN bun install -g acpx --registry=https://registry.npmmirror.com
+RUN bun install -g peri-cli --registry=https://registry.npmmirror.com
+RUN rm -rf /root/.bun/install/cache /tmp/bun-*
+
+RUN printf '#!/bin/sh\nargs="";\nfor a in "$@"; do\n  case "$a" in\n    -y|--yes|-p|--package) ;;\n    *) args="$args $a" ;;\n  esac\ndone\nexec bunx $args\n' > /usr/local/bin/npx \
+    && chmod +x /usr/local/bin/npx
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/web/dist ./web/dist
