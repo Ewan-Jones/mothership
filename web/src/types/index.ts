@@ -34,7 +34,7 @@ export interface EnvironmentDetail extends Environment {
   max_sessions: number;
 }
 
-export type ChannelProviderStatus = "disabled";
+export type ChannelProviderStatus = "disabled" | "enabled";
 
 export interface ChannelProviderInfo {
   type: "wechat" | "feishu";
@@ -47,6 +47,30 @@ export interface ChannelInfo {
   type: ChannelProviderInfo["type"];
   label: string;
   status: string;
+}
+
+export interface HermesStatus {
+  connected: boolean;
+  url: string;
+  platforms: string[];
+  reconnecting: boolean;
+  lastConnectedAt: number | null;
+}
+
+export interface ChannelBinding {
+  id: string;
+  platform: string;
+  chatId: string | null;
+  agentId: string;
+  agentName: string | null;
+  enabled: boolean;
+}
+
+export interface CreateChannelBindingRequest {
+  platform: string;
+  chatId?: string | null;
+  agentId: string;
+  enabled?: boolean;
 }
 
 export interface CreateEnvironmentRequest {

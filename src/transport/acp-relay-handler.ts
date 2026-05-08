@@ -30,11 +30,41 @@ const relayConnections = new Map<string, RelayConnectionEntry>(); // key: relayW
 interface AgentLocalConn {
   ws: WebSocket;
   keepalive: ReturnType<typeof setInterval>;
+  agentId: string;
 }
-const agentLocalWsMap = new Map<string, AgentLocalConn>(); // agentId → localWs + keepalive
+const agentLocalWsMap = new Map<string, AgentLocalConn>(); // instanceId → localWs + keepalive + agentId
 
 const RELAY_KEEPALIVE_INTERVAL_MS = 20_000;
 const INSTANCE_LOCAL_WS_HOST = "127.0.0.1";
+
+/** Publish local WS messages to the ACP EventBus so hermes-client and other subscribers can receive them. */
+function publishLocalWsToEventBus(agentId: string, text: string): void {
+  const bus = getAcpEventBus(agentId);
+  for (const line of text.split("\n").filter((l) => l.trim())) {
+    try {
+      const msg = JSON.parse(line);
+      if (msg.type === "keep_alive" || msg.type === "pong") continue;
+      // Derive event type: explicit type field, or message.role for stream-json format
+      let eventType = typeof msg.type === "string" ? msg.type : "";
+      if (!eventType) {
+        const message = msg.message as Record<string, unknown> | undefined;
+        if (message && typeof message.role === "string") {
+          eventType = message.role; // "user", "assistant", "system"
+        }
+      }
+      if (!eventType) eventType = "acp_message";
+      bus.publish({
+        id: crypto.randomUUID(),
+        sessionId: agentId,
+        type: eventType,
+        payload: msg,
+        direction: "inbound",
+      });
+    } catch (e) {
+      logError(`[ACP-Relay] localWs→EventBus: JSON parse failed: ${line.slice(0, 200)}`);
+    }
+  }
+}
 
 /**
  * Filter and forward lines from acp-link to the frontend.
@@ -44,7 +74,7 @@ function forwardFilteredLines(text: string, send: (line: string) => void): void 
   for (const line of text.split("\n").filter((l: string) => l.trim())) {
     try {
       const msg = JSON.parse(line);
-      if (msg.type === "keep_alive") continue;
+      if (msg.type === "keep_alive" || msg.type === "pong") continue;
       const errMsg = typeof msg.message === "string"
         ? msg.message
         : typeof msg.payload?.message === "string"
@@ -127,10 +157,11 @@ function openInstanceRelay(ws: WSContext, relayWsId: string, agentId: string, us
     };
     relayConnections.set(relayWsId, entry);
 
-    // Retarget message forwarding to the new relay WS
+    // Retarget message forwarding to the new relay WS + publish to EventBus
     existingConn.ws.onmessage = (event) => {
-      if (ws.readyState !== 1) return;
       const text = typeof event.data === "string" ? event.data : String(event.data);
+      publishLocalWsToEventBus(agentId, text);
+      if (ws.readyState !== 1) return;
       forwardFilteredLines(text, (line) => ws.send(line));
     };
 
@@ -149,13 +180,14 @@ function openInstanceRelay(ws: WSContext, relayWsId: string, agentId: string, us
   const localWs = new WebSocket(`ws://${INSTANCE_LOCAL_WS_HOST}:${port}/ws?token=${encodeURIComponent(token)}`);
 
   // Independent keep_alive to acp-link — runs even when no relay is connected
+  // Use "ping" (ACP protocol) instead of "keep_alive" which acp-link doesn't understand
   const localKeepalive = setInterval(() => {
     if (localWs.readyState === 1) {
-      localWs.send(JSON.stringify({ type: "keep_alive" }));
+      localWs.send(JSON.stringify({ type: "ping" }));
     }
   }, RELAY_KEEPALIVE_INTERVAL_MS);
 
-  agentLocalWsMap.set(instanceId, { ws: localWs, keepalive: localKeepalive });
+  agentLocalWsMap.set(instanceId, { ws: localWs, keepalive: localKeepalive, agentId });
 
   const entry: RelayConnectionEntry = {
     agentId,
@@ -181,10 +213,11 @@ function openInstanceRelay(ws: WSContext, relayWsId: string, agentId: string, us
     }
   };
 
-  // Forward messages from acp-link → frontend
+  // Forward messages from acp-link → frontend + publish to EventBus
   localWs.onmessage = (event) => {
-    if (ws.readyState !== 1) return;
     const text = typeof event.data === "string" ? event.data : String(event.data);
+    publishLocalWsToEventBus(agentId, text);
+    if (ws.readyState !== 1) return;
     forwardFilteredLines(text, (line) => ws.send(line));
   };
 
@@ -308,9 +341,11 @@ export function handleRelayClose(ws: WSContext, relayWsId: string, code?: number
   if (entry.localWs) {
     // Don't close localWs — keep acp-link process alive for reconnection.
     // Only the explicit stop-instance action should kill the process.
-    // Remove the message forwarder (which targets the now-closed relay WS),
-    // but the independent keep_alive in agentLocalWsMap keeps acp-link active.
-    entry.localWs.onmessage = null;
+    // Keep EventBus publishing active (for hermes-client), just stop relay forwarding.
+    entry.localWs.onmessage = (event) => {
+      const text = typeof event.data === "string" ? event.data : String(event.data);
+      publishLocalWsToEventBus(entry.agentId, text);
+    };
     // Retain onclose/onerror so we can detect acp-link crashes.
     entry.localWs = null;
   }
@@ -352,6 +387,18 @@ export function closeAllRelayConnections(): void {
   }
   relayConnections.clear();
   log("[ACP-Relay] All connections closed");
+}
+
+/** Send data to a spawned instance's local WS. Returns true if sent, false if not connected. */
+export function sendToInstanceLocalWs(instanceId: string, data: string): boolean {
+  const conn = agentLocalWsMap.get(instanceId);
+  if (!conn || conn.ws.readyState !== 1) return false;
+  try {
+    conn.ws.send(data);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Close the shared local WS for a specific instance (called when instance is stopped) */

@@ -218,3 +218,17 @@ export const taskExecutionLog = sqliteTable("task_execution_log", {
   resultSummary: text("result_summary"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
+
+// Hermes 通道绑定表
+export const channelBinding = sqliteTable("channel_binding", {
+  id: text("id").primaryKey(),
+  platform: text("platform").notNull(),
+  chatId: text("chat_id"),
+  agentId: text("agent_id").notNull(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+}, (table) => ({
+  platformIdx: index("idx_channel_binding_platform").on(table.platform),
+  agentIdx: index("idx_channel_binding_agent_id").on(table.agentId),
+}));

@@ -1,4 +1,4 @@
-import type { Session, Environment, EnvironmentDetail, EnvironmentInstance, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent, ChannelProviderInfo, ChannelInfo } from "../types";
+import type { Session, Environment, EnvironmentDetail, EnvironmentInstance, CreateEnvironmentRequest, UpdateEnvironmentRequest, ControlResponse, SessionEvent, ChannelProviderInfo, ChannelInfo, HermesStatus, ChannelBinding, CreateChannelBindingRequest } from "../types";
 import type { FileListResponse, FileContent, FileUploadResult, FileWriteResult } from "../types";
 import type { ProviderInfo, ProviderDetail, ModelConfig, AgentInfo, AgentDetail, SkillInfo, SkillDetail, McpServerInfo, McpServerDetail, McpServerConfig, McpToolInfo, McpInspectResult, ApiResponse, SkillUploadResponse, SkillUploadConflictResponse } from "../types/config";
 import type { KnowledgeBaseInfo, KnowledgeBaseDetail, KnowledgeResourceInfo, KnowledgeUploadResponse } from "../types/knowledge";
@@ -179,6 +179,28 @@ export function apiListChannels() {
 
 export function apiCreateChannel(type: ChannelProviderInfo["type"]) {
   return api<ChannelInfo>("POST", "/web/channels", { type });
+}
+
+// --- Hermes & Bindings ---
+
+export function apiGetHermesStatus() {
+  return api<HermesStatus>("GET", "/web/channels/hermes/status");
+}
+
+export function apiListChannelBindings() {
+  return api<ChannelBinding[]>("GET", "/web/channels/bindings");
+}
+
+export function apiCreateChannelBinding(data: CreateChannelBindingRequest) {
+  return api<ChannelBinding>("POST", "/web/channels/bindings", data);
+}
+
+export function apiDeleteChannelBinding(id: string) {
+  return api<{ success: boolean }>("DELETE", `/web/channels/bindings/${id}`);
+}
+
+export function apiUpdateChannelBinding(id: string, data: Partial<CreateChannelBindingRequest>) {
+  return api<ChannelBinding>("PATCH", `/web/channels/bindings/${id}`, data);
 }
 
 // --- API Keys ---

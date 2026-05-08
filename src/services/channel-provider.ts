@@ -1,6 +1,8 @@
+import { getHermesClient } from "./hermes-client";
+
 export type ChannelProviderType = "wechat" | "feishu";
 
-export type ChannelProviderStatus = "disabled";
+export type ChannelProviderStatus = "disabled" | "enabled";
 
 export interface ChannelProviderDescriptor {
   type: ChannelProviderType;
@@ -26,7 +28,17 @@ const CHANNEL_PROVIDERS: ChannelProviderDescriptor[] = [
 ];
 
 export function listChannelProviders(): ChannelProviderDescriptor[] {
-  return CHANNEL_PROVIDERS.map((provider) => ({ ...provider }));
+  const hermesClient = getHermesClient();
+  const hermesStatus = hermesClient?.getStatus();
+  const hermesConnected = hermesStatus?.connected ?? false;
+  const hermesPlatforms = hermesStatus?.platforms ?? [];
+
+  return CHANNEL_PROVIDERS.map((provider) => ({
+    ...provider,
+    status: (hermesConnected && hermesPlatforms.includes(provider.type))
+      ? "enabled" as const
+      : provider.status,
+  }));
 }
 
 export function getChannelProvider(

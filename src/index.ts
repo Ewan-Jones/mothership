@@ -27,12 +27,19 @@ import { stopAllInstances, spawnInstanceFromEnvironment, findRunningInstanceByEn
 import { storeListAllEnvironments } from "./store";
 import { migrateSkillsDir } from "./services/skill";
 import { startScheduler, stopScheduler } from "./services/scheduler";
+import { initHermesClient, getHermesClient } from "./services/hermes-client";
 import { execSync } from "node:child_process";
 
 console.log("[RCS] Database initialized (SQLite + better-auth)");
 
 await migrateSkillsDir();
 await startScheduler();
+
+// Initialize Hermes client if configured
+const hermesUrl = process.env.HERMES_URL ?? (config as any).channels?.hermesUrl;
+if (hermesUrl) {
+  initHermesClient(hermesUrl);
+}
 
 // Kill stale acp-link processes from previous runs
 try {
@@ -157,6 +164,8 @@ export default {
 // Graceful shutdown
 async function gracefulShutdown(signal: string) {
   console.log(`\n[RCS] Received ${signal}, shutting down...`);
+  const hermesClient = getHermesClient();
+  await hermesClient?.stop();
   closeAllAcpConnections();
   closeAllRelayConnections();
   stopAllInstances();

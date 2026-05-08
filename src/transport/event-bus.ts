@@ -41,15 +41,11 @@ export class EventBus {
     if (this.events.length > MAX_EVENTS_PER_BUS) {
       this.events = this.events.slice(-Math.floor(MAX_EVENTS_PER_BUS / 2));
     }
-    log(
-      `[RC-DEBUG] bus publish: sessionId=${event.sessionId} type=${event.type} dir=${event.direction} seq=${full.seqNum} subscribers=${this.subscribers.size}`,
-      event.type === "error" ? `payload=${JSON.stringify(event.payload)}` : "",
-    );
     for (const cb of this.subscribers) {
       try {
         cb(full);
       } catch (err) {
-        logError(`[RC-DEBUG] bus subscriber error:`, err);
+        logError(`[EventBus] subscriber error:`, err);
       }
     }
     return full;

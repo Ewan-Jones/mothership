@@ -263,6 +263,19 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_scheduled_task_environment_id ON scheduled_task(environment_id);
     CREATE INDEX IF NOT EXISTS idx_task_execution_log_task_id ON task_execution_log(task_id);
     CREATE INDEX IF NOT EXISTS idx_task_execution_log_created_at ON task_execution_log(created_at);
+
+    CREATE TABLE IF NOT EXISTS channel_binding (
+      id TEXT PRIMARY KEY,
+      platform TEXT NOT NULL,
+      chat_id TEXT,
+      agent_id TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_channel_binding_platform ON channel_binding(platform);
+    CREATE INDEX IF NOT EXISTS idx_channel_binding_agent_id ON channel_binding(agent_id);
   `);
 }
 
