@@ -38,6 +38,7 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.li
        curl git \
     && rm -rf /var/lib/apt/lists/*
 
+RUN bun install -g opencode-ai@latest --registry=https://registry.npmmirror.com
 RUN bun install -g acp-link --registry=https://registry.npmmirror.com
 RUN bun install -g acpx --registry=https://registry.npmmirror.com
 RUN bun install -g peri-cli --registry=https://registry.npmmirror.com
