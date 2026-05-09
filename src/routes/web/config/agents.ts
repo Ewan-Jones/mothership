@@ -88,6 +88,10 @@ function validateAgentData(data: Record<string, unknown>): string | null {
     const isHex = /^#[0-9a-fA-F]{6}$/.test(c);
     if (typeof c !== "string" || (!isHex && !PRESET_COLORS.includes(c))) return "INVALID_COLOR";
   }
+  if (data.permission !== undefined && data.permission !== null) {
+    if (typeof data.permission === "string") return "INVALID_PERMISSION";
+    if (typeof data.permission !== "object" || Array.isArray(data.permission)) return "INVALID_PERMISSION";
+  }
   if (data.knowledge !== undefined) {
     const error = validateKnowledgeConfig(data.knowledge);
     if (error) return error;
@@ -265,6 +269,8 @@ async function handleCreate(userId: string, name: string, data: Record<string, u
       filtered[key] = key === "knowledge" ? normalizeKnowledgeConfig(value) : value;
     }
   }
+  // null permission 不写入配置文件（undefined 同理），避免产生 "permission": null
+  if (filtered.permission == null) delete filtered.permission;
 
   let alreadyExists = false;
   await modifySection<Record<string, AgentConfig>>("agent", (agents) => {

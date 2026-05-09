@@ -167,7 +167,12 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
     nextGlobal: typeof globalStrategy,
   ) => {
     if (nextGlobal) {
-      onPermissionChange(nextGlobal as unknown as Record<string, unknown>);
+      // 全局策略展开为所有工具的对象，不发送裸字符串
+      const result: Record<string, unknown> = {};
+      for (const tool of TOGGLE_TOOLS) result[tool] = nextGlobal;
+      for (const tool of RULE_TOOLS) result[tool] = nextGlobal;
+      result["skill"] = nextGlobal;
+      onPermissionChange(result);
       return;
     }
     const result: Record<string, unknown> = {};
