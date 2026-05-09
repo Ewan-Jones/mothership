@@ -260,6 +260,72 @@
 }
 
 /* ============================================================
+   Tool call components
+   ============================================================ */
+@utility tool-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 9999px;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+@utility tool-status-pill-running {
+    background-color: oklch(0.97 0.01 160);
+    color: oklch(0.55 0.15 160);
+}
+@utility tool-status-pill-complete {
+    background-color: oklch(0.97 0.01 160);
+    color: oklch(0.55 0.15 160);
+}
+@utility tool-status-pill-error {
+    background-color: oklch(0.97 0.01 25);
+    color: oklch(0.55 0.2 25);
+}
+@utility tool-status-pill-pending {
+    background-color: oklch(0.96 0.02 270);
+    color: oklch(0.55 0.2 270);
+}
+.dark .tool-status-pill-running,
+.dark .tool-status-pill-complete {
+    background-color: oklch(0.22 0.03 160);
+    color: oklch(0.75 0.15 160);
+}
+.dark .tool-status-pill-error {
+    background-color: oklch(0.22 0.03 25);
+    color: oklch(0.75 0.18 25);
+}
+.dark .tool-status-pill-pending {
+    background-color: oklch(0.22 0.03 270);
+    color: oklch(0.75 0.15 270);
+}
+
+@utility tool-call-detail-wrapper {
+    overflow: hidden;
+    transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@utility tool-call-row {
+    overflow: hidden;
+}
+
+@utility tool-call-detail-code {
+    tab-size: 2;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+@utility tool-call-chevron {
+    transition: transform 0.2s ease;
+}
+@utility tool-call-chevron-open {
+    transform: rotate(90deg);
+}
+
+/* ============================================================
    Reduced motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
