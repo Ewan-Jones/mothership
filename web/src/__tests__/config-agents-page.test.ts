@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import {
+    DEFAULT_AGENT_MODE,
     buildAgentPayload,
     buildKnowledgeFormState,
     filterKnowledgeBaseIds,
@@ -10,6 +11,12 @@ import {
     buildSubagentFormData,
 } from "../pages/AgentsPage";
 import type { AgentInfo } from "../types/config";
+
+describe("DEFAULT_AGENT_MODE", () => {
+    test("新建 Agent 默认模式为 primary", () => {
+        expect(DEFAULT_AGENT_MODE).toBe("primary");
+    });
+});
 
 describe("isValidAgentNameInput", () => {
     test("valid name", () => {

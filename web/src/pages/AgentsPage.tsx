@@ -32,6 +32,8 @@ import type { KnowledgeBaseInfo } from "../types/knowledge";
 import { PermissionTab } from "../components/PermissionTab";
 import { dispatchConfigChange } from "../lib/config-events";
 
+export const DEFAULT_AGENT_MODE = "primary";
+
 export function isValidAgentNameInput(name: string): boolean {
     return (
         /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) &&
@@ -166,7 +168,7 @@ export function AgentsPage() {
     const [knowledgeOptions, setKnowledgeOptions] = useState<KnowledgeBaseInfo[]>([]);
     const [formName, setFormName] = useState("");
     const [formModel, setFormModel] = useState("");
-    const [formMode, setFormMode] = useState("subagent");
+    const [formMode, setFormMode] = useState(DEFAULT_AGENT_MODE);
     const [formSteps, setFormSteps] = useState("50");
     const [formPrompt, setFormPrompt] = useState("");
     const [formSaving, setFormSaving] = useState(false);
@@ -262,7 +264,7 @@ export function AgentsPage() {
         setEditingAgent(null);
         setFormName("");
         setFormModel(modelOptions[0] || "");
-        setFormMode("subagent");
+        setFormMode(DEFAULT_AGENT_MODE);
         setFormSteps("50");
         setFormPrompt("");
         setFormDescription("");
@@ -286,7 +288,7 @@ export function AgentsPage() {
         setEditingAgent(agent);
         setFormName(agent.name);
         setFormModel(agent.model || "");
-        setFormMode(agent.mode || "subagent");
+        setFormMode(agent.mode || DEFAULT_AGENT_MODE);
         setFormPrompt("");
         setFormDescription("");
         setFormVariant("");
