@@ -4,7 +4,8 @@ set -euo pipefail
 IMAGE_NAME="rcs"
 IMAGE_TAG="latest"
 PLATFORM="linux/amd64"
-OUTPUT_FILE="rcs-amd64.tar.gz"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+OUTPUT_FILE="rcs-amd64-${TIMESTAMP}.tar.gz"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
