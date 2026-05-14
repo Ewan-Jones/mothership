@@ -1,17 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-    apiFetchEnvironments,
-    apiGetEnvironment,
-    apiCreateEnvironment,
-    apiUpdateEnvironment,
-    apiDeleteEnvironment,
-    apiListAgents,
-    apiEnterEnvironment,
-    apiDeleteInstance,
-    apiListEnvironmentInstances,
-    apiSpawnInstanceFromEnvironment,
-} from "../api/client";
-import type { Environment, EnvironmentInstance } from "../types";
+import { client } from "../api/client";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +41,35 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AgentsPage } from "./AgentsPage";
+
+interface Environment {
+  id: string;
+  name: string;
+  description: string | null;
+  workspace_path: string;
+  agent_name: string | null;
+  status: string;
+  machine_name: string | null;
+  branch: string | null;
+  auto_start: boolean;
+  last_poll_at: number | null;
+  created_at: number;
+  updated_at: number;
+  session_id?: string;
+  instance_status?: string | null;
+  instance_id?: string | null;
+  instances?: EnvironmentInstance[];
+  instances_count?: number;
+}
+
+interface EnvironmentInstance {
+  id: string;
+  instance_number: number;
+  status: "starting" | "running" | "stopped" | "error";
+  session_id: string | null;
+  port: number;
+  created_at: number;
+}
 
 interface EnvironmentsPageProps {
     onNavigateToSession?: (
@@ -98,23 +115,26 @@ export function EnvironmentsPage({
 
     const loadEnvs = useCallback(async () => {
         try {
-            const data = await apiFetchEnvironments();
-            setEnvs(data || []);
+            const { data, error: err } = await client.web.environments.get();
+            if (err) { console.error("Failed to load environments:", err); return; }
+            const list = Array.isArray(data) ? data as unknown as Environment[] : [];
+            setEnvs(list);
             // Load instances for environments that have active instances
-            const activeEnvs = (data || []).filter(
+            const activeEnvs = list.filter(
                 (e) => e.instances_count !== undefined && e.instances_count > 0,
             );
             if (activeEnvs.length > 0) {
                 const instanceEntries = await Promise.allSettled(
                     activeEnvs.map((env) =>
-                        apiListEnvironmentInstances(env.id),
+                        client.web.environments({ id: env.id }).instances.get(),
                     ),
                 );
                 const newMap: Record<string, EnvironmentInstance[]> = {};
                 activeEnvs.forEach((env, i) => {
                     const result = instanceEntries[i];
-                    if (result.status === "fulfilled") {
-                        newMap[env.id] = result.value.instances;
+                    if (result.status === "fulfilled" && !result.reason?.error) {
+                        const instData = result.value.data as { instances?: unknown[] } | null;
+                        newMap[env.id] = instData?.instances ?? [];
                     }
                 });
                 setInstancesMap((prev) => ({ ...prev, ...newMap }));
@@ -128,9 +148,11 @@ export function EnvironmentsPage({
 
     useEffect(() => {
         loadEnvs();
-        apiListAgents()
-            .then((data) => {
-                setAgentOptions(data.agents.map((a) => a.name));
+        client.web.config.agents.post({ action: "list" })
+            .then(({ data, error: err }) => {
+                if (err || !data) return;
+                const result = data as { data?: { agents?: Array<{ name: string }> } } | null;
+                setAgentOptions((result?.data?.agents ?? []).map((a) => a.name));
             })
             .catch(() => {});
     }, [loadEnvs]);
@@ -173,22 +195,25 @@ export function EnvironmentsPage({
         setFormSaving(true);
         try {
             if (editingEnv) {
-                await apiUpdateEnvironment(editingEnv.id, {
+                const { error: err } = await client.web.environments({ id: editingEnv.id }).put({
                     name: formName,
                     description: formDescription || undefined,
                     workspacePath: formWorkspacePath,
                     agentName: formAgentName || undefined,
                     autoStart: formAutoStart,
                 });
+                if (err) throw new Error(err.message ?? "更新失败");
             } else {
-                const result = await apiCreateEnvironment({
+                const { data, error: err } = await client.web.environments.post({
                     name: formName,
                     description: formDescription || undefined,
                     workspacePath: formWorkspacePath,
                     agentName: formAgentName || undefined,
                     autoStart: formAutoStart,
                 });
-                setCurrentSecret(result.secret);
+                if (err) throw new Error(err.message ?? "创建失败");
+                const result = data as { secret?: string } | null;
+                setCurrentSecret(result?.secret);
                 setSecretDialogOpen(true);
             }
             setDialogOpen(false);
@@ -214,12 +239,15 @@ export function EnvironmentsPage({
             if (!onNavigateToSession) return;
             setEnteringEnvId(env.id);
             try {
-                const result = await apiEnterEnvironment(env.id);
+                const { data, error: err } = await client.web.environments({ id: env.id }).enter.post({});
+                if (err) throw new Error(err.message ?? "进入失败");
+                const result = data as { session_id: string } | null;
                 await new Promise((r) => setTimeout(r, 500));
-                onNavigateToSession(result.session_id, {
+                onNavigateToSession(result?.session_id ?? "", {
                     cwd: env.workspace_path,
                 });
             } catch (err) {
+                console.error("进入智能体失败", err);
                 toast.error("进入智能体失败: " + (err as Error).message);
             } finally {
                 setEnteringEnvId(null);
@@ -233,15 +261,17 @@ export function EnvironmentsPage({
             if (!onNavigateToSession) return;
             setEnteringEnvId(env.id);
             try {
-                const result = await apiEnterEnvironment(
-                    env.id,
-                    instanceNumber,
-                );
+                const { data, error: err } = await client.web.environments({ id: env.id }).enter.post({
+                    instance_number: instanceNumber,
+                });
+                if (err) throw new Error(err.message ?? "进入失败");
+                const result = data as { session_id: string } | null;
                 await new Promise((r) => setTimeout(r, 500));
-                onNavigateToSession(result.session_id, {
+                onNavigateToSession(result?.session_id ?? "", {
                     cwd: env.workspace_path,
                 });
             } catch (err) {
+                console.error("进入实例失败", err);
                 toast.error("进入实例失败: " + (err as Error).message);
             } finally {
                 setEnteringEnvId(null);
@@ -255,15 +285,16 @@ export function EnvironmentsPage({
             if (!onNavigateToSession) return;
             setEnteringEnvId(env.id);
             try {
-                const spawnResult = await apiSpawnInstanceFromEnvironment(
-                    env.id,
-                );
+                const { data, error: err } = await client.web.instances.post({ environmentId: env.id });
+                if (err) throw new Error(err.message ?? "创建实例失败");
+                const spawnResult = data as { session_id?: string } | null;
                 await new Promise((r) => setTimeout(r, 500));
-                onNavigateToSession(spawnResult.session_id ?? "", {
+                onNavigateToSession(spawnResult?.session_id ?? "", {
                     cwd: env.workspace_path,
                 });
                 await loadEnvs();
             } catch (err) {
+                console.error("创建实例失败", err);
                 toast.error("创建实例失败: " + (err as Error).message);
             } finally {
                 setEnteringEnvId(null);
@@ -275,10 +306,12 @@ export function EnvironmentsPage({
     const handleStopInstance = useCallback(
         async (instanceId: string) => {
             try {
-                await apiDeleteInstance(instanceId);
+                const { error: err } = await client.web.instances({ id: instanceId }).delete();
+                if (err) throw new Error(err.message ?? "停止失败");
                 await new Promise((r) => setTimeout(r, 500));
                 await loadEnvs();
             } catch (err) {
+                console.error("停止实例失败", err);
                 toast.error("停止实例失败: " + (err as Error).message);
             }
         },
@@ -288,10 +321,12 @@ export function EnvironmentsPage({
     const confirmStopInstance = useCallback(async () => {
         if (!stopTarget) return;
         try {
-            await apiDeleteInstance(stopTarget.instanceId);
+            const { error: err } = await client.web.instances({ id: stopTarget.instanceId }).delete();
+            if (err) throw new Error(err.message ?? "停止失败");
             await new Promise((r) => setTimeout(r, 500));
             await loadEnvs();
         } catch (err) {
+            console.error("停止实例失败", err);
             toast.error("停止实例失败: " + (err as Error).message);
         } finally {
             setStopConfirmOpen(false);
@@ -309,10 +344,11 @@ export function EnvironmentsPage({
             if (!instanceId) return;
             setRefreshingEnvId(env.id);
             try {
-                await apiDeleteInstance(instanceId);
+                await client.web.instances({ id: instanceId }).delete();
                 await new Promise((r) => setTimeout(r, 500));
                 await handleEnterAgent(env);
             } catch (err) {
+                console.error("刷新智能体失败", err);
                 toast.error("刷新智能体失败: " + (err as Error).message);
             } finally {
                 setRefreshingEnvId(null);
@@ -323,8 +359,10 @@ export function EnvironmentsPage({
 
     const handleViewSecret = useCallback(async (id: string) => {
         try {
-            const detail = await apiGetEnvironment(id);
-            setCurrentSecret(detail.secret);
+            const { data, error: err } = await client.web.environments({ id }).get();
+            if (err) { console.error("Failed to get secret:", err); return; }
+            const detail = data as { secret?: string } | null;
+            setCurrentSecret(detail?.secret);
             setSecretDialogOpen(true);
         } catch (err) {
             console.error("Failed to get secret:", err);
@@ -334,7 +372,8 @@ export function EnvironmentsPage({
     const handleDelete = useCallback(async () => {
         if (!deleteTarget) return;
         try {
-            await apiDeleteEnvironment(deleteTarget);
+            const { error: err } = await client.web.environments({ id: deleteTarget }).delete();
+            if (err) { console.error("Failed to delete:", err); return; }
             setDeleteTarget(null);
             setConfirmOpen(false);
             await loadEnvs();
@@ -510,7 +549,7 @@ export function EnvironmentsPage({
                         </span>
                     </button>
                 ) : viewMode === "table" ? (
-                    /* ===== TABLE VIEW (original card list) ===== */
+                    /* ===== TABLE VIEW ===== */
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {envs.map((env) => {
                             const online = isOnline(env);
@@ -793,7 +832,7 @@ export function EnvironmentsPage({
                         })}
                     </div>
                 ) : (
-                    /* ===== CARD VIEW (detail cards with stats + footer) ===== */
+                    /* ===== CARD VIEW ===== */
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
                         {envs.map((env) => {
                             const status = getCardStatus(env);

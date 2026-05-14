@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  apiFetchEnvironments, apiFetchAllSessions, apiListAgents, apiGetModels,
-  apiListSkills, apiListMcpServers, apiListTasks,
-} from "../api/client";
+import { client } from "../api/client";
 import type { Environment, Session } from "../types";
 import type { AgentInfo } from "../types/config";
 import { useConfigChangeListener } from "../lib/config-events";
+import { unwrapConfigData } from "../api/config-response";
 import {
   Cpu, Bot, Wrench, Plug, Clock, Activity, MessageSquare,
   Zap, ShieldCheck, Layers, Server, Radio, type LucideIcon,
@@ -35,17 +33,37 @@ function useStats() {
   });
   const load = useCallback(async () => {
     const results = await Promise.allSettled([
-      apiFetchEnvironments(), apiFetchAllSessions(), apiListAgents(),
-      apiGetModels(), apiListSkills(), apiListMcpServers(), apiListTasks(),
+      client.web.environments.get().then(r => (Array.isArray(r.data) ? r.data as unknown as Environment[] : [])),
+      client.web.sessions.get().then(r => (Array.isArray(r.data) ? r.data as unknown as Session[] : [])),
+      client.web.config.agents.post({ action: "list" }).then(r => {
+        const d = unwrapConfigData<{ agents?: AgentInfo[]; data?: { agents?: AgentInfo[] } }>(r.data);
+        const agents = d?.agents ?? d?.data?.agents;
+        return Array.isArray(agents) ? agents : [];
+      }),
+      client.web.config.models.post({ action: "get" }).then(r => {
+        const d = unwrapConfigData(r.data);
+        return d ?? r.data ?? null;
+      }),
+      client.web.config.skills.post({ action: "list" }).then(r => {
+        const d = unwrapConfigData(r.data);
+        const skills = d ?? r.data;
+        return Array.isArray(skills) ? skills : [];
+      }),
+      client.web.config.mcp.post({ action: "list" }).then(r => {
+        const d = unwrapConfigData(r.data);
+        const servers = d ?? r.data;
+        return Array.isArray(servers) ? servers : [];
+      }),
+      client.web.tasks.get().then(r => (Array.isArray(r.data) ? r.data as unknown as unknown[] : [])),
     ]);
     setState({
-      environments: results[0].status === "fulfilled" ? results[0].value ?? [] : [],
-      sessions: results[1].status === "fulfilled" ? results[1].value ?? [] : [],
-      agents: results[2].status === "fulfilled" ? results[2].value.agents : [],
+      environments: results[0].status === "fulfilled" ? results[0].value : [],
+      sessions: results[1].status === "fulfilled" ? results[1].value : [],
+      agents: results[2].status === "fulfilled" ? results[2].value : [],
       models: results[3].status === "fulfilled" ? results[3].value : null,
-      skills: results[4].status === "fulfilled" ? results[4].value ?? [] : [],
-      mcpServers: results[5].status === "fulfilled" ? results[5].value ?? [] : [],
-      tasks: results[6].status === "fulfilled" ? results[6].value ?? [] : [],
+      skills: results[4].status === "fulfilled" ? results[4].value : [],
+      mcpServers: results[5].status === "fulfilled" ? results[5].value : [],
+      tasks: results[6].status === "fulfilled" ? results[6].value : [],
       loading: false,
     });
   }, []);

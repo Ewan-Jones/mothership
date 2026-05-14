@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { unwrapConfigData } from "../api/config-response";
 import { DataTable, type Column } from "@/components/config/DataTable";
 import { FormDialog } from "@/components/config/FormDialog";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
@@ -12,11 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import {
-  apiListMcpServers, apiGetMcpServer, apiCreateMcpServer,
-  apiUpdateMcpServer, apiDeleteMcpServer, apiEnableMcpServer, apiDisableMcpServer,
-  apiTestMcpUrl, apiInspectMcpServer, apiListMcpTools,
-} from "../api/client";
+import { client } from "../api/client";
 import type { McpServerInfo, McpServerConfig, McpLocalConfig, McpRemoteConfig, McpToolInfo } from "../types/config";
 
 /** 键值对列表项类型 */
@@ -166,17 +163,22 @@ export function McpPage() {
   const loadServers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiListMcpServers();
+      const { data: listData, error: listErr } = await client.web.config.mcp.post({ action: "list" });
+      if (listErr) throw new Error(listErr.message ?? "加载列表失败");
+      const unwrapped = unwrapConfigData(listData) ?? listData;
+      const data = Array.isArray(unwrapped) ? unwrapped : ((unwrapped as { servers?: McpServerInfo[] }).servers ?? []);
       setServers(data);
       // 预加载有 tools 的服务器缓存
-      const serversWithTools = data.filter((s) => (s.toolsCount ?? 0) > 0);
+      const serversWithTools = data.filter((s: McpServerInfo) => (s.toolsCount ?? 0) > 0);
       if (serversWithTools.length > 0) {
         Promise.all(
-          serversWithTools.map(async (s) => {
+          serversWithTools.map(async (s: McpServerInfo) => {
             if (toolsCache[s.name]) return;
             try {
-              const result = await apiListMcpTools(s.name);
-              setToolsCache((prev) => ({ ...prev, [s.name]: result.tools }));
+              const { data: toolsData, error: toolsErr } = await client.web.config.mcp.post({ action: "list_tools", name: s.name });
+              if (toolsErr) return;
+              const result = unwrapConfigData(toolsData) ?? toolsData;
+              setToolsCache((prev) => ({ ...prev, [s.name]: Array.isArray(result?.tools) ? result.tools : [] }));
             } catch {
               // 静默失败
             }
@@ -184,6 +186,7 @@ export function McpPage() {
         );
       }
     } catch (e) {
+      console.error("加载 MCP 服务器列表失败", e);
       toast.error("加载 MCP 服务器列表失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
       setLoading(false);
@@ -270,7 +273,9 @@ export function McpPage() {
     setEditingServer(server);
     setFormName(server.name);
     try {
-      const detail = await apiGetMcpServer(server.name);
+      const { data: detailData, error: detailErr } = await client.web.config.mcp.post({ action: "get", name: server.name });
+      if (detailErr) throw new Error(detailErr.message ?? "加载详情失败");
+      const detail = unwrapConfigData(detailData) ?? detailData;
       const config = detail.config;
       if ("type" in config && config.type === "local") {
         setFormType("local");
@@ -313,7 +318,8 @@ export function McpPage() {
           setOauthExpanded(false);
         }
       }
-    } catch {
+    } catch (e) {
+      console.error("加载服务器详情失败", e);
       toast.error("加载服务器详情失败");
     }
     setDialogOpen(true);
@@ -321,7 +327,7 @@ export function McpPage() {
 
   const handleSave = async () => {
     const err = validateMcpForm(formName, formType, formCommand, formUrl);
-    if (err) { toast.error(err); return; }
+    if (err) { console.error("保存MCP服务器失败", err); toast.error(err); return; }
     setFormSaving(true);
     try {
       const payload = buildMcpPayload(
@@ -330,15 +336,18 @@ export function McpPage() {
         formTimeout,
       );
       if (editingServer) {
-        await apiUpdateMcpServer(formName, payload);
+        const { error: updErr } = await client.web.config.mcp.post({ action: "set", name: formName, data: payload });
+        if (updErr) throw new Error(updErr.message ?? "更新失败");
         toast.success("服务器已更新");
       } else {
-        await apiCreateMcpServer(formName, payload);
+        const { error: crtErr } = await client.web.config.mcp.post({ action: "create", name: formName, data: payload });
+        if (crtErr) throw new Error(crtErr.message ?? "创建失败");
         toast.success("服务器已创建");
       }
       setDialogOpen(false);
       loadServers();
     } catch (e) {
+      console.error("保存MCP服务器失败", e);
       toast.error("保存失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
       setFormSaving(false);
@@ -348,14 +357,17 @@ export function McpPage() {
   const handleToggle = async (server: McpServerInfo) => {
     try {
       if (server.enabled) {
-        await apiDisableMcpServer(server.name);
+        const { error: disErr } = await client.web.config.mcp.post({ action: "disable", name: server.name });
+        if (disErr) throw new Error(disErr.message ?? "禁用失败");
         toast.success(`已禁用 "${server.name}"`);
       } else {
-        await apiEnableMcpServer(server.name);
+        const { error: enbErr } = await client.web.config.mcp.post({ action: "enable", name: server.name });
+        if (enbErr) throw new Error(enbErr.message ?? "启用失败");
         toast.success(`已启用 "${server.name}"`);
       }
       loadServers();
     } catch (e) {
+      console.error("切换MCP服务器状态失败", e);
       toast.error("操作失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -363,11 +375,13 @@ export function McpPage() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await apiDeleteMcpServer(deleteTarget);
+      const { error: delErr } = await client.web.config.mcp.post({ action: "delete", name: deleteTarget });
+      if (delErr) throw new Error(delErr.message ?? "删除失败");
       toast.success("服务器已删除");
       setConfirmOpen(false);
       loadServers();
     } catch (e) {
+      console.error("删除MCP服务器失败", e);
       toast.error("删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -380,19 +394,20 @@ export function McpPage() {
   const confirmBatchAction = async () => {
     try {
       if (batchAction === "delete") {
-        await Promise.all(selected.map((s) => apiDeleteMcpServer(s.name)));
+        await Promise.all(selected.map((s) => client.web.config.mcp.post({ action: "delete", name: s.name }).then((r) => { if (r.error) throw new Error(r.error.message ?? "删除失败"); })));
         toast.success(`已删除 ${selected.length} 个服务器`);
       } else if (batchAction === "enable") {
-        await Promise.all(selected.filter((s) => !s.enabled).map((s) => apiEnableMcpServer(s.name)));
+        await Promise.all(selected.filter((s) => !s.enabled).map((s) => client.web.config.mcp.post({ action: "enable", name: s.name }).then((r) => { if (r.error) throw new Error(r.error.message ?? "启用失败"); })));
         toast.success(`已启用 ${selected.length} 个服务器`);
       } else {
-        await Promise.all(selected.filter((s) => s.enabled).map((s) => apiDisableMcpServer(s.name)));
+        await Promise.all(selected.filter((s) => s.enabled).map((s) => client.web.config.mcp.post({ action: "disable", name: s.name }).then((r) => { if (r.error) throw new Error(r.error.message ?? "禁用失败"); })));
         toast.success(`已禁用 ${selected.length} 个服务器`);
       }
       setBatchConfirmOpen(false);
       setSelected([]);
       loadServers();
     } catch (e) {
+      console.error("MCP批量操作失败", e);
       toast.error("批量操作失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -400,7 +415,13 @@ export function McpPage() {
   const handleInspect = async (server: McpServerInfo) => {
     setInspectingServer(server.name);
     try {
-      const result = await apiInspectMcpServer(server.name);
+      const { data: inspectData, error: inspectErr } = await client.web.config.mcp.post({ action: "inspect", name: server.name });
+      if (inspectErr) throw new Error(inspectErr.message ?? "检测失败");
+      const result = unwrapConfigData(inspectData);
+      if (!result) {
+        const errResp = inspectData as { error?: { code?: string; message?: string } } | null;
+        throw new Error(errResp?.error?.message ?? "检测失败");
+      }
       toast.success(`${server.name} 连接成功：${result.serverInfo.name ?? ""} v${result.serverInfo.version ?? ""}，发现 ${result.tools.length} 个工具`);
       // 刷新列表获取 toolsCount
       loadServers();
@@ -413,6 +434,7 @@ export function McpPage() {
         inspectedAt: Date.now(),
       })) }));
     } catch (e) {
+      console.error("检测MCP服务器失败", e);
       toast.error(`检测失败: ${e instanceof Error ? e.message : "未知错误"}`);
     } finally {
       setInspectingServer(null);
@@ -427,7 +449,9 @@ export function McpPage() {
         ? Object.fromEntries(formHeaders.filter((h) => h.key.trim()).map((h) => [h.key, h.value]))
         : undefined;
       const timeoutNum = formTimeout ? parseInt(formTimeout, 10) : undefined;
-      const result = await apiTestMcpUrl(formUrl, headersObj, timeoutNum);
+      const { data: testUrlData, error: testUrlErr } = await client.web.config.mcp.post({ action: "test_url", url: formUrl, headers: headersObj, timeout: timeoutNum });
+      if (testUrlErr) throw new Error(testUrlErr.message ?? "测试失败");
+      const result = unwrapConfigData(testUrlData) ?? testUrlData;
       if (result.reachable && result.protocol) {
         const toolsInfo = result.toolsCount != null ? `，${result.toolsCount} 个工具` : "";
         toast.success(`连接成功：${result.serverName ?? ""} v${result.serverVersion ?? ""}${toolsInfo}`);
@@ -437,6 +461,7 @@ export function McpPage() {
         toast.error(`连接失败：${result.message ?? "未知错误"}`);
       }
     } catch (e) {
+      console.error("测试MCP连接失败", e);
       toast.error(`测试失败: ${e instanceof Error ? e.message : "未知错误"}`);
     } finally {
       setTestingUrl(false);

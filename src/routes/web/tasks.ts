@@ -12,9 +12,20 @@ import {
   clearExecutionLogs,
 } from "../../services/task";
 import { scheduleTask, unscheduleTask, rescheduleTask } from "../../services/scheduler";
+import {
+  TaskInfoSchema,
+  CreateTaskRequestSchema,
+  UpdateTaskRequestSchema,
+} from "../../schemas/task.schema";
 
 const app = new Elysia({ name: "web-tasks", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "task-info": TaskInfoSchema,
+    "task-info-list": TaskInfoSchema.array(),
+    "create-task-request": CreateTaskRequestSchema,
+    "update-task-request": UpdateTaskRequestSchema,
+  });
 
 /** GET /tasks — List current user's scheduled tasks */
 app.get("/tasks", async ({ store }) => {
@@ -26,7 +37,7 @@ app.get("/tasks", async ({ store }) => {
 /** POST /tasks — Create a new scheduled task */
 app.post("/tasks", async ({ store, body, error }) => {
   const user = store.user!;
-  const payload = (body as any) ?? {};
+  const payload = body as { name: string; description?: string; cron: string; timezone?: string | null; environmentId: string; task: string; timeoutMinutes?: number };
   const result = await createTask(user.id, payload);
 
   if (!result.success) {
@@ -39,7 +50,7 @@ app.post("/tasks", async ({ store, body, error }) => {
   scheduleTask({ id: task.id, cron: task.cron, timezone: task.timezone, enabled: task.enabled });
 
   return result;
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "create-task-request" });
 
 /** GET /tasks/:id — Get task detail */
 app.get("/tasks/:id", async ({ store, params, error }) => {
@@ -59,7 +70,7 @@ app.get("/tasks/:id", async ({ store, params, error }) => {
 app.put("/tasks/:id", async ({ store, params, body, error }) => {
   const user = store.user!;
   const taskId = params.id;
-  const payload = (body as any) ?? {};
+  const payload = body as Record<string, unknown>;
   const result = await updateTask(user.id, taskId, payload);
 
   if (!result.success) {
@@ -74,7 +85,7 @@ app.put("/tasks/:id", async ({ store, params, body, error }) => {
   rescheduleTask({ id: task.id, cron: task.cron, timezone: task.timezone, enabled: task.enabled });
 
   return result;
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "update-task-request" });
 
 /** DELETE /tasks/:id — Delete a task */
 app.delete("/tasks/:id", async ({ store, params, error }) => {

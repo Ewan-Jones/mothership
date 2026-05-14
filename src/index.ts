@@ -140,6 +140,8 @@ console.log(`[RCS] Base URL: ${config.baseUrl || `http://localhost:${port}`}`);
 console.log(`[RCS] WebSocket idle timeout: ${config.wsIdleTimeout}s`);
 console.log(`[RCS] WebSocket keepalive interval: ${config.wsKeepaliveInterval}s`);
 
+export type App = typeof app;
+
 export default {
   port,
   hostname: host,

@@ -99,7 +99,7 @@ export const shareEventSnapshot = pgTable("share_event_snapshot", {
 
 // Environment 持久化表
 export const environment = pgTable("environment", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: varchar("id").primaryKey(),
   name: varchar("name").notNull().unique(),
   description: text("description"),
   workspacePath: varchar("workspace_path").notNull(),
@@ -186,7 +186,7 @@ export const scheduledTask = pgTable("scheduled_task", {
   cron: varchar("cron").notNull(),
   timezone: varchar("timezone"),
   enabled: boolean("enabled").notNull().default(true),
-  environmentId: uuid("environment_id")
+  environmentId: varchar("environment_id")
     .notNull()
     .references(() => environment.id, { onDelete: "cascade" }),
   task: text("task").notNull(),
@@ -235,7 +235,7 @@ export const channelBinding = pgTable("channel_binding", {
 // Agent Session 持久化表
 export const agentSession = pgTable("agent_session", {
   id: varchar("id").primaryKey(),
-  environmentId: uuid("environment_id")
+  environmentId: varchar("environment_id")
     .references(() => environment.id, { onDelete: "set null" }),
   title: varchar("title"),
   status: varchar("status").notNull(),
@@ -340,7 +340,7 @@ export const skill = pgTable("skill", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  environmentId: uuid("environment_id")
+  environmentId: varchar("environment_id")
     .references(() => environment.id, { onDelete: "cascade" }),
   name: varchar("name").notNull(),
   description: text("description"),

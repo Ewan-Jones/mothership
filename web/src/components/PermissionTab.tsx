@@ -14,7 +14,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { apiListSkills } from "../api/client";
+import { client } from "../api/client";
 import type { PermissionAction, PermissionObjectConfig } from "../types/config";
 
 // ── 常量定义 ──
@@ -135,10 +135,12 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
   useEffect(() => {
     let cancelled = false;
     setSkillLoading(true);
-    apiListSkills()
-      .then(skills => {
+    client.web.config.skills.post({ action: "list" } as any)
+      .then(({ data, error }) => {
         if (!cancelled) {
-          const names = skills.map(s => s.name);
+          if (error) { setSkillNames([]); return; }
+          const skills = ((data as any)?.data ?? (data as any) ?? []) as any[];
+          const names = skills.map((s: any) => s.name);
           setSkillNames(names);
           setSkillValues(prev => {
             const next = { ...prev };

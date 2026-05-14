@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { unwrapConfigData } from "../api/config-response";
 import { DataTable, type Column } from "@/components/config/DataTable";
 import { FormDialog } from "@/components/config/FormDialog";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
@@ -12,11 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  apiListProviders, apiSetProvider, apiTestProvider, apiDeleteProvider,
-  apiGetProvider, apiAddProviderModel, apiUpdateProviderModel, apiRemoveProviderModel,
-  apiGetModels,
-} from "../api/client";
+import { client } from "../api/client";
 import type { ProviderInfo, ProviderModel, ModelConfig } from "../types/config";
 import { dispatchConfigChange } from "../lib/config-events";
 
@@ -145,16 +142,19 @@ function ModelSubrow({ providerId, models, onModelChange }: { providerId: string
     setModelSaving(true);
     try {
       if (isNewModel) {
-        await apiAddProviderModel(providerId, data);
+        const { error: addErr } = await client.web.config.providers.post({ action: "add_model", name: providerId, ...data });
+        if (addErr) throw new Error(addErr.message ?? "添加失败");
         toast.success("模型已添加");
       } else {
-        await apiUpdateProviderModel(providerId, mfId, data);
+        const { error: updErr } = await client.web.config.providers.post({ action: "update_model", name: providerId, modelId: mfId, ...data });
+        if (updErr) throw new Error(updErr.message ?? "更新失败");
         toast.success("模型已更新");
       }
       setModelDialogOpen(false);
       onModelChange("save", providerId, mfId.trim());
       dispatchConfigChange("models");
     } catch (e) {
+      console.error("保存模型失败", e);
       toast.error("保存失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
       setModelSaving(false);
@@ -164,7 +164,8 @@ function ModelSubrow({ providerId, models, onModelChange }: { providerId: string
   const handleModelDelete = async () => {
     if (!deleteConfirm) return;
     try {
-      await apiRemoveProviderModel(deleteConfirm.providerId, deleteConfirm.modelId);
+      const { error: rmErr } = await client.web.config.providers.post({ action: "remove_model", name: deleteConfirm.providerId, modelId: deleteConfirm.modelId });
+      if (rmErr) throw new Error(rmErr.message ?? "删除失败");
       toast.success("模型已删除");
       const pid = deleteConfirm.providerId;
       const mid = deleteConfirm.modelId;
@@ -172,6 +173,7 @@ function ModelSubrow({ providerId, models, onModelChange }: { providerId: string
       onModelChange("delete", pid, mid);
       dispatchConfigChange("models");
     } catch (e) {
+      console.error("删除模型失败", e);
       toast.error("删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -371,22 +373,32 @@ export function ModelsPage() {
     try {
       const [providersData, modelConfigData] = await Promise.all([
         (async () => {
-          const data = await apiListProviders();
+          const { data: listData, error: listErr } = await client.web.config.providers.post({ action: "list" });
+          if (listErr) throw new Error(listErr.message ?? "加载服务商列表失败");
+          const unwrapped = unwrapConfigData(listData) ?? listData;
+          const data = Array.isArray(unwrapped) ? unwrapped : ((unwrapped as { providers?: ProviderInfo[] }).providers ?? []);
           const modelsMap: Record<string, ProviderModel[]> = {};
-          await Promise.all(data.map(async (p) => {
+          await Promise.all(data.map(async (p: ProviderInfo) => {
             try {
-              const detail = await apiGetProvider(p.id);
+              const { data: detailData, error: detailErr } = await client.web.config.providers.post({ action: "get", name: p.id });
+              if (detailErr) throw new Error(detailErr.message ?? "加载服务商详情失败");
+              const detail = unwrapConfigData(detailData) ?? detailData;
               modelsMap[p.id] = detail.models;
             } catch { modelsMap[p.id] = []; }
           }));
           return { providers: data, providerModels: modelsMap };
         })(),
-        apiGetModels(),
+        (async () => {
+          const { data: modelsData, error: modelsErr } = await client.web.config.models.post({ action: "get" });
+          if (modelsErr) throw new Error(modelsErr.message ?? "加载模型配置失败");
+          return unwrapConfigData(modelsData) ?? modelsData;
+        })(),
       ]);
       setProviders(providersData.providers);
       setProviderModels(providersData.providerModels);
       setModelConfig(modelConfigData);
     } catch (e) {
+      console.error("加载模型数据失败", e);
       toast.error("加载数据失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
       setLoading(false);
@@ -455,17 +467,19 @@ export function ModelsPage() {
 
   const handleSave = async () => {
     const err = validateProviderForm(formName, !!editingProvider);
-    if (err) { toast.error(err); return; }
+    if (err) { console.error("保存Provider失败", err); toast.error(err); return; }
     setFormSaving(true);
     try {
       const npmPackage = NPM_OPTIONS.find((o) => o.id === formNpm)?.npm ?? "@ai-sdk/openai-compatible";
       const data = buildProviderPayload(formApiKey, formBaseURL, npmPackage, formDisplayName);
-      await apiSetProvider(formName, data);
+      const { error: saveErr } = await client.web.config.providers.post({ action: "set", name: formName, data });
+      if (saveErr) throw new Error(saveErr.message ?? "保存失败");
       toast.success(editingProvider ? "服务商已更新" : "服务商已创建");
       setDialogOpen(false);
       loadAll();
       dispatchConfigChange("providers");
     } catch (e) {
+      console.error("保存Provider失败", e);
       toast.error("保存失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
       setFormSaving(false);
@@ -475,7 +489,9 @@ export function ModelsPage() {
   const handleTest = async (name: string) => {
     setTesting(name);
     try {
-      const result = await apiTestProvider(name);
+      const { data: testData, error: testErr } = await client.web.config.providers.post({ action: "test", name });
+      if (testErr) throw new Error(testErr.message ?? "测试失败");
+      const result = unwrapConfigData(testData) ?? testData;
       setTestResult({ name, models: result.models, warning: result.warning });
       const existing = (providerModels[name] ?? []).map((m) => m.id);
       setAddedModelIds(new Set(existing));
@@ -490,7 +506,8 @@ export function ModelsPage() {
   const handleAddFromTest = async (modelId: string) => {
     if (!testResult || "error" in testResult) return;
     try {
-      await apiAddProviderModel(testResult.name, { modelId, name: modelId });
+      const { error: addFromTestErr } = await client.web.config.providers.post({ action: "add_model", name: testResult.name, modelId, data: { modelId, name: modelId } });
+      if (addFromTestErr) throw new Error(addFromTestErr.message ?? "添加失败");
       setAddedModelIds((prev) => new Set(prev).add(modelId));
       setProviderModels((prev) => ({
         ...prev,
@@ -502,6 +519,7 @@ export function ModelsPage() {
       toast.success(`模型 ${modelId} 已添加`);
       dispatchConfigChange("models");
     } catch (e) {
+      console.error("添加模型失败", e);
       toast.error("添加失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -510,12 +528,14 @@ export function ModelsPage() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await apiDeleteProvider(deleteTarget);
+      const { error: delErr } = await client.web.config.providers.post({ action: "delete", name: deleteTarget });
+      if (delErr) throw new Error(delErr.message ?? "删除失败");
       toast.success("服务商已删除");
       setConfirmOpen(false);
       loadAll();
       dispatchConfigChange("providers");
     } catch (e) {
+      console.error("删除Provider失败", e);
       toast.error("删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -523,13 +543,14 @@ export function ModelsPage() {
   const handleBatchDelete = () => { setBatchConfirmOpen(true); };
   const confirmBatchDelete = async () => {
     try {
-      await Promise.all(selected.map((p) => apiDeleteProvider(p.id)));
+      await Promise.all(selected.map((p) => client.web.config.providers.post({ action: "delete", name: p.id }).then((r) => { if (r.error) throw new Error(r.error.message ?? "删除失败"); })));
       toast.success(`已删除 ${selected.length} 个服务商`);
       setBatchConfirmOpen(false);
       setSelected([]);
       loadAll();
       dispatchConfigChange("providers");
     } catch (e) {
+      console.error("批量删除Provider失败", e);
       toast.error("批量删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };

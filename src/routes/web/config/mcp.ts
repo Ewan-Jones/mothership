@@ -6,6 +6,7 @@ import { db } from "../../../db";
 import { mcpTool } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { ConfigBodySchema } from "../../../schemas/config.schema";
 
 // 内部类型定义（与前端 web/src/types/config.ts 对齐）
 type McpLocalConfig = {
@@ -328,7 +329,10 @@ async function handleListTools(name: string) {
 
 // --- 路由注册 ---
 const app = new Elysia({ name: "web-config-mcp", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "config-body": ConfigBodySchema,
+  });
 
 app.post("/config/mcp", async ({ store, body, error }) => {
   const user = store.user!;
@@ -361,6 +365,6 @@ app.post("/config/mcp", async ({ store, body, error }) => {
     const message = e instanceof Error ? e.message : "Unknown error";
     return error(500, { success: false, error: { code: "CONFIG_READ_ERROR", message } });
   }
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "config-body" });
 
 export default app;

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { client, fetchUpload } from "../api/client";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { DataTable, type Column } from "@/components/config/DataTable";
 import { FormDialog } from "@/components/config/FormDialog";
@@ -12,20 +13,50 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  apiClearTaskLogs,
-  apiCreateTask,
-  apiDeleteTask,
-  apiFetchEnvironments,
-  apiListFiles,
-  apiListTaskLogs,
-  apiListTasks,
-  apiToggleTask,
-  apiTriggerTask,
-  apiUpdateTask,
-} from "../api/client";
-import type { ExecutionLogInfo, TaskInfo } from "../api/client";
-import type { Environment, FileInfo } from "../types";
+
+interface TaskInfo {
+  id: string;
+  name: string;
+  description?: string;
+  cron: string;
+  environmentId: string;
+  environmentName?: string;
+  task: string;
+  timeoutMinutes: number;
+  enabled: boolean;
+  lastRunAt?: number;
+  nextRunAt?: number;
+  lastStatus?: string | null;
+}
+
+interface ExecutionLogInfo {
+  id: string;
+  status: string;
+  triggeredBy: string;
+  duration?: number | null;
+  createdAt: number;
+  workspacePath?: string | null;
+  workspaceName?: string | null;
+  resultSummary?: string | null;
+  skipReason?: string | null;
+  error?: string | null;
+  environmentId?: string | null;
+}
+
+interface FileInfo {
+  name: string;
+  path: string;
+  type: "file" | "dir";
+  size: number;
+  modifiedAt: number;
+}
+
+interface Environment {
+  id: string;
+  name: string;
+  workspace_path: string;
+  session_id?: string;
+}
 
 const CRON_PRESETS = [
   { label: "每 5 分钟", value: "*/5 * * * *" },
@@ -124,13 +155,24 @@ export function TasksPage() {
   const loadTasksAndEnvironments = useCallback(async () => {
     setLoading(true);
     try {
-      const [taskData, environmentData] = await Promise.all([
-        apiListTasks(),
-        apiFetchEnvironments(),
+      const [taskRes, envRes] = await Promise.all([
+        client.web.tasks.get(),
+        client.web.environments.get(),
       ]);
-      setTasks(taskData);
-      setEnvironments(environmentData);
+      if (taskRes.error) {
+        console.error("加载任务失败", taskRes.error);
+        toast.error(`加载任务失败: ${taskRes.error.message ?? "未知错误"}`);
+        return;
+      }
+      if (envRes.error) {
+        console.error("加载环境失败", envRes.error);
+        toast.error(`加载环境失败: ${envRes.error.message ?? "未知错误"}`);
+        return;
+      }
+      setTasks((taskRes.data as unknown as TaskInfo[]) ?? []);
+      setEnvironments((envRes.data as unknown as Environment[]) ?? []);
     } catch (error) {
+      console.error("加载任务页面失败", error);
       toast.error(`加载任务页面失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setLoading(false);
@@ -144,11 +186,18 @@ export function TasksPage() {
   const loadLogs = useCallback(async (taskId: string, page = 1) => {
     setLogsLoading(true);
     try {
-      const data = await apiListTaskLogs(taskId, page, 20);
-      setLogs(data.items);
-      setLogsTotal(data.total);
+      const { data, error: err } = await client.web.tasks({ id: taskId }).logs.get({ query: { page, pageSize: 20 } });
+      if (err) {
+        console.error("加载执行历史失败", err);
+        toast.error(`加载执行历史失败: ${err.message ?? "未知错误"}`);
+        return;
+      }
+      const result = data as { items?: unknown[]; total?: number } | null;
+      setLogs(result?.items ?? []);
+      setLogsTotal(result?.total ?? 0);
       setLogsPage(page);
     } catch (error) {
+      console.error("加载执行历史失败", error);
       toast.error(`加载执行历史失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setLogsLoading(false);
@@ -203,16 +252,19 @@ export function TasksPage() {
       };
 
       if (editingTask) {
-        await apiUpdateTask(editingTask.id, payload);
+        const { error: err } = await client.web.tasks({ id: editingTask.id }).put(payload);
+        if (err) { console.error("保存任务失败", err); toast.error(`保存失败: ${err.message ?? "未知错误"}`); return; }
         toast.success("任务已更新");
       } else {
-        await apiCreateTask(payload);
+        const { error: err } = await client.web.tasks.post(payload);
+        if (err) { console.error("创建任务失败", err); toast.error(`保存失败: ${err.message ?? "未知错误"}`); return; }
         toast.success("任务已创建");
       }
 
       setDialogOpen(false);
       await loadTasksAndEnvironments();
     } catch (saveError) {
+      console.error("保存任务失败", saveError);
       toast.error(`保存失败: ${saveError instanceof Error ? saveError.message : "未知错误"}`);
     } finally {
       setFormSaving(false);
@@ -221,10 +273,12 @@ export function TasksPage() {
 
   const handleToggle = async (task: TaskInfo) => {
     try {
-      await apiToggleTask(task.id);
+      const { error: err } = await client.web.tasks({ id: task.id }).toggle.post();
+      if (err) { console.error("切换任务状态失败", err); toast.error(`操作失败: ${err.message ?? "未知错误"}`); return; }
       toast.success(task.enabled ? `已禁用 "${task.name}"` : `已启用 "${task.name}"`);
       await loadTasksAndEnvironments();
     } catch (error) {
+      console.error("切换任务状态失败", error);
       toast.error(`操作失败: ${error instanceof Error ? error.message : "未知错误"}`);
     }
   };
@@ -232,10 +286,13 @@ export function TasksPage() {
   const handleTrigger = async (task: TaskInfo) => {
     setTriggeringTaskId(task.id);
     try {
-      const result = await apiTriggerTask(task.id);
-      toast.success(`已触发，状态: ${result.status}，耗时: ${formatDuration(result.duration)}，目录: ${result.workspaceName ?? "—"}`);
+      const { data, error: err } = await client.web.tasks({ id: task.id }).trigger.post();
+      if (err) { console.error("触发任务失败", err); toast.error(`触发失败: ${err.message ?? "未知错误"}`); return; }
+      const result = data as { status?: string; duration?: number | null; workspaceName?: string } | null;
+      toast.success(`已触发，状态: ${result?.status ?? "未知"}，耗时: ${formatDuration(result?.duration ?? null)}，目录: ${result?.workspaceName ?? "—"}`);
       await loadTasksAndEnvironments();
     } catch (error) {
+      console.error("触发任务失败", error);
       toast.error(`触发失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setTriggeringTaskId(null);
@@ -265,10 +322,15 @@ export function TasksPage() {
     setWorkspaceLoading(true);
     try {
       const relativePath = toWorkspaceRelativePath(environment, log.workspacePath);
-      const result = await apiListFiles(environment.session_id, relativePath);
-      setWorkspaceEntries(result.entries);
+      const { data, error: err } = await client.web.sessions({ id: environment.session_id }).user.get({
+        query: { path: relativePath },
+      });
+      if (err) { console.error("查看目录失败", err); toast.error(`查看目录失败: ${err.message ?? "未知错误"}`); return; }
+      const result = data as { entries?: unknown[] } | null;
+      setWorkspaceEntries(result?.entries ?? []);
       setWorkspaceTitle(relativePath);
     } catch (error) {
+      console.error("查看目录失败", error);
       toast.error(`查看目录失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setWorkspaceLoading(false);
@@ -278,12 +340,14 @@ export function TasksPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await apiDeleteTask(deleteTarget.id);
+      const { error: err } = await client.web.tasks({ id: deleteTarget.id }).delete();
+      if (err) { console.error("删除任务失败", err); toast.error(`删除失败: ${err.message ?? "未知错误"}`); return; }
       toast.success("任务已删除");
       setConfirmOpen(false);
       setDeleteTarget(null);
       await loadTasksAndEnvironments();
     } catch (error) {
+      console.error("删除任务失败", error);
       toast.error(`删除失败: ${error instanceof Error ? error.message : "未知错误"}`);
     }
   };
@@ -291,11 +355,13 @@ export function TasksPage() {
   const handleClearLogs = async () => {
     if (!logsTask) return;
     try {
-      await apiClearTaskLogs(logsTask.id);
+      const { error: err } = await client.web.tasks({ id: logsTask.id }).logs.delete();
+      if (err) { console.error("清空日志失败", err); toast.error(`清空失败: ${err.message ?? "未知错误"}`); return; }
       toast.success("执行历史已清空");
       setClearLogsConfirmOpen(false);
       await loadLogs(logsTask.id, 1);
     } catch (error) {
+      console.error("清空日志失败", error);
       toast.error(`清空失败: ${error instanceof Error ? error.message : "未知错误"}`);
     }
   };
@@ -321,12 +387,12 @@ export function TasksPage() {
     {
       key: "lastRunAt",
       header: "上次执行",
-      render: (row) => <span className="text-xs">{formatTimestamp(row.lastRunAt)}</span>,
+      render: (row) => <span className="text-xs">{formatTimestamp(row.lastRunAt ?? null)}</span>,
     },
     {
       key: "nextRunAt",
       header: "下次执行",
-      render: (row) => <span className="text-xs">{formatTimestamp(row.nextRunAt)}</span>,
+      render: (row) => <span className="text-xs">{formatTimestamp(row.nextRunAt ?? null)}</span>,
     },
     {
       key: "lastStatus",
@@ -555,7 +621,7 @@ export function TasksPage() {
                                 }
                               />
                               <span className="text-sm text-muted-foreground">
-                                {formatTimestamp(log.createdAt)} · {log.triggeredBy} · {formatDuration(log.duration)}
+                                {formatTimestamp(log.createdAt)} · {log.triggeredBy} · {formatDuration(log.duration ?? null)}
                               </span>
                             </div>
                             <Button
@@ -591,7 +657,7 @@ export function TasksPage() {
               <div className="flex min-h-0 flex-col rounded-md border">
                 <div className="shrink-0 border-b px-4 py-3">
                   <h3 className="font-medium">运行目录</h3>
-                  <p className="text-xs text-muted-foreground">{workspaceTitle ?? "点击上方“查看目录”加载内容"}</p>
+                  <p className="text-xs text-muted-foreground">{workspaceTitle ?? '点击上方「查看目录」加载内容'}</p>
                 </div>
 
                 <div className="min-h-0 overflow-y-auto p-4">

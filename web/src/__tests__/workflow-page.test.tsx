@@ -18,7 +18,7 @@ describe("WorkflowPage", () => {
   test("Sidebar contains workflow navigation entry", () => {
     const src = readFileSync(join(webRoot, "src/components/shell/Sidebar.tsx"), "utf-8");
     expect(src).toContain('id: "workflow"');
-    expect(src).toContain('label: "工作流"');
+    expect(src).toContain('label: "智能体编排"');
     expect(src).toContain("Workflow");
   });
 

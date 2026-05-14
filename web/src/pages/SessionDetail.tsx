@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import {
-  apiFetchSession,
-  apiSendControl,
-} from "../api/client";
+import { client } from "../api/client";
 import type { Session } from "../types";
 import { isClosedSessionStatus, cn } from "../lib/utils";
 import { ArrowLeft, Info, Cpu, Hash, Wrench, Clock } from "lucide-react";
@@ -81,8 +78,13 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
       setError("");
 
       try {
-        const sess = await apiFetchSession(sessionId);
+        const { data, error: fetchErr } = await client.web.sessions({ id: sessionId }).get();
         if (cancelled) return;
+        if (fetchErr) {
+          setError(fetchErr.message ?? "Failed to load session");
+          return;
+        }
+        const sess = data as unknown as Session;
         setSession(sess);
         setSessionStatus(sess.status);
       } catch (err) {
@@ -201,12 +203,15 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
       questions: import("../types").Question[],
     ) => {
       try {
-        await apiSendControl(sessionId, {
+        const { error: ctrlErr } = await client.web.sessions({ id: sessionId }).control.post({
           type: "permission_response",
           approved: true,
           request_id: requestId,
           updated_input: { questions, answers },
         });
+        if (ctrlErr) {
+          console.error("Failed to submit answers:", ctrlErr.message);
+        }
       } catch (err) {
         console.error("Failed to submit answers:", err);
       }
@@ -219,18 +224,21 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
     async (requestId: string, value: string, feedback?: string) => {
       try {
         if (value === "no") {
-          await apiSendControl(sessionId, {
+          const { error: ctrlErr } = await client.web.sessions({ id: sessionId }).control.post({
             type: "permission_response",
             approved: false,
             request_id: requestId,
             ...(feedback ? { message: feedback } : {}),
           });
+          if (ctrlErr) {
+            console.error("Failed to submit plan response:", ctrlErr.message);
+          }
         } else {
           const modeMap: Record<string, string> = {
             "yes-accept-edits": "acceptEdits",
             "yes-default": "default",
           };
-          await apiSendControl(sessionId, {
+          const { error: ctrlErr } = await client.web.sessions({ id: sessionId }).control.post({
             type: "permission_response",
             approved: true,
             request_id: requestId,
@@ -238,6 +246,9 @@ export function SessionDetail({ sessionId, initialCwd }: SessionDetailProps) {
               { type: "setMode", mode: modeMap[value] || "default", destination: "session" },
             ],
           });
+          if (ctrlErr) {
+            console.error("Failed to submit plan response:", ctrlErr.message);
+          }
         }
       } catch (err) {
         console.error("Failed to submit plan response:", err);

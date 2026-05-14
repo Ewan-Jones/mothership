@@ -2,11 +2,15 @@ import Elysia from "elysia";
 import { authGuardPlugin } from "../../../plugins/auth";
 import * as configPg from "../../../services/config-pg";
 import { invalidateAvailableCache } from "./models";
+import { ConfigBodySchema } from "../../../schemas/config.schema";
 
 type ProviderBody = { action: string; name?: string; modelId?: string; data?: Record<string, unknown> };
 
 const app = new Elysia({ name: "web-config-providers", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "config-body": ConfigBodySchema,
+  });
 
 /** 从 apiKey 字段生成 keyHint：取尾 4 位，前缀 *** */
 function toKeyHint(apiKey: string | undefined | null): string | null {
@@ -103,7 +107,7 @@ async function handleSet(userId: string, name: string, data: Record<string, unkn
   });
 
   // 处理 models（如果有）
-  if (data.models && typeof data.models === "object" && existing) {
+  if (data.models && typeof data.models === "object") {
     const providerRecord = await configPg.getProvider(userId, name);
     if (providerRecord) {
       const incoming = data.models as Record<string, Record<string, unknown>>;
@@ -235,6 +239,6 @@ app.post("/config/providers", async ({ store, body, error }) => {
     const message = e instanceof Error ? e.message : "Unknown error";
     return error(500, err("CONFIG_READ_ERROR", message));
   }
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "config-body" });
 
 export default app;

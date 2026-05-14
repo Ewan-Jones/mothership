@@ -4,7 +4,7 @@ import { Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { apiSetModels } from "@/src/api/client";
+import { client } from "@/src/api/client";
 import type { ModelEntry } from "@/src/types/config";
 
 export function buildModelOptions(available: ModelEntry[]): { value: string; label: string }[] {
@@ -26,7 +26,8 @@ export function ModelConfigDialog({ currentModel, currentSmallModel, available }
 
   const handleModelChange = async (field: "model" | "small_model", value: string) => {
     try {
-      await apiSetModels({ [field]: value });
+      const { error } = await client.web.config.models.post({ action: "set", [field]: value } as Record<string, unknown>);
+      if (error) throw new Error(error.message ?? "更新失败");
       toast.success("模型已更新");
     } catch (e) {
       toast.error("更新失败: " + (e instanceof Error ? e.message : "未知错误"));

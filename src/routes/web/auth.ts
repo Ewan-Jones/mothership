@@ -3,12 +3,17 @@ import { errorResponse } from "../../plugins/auth";
 import { storeBindSession } from "../../store";
 import { resolveExistingWebSessionId, toWebSessionId } from "../../services/session";
 
+const BindSessionRequestSchema = {
+  sessionId: "",
+  uuid: "",
+};
+
 const app = new Elysia({ name: "web-auth", prefix: "/web" })
   .decorate({ error: errorResponse });
 
 /** POST /web/bind — Bind a session to a UUID (no-login auth) */
 app.post("/bind", async ({ body, query, error }) => {
-  const b = (body as any) ?? {};
+  const b = body as { sessionId?: string; uuid?: string };
   const sessionId = b.sessionId;
   const uuid = (query as any)?.uuid || b.uuid;
 

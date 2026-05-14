@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiFetchApiKeys, apiCreateApiKey, apiDeleteApiKey, apiUpdateApiKeyLabel } from "../api/client";
+import { client } from "../api/client";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 
 interface ApiKeyInfo {
@@ -27,9 +27,10 @@ export function ApiKeyManager({ onBack }: ApiKeyManagerProps) {
 
   const loadKeys = useCallback(async () => {
     try {
-      const data = await apiFetchApiKeys();
-      setKeys(data);
-    } catch (err) {
+      const { data, error: err } = await client.web.apiKeys.get();
+      if (err) { setError("加载 API Key 失败"); return; }
+      setKeys(data ?? []);
+    } catch {
       setError("加载 API Key 失败");
     } finally {
       setLoading(false);
@@ -43,8 +44,9 @@ export function ApiKeyManager({ onBack }: ApiKeyManagerProps) {
   const handleCreate = async () => {
     setError("");
     try {
-      const result = await apiCreateApiKey(newLabel);
-      setCreatedKey(result.full_key);
+      const { data, error: err } = await client.web.apiKeys.post({ label: newLabel || undefined });
+      if (err) { setError(err.message ?? "创建 Key 失败"); return; }
+      setCreatedKey((data as { full_key?: string } | null)?.full_key);
       setNewLabel("");
       await loadKeys();
     } catch (err) {
@@ -54,7 +56,7 @@ export function ApiKeyManager({ onBack }: ApiKeyManagerProps) {
 
   const handleDelete = async (id: string) => {
     try {
-      await apiDeleteApiKey(id);
+      await client.web.apiKeys({ id }).delete();
       await loadKeys();
     } catch {
       setError("删除 Key 失败");
@@ -63,7 +65,7 @@ export function ApiKeyManager({ onBack }: ApiKeyManagerProps) {
 
   const handleUpdateLabel = async (id: string) => {
     try {
-      await apiUpdateApiKeyLabel(id, editLabel);
+      await client.web.apiKeys({ id }).patch({ label: editLabel });
       setEditingId(null);
       await loadKeys();
     } catch {

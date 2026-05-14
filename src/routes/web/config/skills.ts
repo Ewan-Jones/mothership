@@ -1,6 +1,7 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../../plugins/auth";
 import { storeGetEnvironment } from "../../../store";
+import { ConfigBodySchema } from "../../../schemas/config.schema";
 import {
   listSkills,
   getSkill,
@@ -18,7 +19,10 @@ import {
 } from "../../../services/skill";
 
 const app = new Elysia({ name: "web-config-skills", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "config-body": ConfigBodySchema,
+  });
 
 function successResponse(data: unknown) {
   return { success: true, data };
@@ -228,7 +232,7 @@ app.post("/config/skills", async ({ store, body, error }) => {
     default:
       return error(400, errorResponse("VALIDATION_ERROR", `Unknown action: ${action}`));
   }
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "config-body" });
 
 app.post("/config/skills/upload", async ({ store, request, error }) => {
   const user = store.user!;

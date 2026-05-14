@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo, type ChangeEvent } from "react";
 import { toast } from "sonner";
+import { unwrapConfigData } from "../api/config-response";
 import { DataTable, type Column } from "@/components/config/DataTable";
 import { FormDialog } from "@/components/config/FormDialog";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
@@ -10,24 +11,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  apiListSkillSources,
-  apiGetSkill,
-  apiSetSkill,
-  apiDeleteSkill,
-  apiEnableSkill,
-  apiDisableSkill,
-  apiUploadSkills,
-} from "../api/client";
+import { client, fetchUpload } from "../api/client";
 import { buildSkillUploadFormData, parseSkillUploadFiles, validateUploadBatch } from "../lib/skill-upload";
 import type {
-  SkillInfo,
-  SkillSourceInfo,
   SkillSourceStatus,
   SkillUploadConflictResponse,
   SkillUploadConflictStrategy,
   UploadSkillSummary,
 } from "../types/config";
+
+type SkillInfo = {
+  name: string;
+  description: string;
+  enabled: boolean;
+};
+
+type SkillSourceInfo = {
+  id?: string;
+  name: string;
+  type: string;
+  path: string;
+  status: SkillSourceStatus;
+  skills: SkillInfo[];
+};
 import { dispatchConfigChange } from "../lib/config-events";
 
 type CreateMode = "text" | "upload";
@@ -169,7 +175,9 @@ function SkillSubrow({
     setCreateMode("text");
     resetUploadState();
     try {
-      const detail = await apiGetSkill(skill.name, sourceArg, workspaceIdArg);
+      const { data: res, error: resErr } = await client.web.config.skills.post({ action: "get", name: skill.name, source: sourceArg, workspaceId: workspaceIdArg });
+      if (resErr) { toast.error("加载技能详情失败"); return; }
+      const detail = unwrapConfigData(res) ?? res;
       setFormName(detail.name);
       setFormDescription(detail.description);
       setFormContent(detail.content);
@@ -187,12 +195,15 @@ function SkillSubrow({
     setCreateMode("text");
     resetUploadState();
     try {
-      const detail = await apiGetSkill(pendingEditSkill.name, sourceArg, workspaceIdArg);
+      const { data: res, error: resErr } = await client.web.config.skills.post({ action: "get", name: pendingEditSkill.name, source: sourceArg, workspaceId: workspaceIdArg });
+      if (resErr) { console.error("加载技能详情失败", resErr); toast.error("加载技能详情失败"); return; }
+      const detail = unwrapConfigData(res) ?? res;
       setFormName(detail.name);
       setFormDescription(detail.description);
       setFormContent(detail.content);
       setDialogOpen(true);
-    } catch {
+    } catch (e) {
+      console.error("加载技能详情失败", e);
       toast.error("加载技能详情失败");
     }
   };
@@ -205,7 +216,8 @@ function SkillSubrow({
     }
     setFormSaving(true);
     try {
-      await apiSetSkill(formName, { description: formDescription, content: formContent }, sourceArg, workspaceIdArg);
+      const { error: setErr } = await client.web.config.skills.post({ action: "set", name: formName, data: { description: formDescription, content: formContent }, source: sourceArg, workspaceId: workspaceIdArg });
+      if (setErr) throw new Error(setErr.message ?? "保存失败");
       toast.success(editingSkill ? "技能已更新" : "技能已创建");
       setDialogOpen(false);
       onRefresh();
@@ -236,7 +248,10 @@ function SkillSubrow({
     }
     setUploadPending(true);
     try {
-      const result = await apiUploadSkills(buildSkillUploadFormData(uploadItems, strategy), sourceArg, workspaceIdArg);
+      const formData = buildSkillUploadFormData(uploadItems, strategy);
+      if (sourceArg) formData.append("source", sourceArg);
+      if (workspaceIdArg) formData.append("workspaceId", workspaceIdArg);
+      const result = await fetchUpload<{ imported: any[]; skipped: any[] }>("/web/config/skills/upload", formData);
       toast.success(getUploadResultMessage(result.imported.length, result.skipped.length));
       setDialogOpen(false);
       resetUploadState();
@@ -245,10 +260,12 @@ function SkillSubrow({
     } catch (error) {
       const conflictData = getUploadConflictData(error);
       if (conflictData) {
+        console.error("导入技能冲突", error);
         setConflicts(conflictData.conflicts);
         setConflictStrategy(strategy ?? null);
         toast.error("检测到同名技能，请选择忽略或覆盖策略");
       } else {
+        console.error("导入技能失败", error);
         toast.error("导入失败: " + (error instanceof Error ? error.message : "未知错误"));
       }
     } finally {
@@ -268,15 +285,18 @@ function SkillSubrow({
   const handleToggle = async (skill: SkillInfo) => {
     try {
       if (skill.enabled) {
-        await apiDisableSkill(skill.name);
+        const { error: toggleErr } = await client.web.config.skills.post({ action: "disable", name: skill.name });
+        if (toggleErr) throw new Error(toggleErr.message ?? "操作失败");
         toast.success(`已禁用 "${skill.name}"`);
       } else {
-        await apiEnableSkill(skill.name);
+        const { error: toggleErr } = await client.web.config.skills.post({ action: "enable", name: skill.name });
+        if (toggleErr) throw new Error(toggleErr.message ?? "操作失败");
         toast.success(`已启用 "${skill.name}"`);
       }
       onRefresh();
       dispatchConfigChange("skills");
     } catch (e) {
+      console.error("切换技能状态失败", e);
       toast.error("操作失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -293,25 +313,28 @@ function SkillSubrow({
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await apiDeleteSkill(deleteTarget.name, sourceArg, workspaceIdArg);
+      const { error: delErr } = await client.web.config.skills.post({ action: "delete", name: deleteTarget.name, source: sourceArg, workspaceId: workspaceIdArg });
+      if (delErr) throw new Error(delErr.message ?? "删除失败");
       toast.success("技能已删除");
       setConfirmOpen(false);
       onRefresh();
       dispatchConfigChange("skills");
     } catch (e) {
+      console.error("删除技能失败", e);
       toast.error("删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
 
   const confirmBatchDelete = async () => {
     try {
-      await Promise.all(selected.map((s) => apiDeleteSkill(s.name, sourceArg, workspaceIdArg)));
+      await Promise.all(selected.map((s) => client.web.config.skills.post({ action: "delete", name: s.name, source: sourceArg, workspaceId: workspaceIdArg }).then((r) => { if (r.error) throw new Error(r.error.message ?? "删除失败"); })));
       toast.success(`已删除 ${selected.length} 个技能`);
       setBatchConfirmOpen(false);
       setSelected([]);
       onRefresh();
       dispatchConfigChange("skills");
     } catch (e) {
+      console.error("批量删除技能失败", e);
       toast.error("批量删除失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
   };
@@ -583,9 +606,12 @@ export function SkillsPage() {
   const loadSources = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiListSkillSources();
-      setSources(data);
+      const { data: res, error: resErr } = await client.web.config.skills.post({ action: "workspace_list" });
+      if (resErr) { console.error("加载技能列表失败", resErr); toast.error("加载技能列表失败: " + (resErr.message ?? "未知错误")); return; }
+      const d = unwrapConfigData(res) ?? res;
+      setSources(d.sources ?? d);
     } catch (e) {
+      console.error("加载技能列表失败", e);
       toast.error("加载技能列表失败: " + (e instanceof Error ? e.message : "未知错误"));
     } finally {
       setLoading(false);

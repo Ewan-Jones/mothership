@@ -82,8 +82,8 @@ describe("Knowledge base routes", () => {
     await ensureUser();
   });
 
-  test("POST /web/knowledge-bases returns 201 with kb_ id", async () => {
-    const response = await request("/web/knowledge-bases", {
+  test("POST /web/knowledgeBases returns 201 with kb_ id", async () => {
+    const response = await request("/web/knowledgeBases", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -99,7 +99,7 @@ describe("Knowledge base routes", () => {
     expect(body.remoteId).toBe("viking://resources/kb/kb-user-1/project-docs/");
   });
 
-  test("GET /web/knowledge-bases lists only current user rows with binding summary", async () => {
+  test("GET /web/knowledgeBases lists only current user rows with binding summary", async () => {
     const now = new Date();
     await db.insert(user).values({
       id: "other-user",
@@ -147,7 +147,7 @@ describe("Knowledge base routes", () => {
       updatedAt: now,
     });
 
-    const response = await request("/web/knowledge-bases");
+    const response = await request("/web/knowledgeBases");
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body).toHaveLength(1);
@@ -155,7 +155,7 @@ describe("Knowledge base routes", () => {
     expect(body[0].bindingsCount).toBe(1);
   });
 
-  test("PATCH /web/knowledge-bases/:id updates description and preserves other fields", async () => {
+  test("PATCH /web/knowledgeBases/:id updates description and preserves other fields", async () => {
     const now = new Date("2026-01-01T00:00:00Z");
     await db.insert(knowledgeBase).values({
       id: "kb_patch",
@@ -171,7 +171,7 @@ describe("Knowledge base routes", () => {
       updatedAt: now,
     });
 
-    const response = await request("/web/knowledge-bases/kb_patch", {
+    const response = await request("/web/knowledgeBases/kb_patch", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: "after" }),
@@ -184,7 +184,7 @@ describe("Knowledge base routes", () => {
     expect(body.updatedAt).toBeGreaterThan(body.createdAt);
   });
 
-  test("DELETE /web/knowledge-bases/:id removes the row and subsequent GET returns 404", async () => {
+  test("DELETE /web/knowledgeBases/:id removes the row and subsequent GET returns 404", async () => {
     const deleteCalls: Array<{ remoteId: string; recursive?: boolean }> = [];
     setKnowledgeProviderForTesting({
       ...fakeProvider,
@@ -207,7 +207,7 @@ describe("Knowledge base routes", () => {
       updatedAt: now,
     });
 
-    const deleteResponse = await request("/web/knowledge-bases/kb_delete", {
+    const deleteResponse = await request("/web/knowledgeBases/kb_delete", {
       method: "DELETE",
     });
     expect(deleteResponse.status).toBe(200);
@@ -215,11 +215,11 @@ describe("Knowledge base routes", () => {
       { remoteId: "viking://resources/kb/kb-user-1/docs/", recursive: true },
     ]);
 
-    const detailResponse = await request("/web/knowledge-bases/kb_delete");
+    const detailResponse = await request("/web/knowledgeBases/kb_delete");
     expect(detailResponse.status).toBe(404);
   });
 
-  test("DELETE /web/knowledge-bases/:id returns provider error message when remote delete fails", async () => {
+  test("DELETE /web/knowledgeBases/:id returns provider error message when remote delete fails", async () => {
     setKnowledgeProviderForTesting({
       ...fakeProvider,
       async deleteResource() {
@@ -241,7 +241,7 @@ describe("Knowledge base routes", () => {
       updatedAt: now,
     });
 
-    const response = await request("/web/knowledge-bases/kb_delete_busy", {
+    const response = await request("/web/knowledgeBases/kb_delete_busy", {
       method: "DELETE",
     });
 

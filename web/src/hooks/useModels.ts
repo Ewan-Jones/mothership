@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { ACPClient } from "../acp/client";
 import type { ModelInfo, SessionModelState } from "../acp/types";
-import { apiGetModels } from "../api/client";
+import { client } from "../api/client";
+import { unwrapConfigData } from "../api/config-response";
 import type { ModelEntry } from "../types/config";
 import { filterConfiguredAcpModels } from "../lib/acp-model-filter";
 
@@ -38,10 +39,12 @@ export function useModels(client: ACPClient): UseModelsResult {
   useEffect(() => {
     let cancelled = false;
 
-    apiGetModels()
-      .then((config) => {
+    client.web.config.models.post({ action: "get" })
+      .then(({ data, error }) => {
         if (!cancelled) {
-          setConfiguredModels(config.available);
+          if (error) return;
+          const config = unwrapConfigData(data) ?? data;
+          setConfiguredModels(config?.available ?? []);
         }
       })
       .catch((error) => {

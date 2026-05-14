@@ -4,20 +4,33 @@ import { getChannelProvider, listChannelProviders } from "../../services/channel
 import { getHermesClient } from "../../services/hermes-client";
 import { listBindings, createBinding, deleteBinding, updateBinding } from "../../services/channel-binding";
 import { storeGetEnvironment } from "../../store";
+import {
+  ChannelProviderDescriptorSchema,
+  HermesStatusSchema,
+  ChannelBindingSchema,
+  CreateChannelBindingRequestSchema,
+} from "../../schemas/channel.schema";
 
 const app = new Elysia({ name: "web-channels", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "channel-provider-list": ChannelProviderDescriptorSchema.array(),
+    "hermes-status": HermesStatusSchema,
+    "channel-binding": ChannelBindingSchema,
+    "channel-binding-list": ChannelBindingSchema.array(),
+    "create-channel-binding-request": CreateChannelBindingRequestSchema,
+  });
 
 app.get("/channels/providers", () => {
   return listChannelProviders();
-}, { sessionAuth: true });
+}, { sessionAuth: true, response: "channel-provider-list" });
 
 app.get("/channels", () => {
   return [];
-}, { sessionAuth: true });
+}, { sessionAuth: true, response: "channel-binding-list" });
 
 app.post("/channels", async ({ body, error }) => {
-  const b = (body as any) ?? {};
+  const b = body as { type?: string };
   const provider = typeof b?.type === "string" ? getChannelProvider(b.type) : undefined;
   const status = provider ? 409 : 400;
   return error(status, { error: { type: "FORBIDDEN", message: "当前平台暂未开放" } });
@@ -37,7 +50,7 @@ app.get("/channels/hermes/status", () => {
     };
   }
   return client.getStatus();
-}, { sessionAuth: true });
+}, { sessionAuth: true, response: "hermes-status" });
 
 // --- Bindings CRUD ---
 
@@ -49,18 +62,17 @@ app.get("/channels/bindings", async () => {
     enriched.push({ ...b, agentName: env?.name ?? null });
   }
   return enriched;
-}, { sessionAuth: true });
+}, { sessionAuth: true, response: "channel-binding-list" });
 
 app.post("/channels/bindings", async ({ body, error }) => {
-  const b = (body as any) ?? {};
-  const { platform, chatId, agentId, enabled } = b;
-  if (!platform || !agentId) {
+  const b = body as { platform: string; chatId?: string | null; agentId: string; enabled?: boolean };
+  if (!b.platform || !b.agentId) {
     return error(400, { error: { type: "VALIDATION_ERROR", message: "platform 和 agentId 为必填字段" } });
   }
-  const binding = await createBinding({ platform, chatId: chatId ?? null, agentId, enabled });
+  const binding = await createBinding({ platform: b.platform, chatId: b.chatId ?? null, agentId: b.agentId, enabled: b.enabled });
   const env = await storeGetEnvironment(binding.agentId);
   return { ...binding, agentName: env?.name ?? null };
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "create-channel-binding-request" });
 
 app.delete("/channels/bindings/:id", async ({ params, error }) => {
   const id = params.id;
@@ -68,12 +80,12 @@ app.delete("/channels/bindings/:id", async ({ params, error }) => {
   if (!deleted) {
     return error(404, { error: { type: "NOT_FOUND", message: "绑定不存在" } });
   }
-  return { success: true };
+  return { success: true as const };
 }, { sessionAuth: true });
 
 app.patch("/channels/bindings/:id", async ({ params, body, error }) => {
   const id = params.id;
-  const b = (body as any) ?? {};
+  const b = body as Record<string, unknown>;
   const updated = await updateBinding(id, b);
   if (!updated) {
     return error(404, { error: { type: "NOT_FOUND", message: "绑定不存在" } });

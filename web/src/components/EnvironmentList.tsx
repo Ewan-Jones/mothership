@@ -1,6 +1,13 @@
 import type { Environment } from "../types";
-import type { InstanceInfo } from "../api/client";
 import { StatusBadge } from "./Navbar";
+
+type InstanceInfo = {
+  id: string;
+  group_id: string;
+  port: number;
+  status: string;
+  error?: string;
+};
 import { esc, formatTime } from "../lib/utils";
 
 interface EnvironmentListProps {

@@ -2,9 +2,18 @@ import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
 import { spawnInstance, listInstances, stopInstance, spawnInstanceFromEnvironment } from "../../services/instance";
 import type { SpawnedInstance } from "../../services/instance";
+import {
+  InstanceInfoSchema,
+  SpawnInstanceFromEnvironmentRequestSchema,
+} from "../../schemas/instance.schema";
 
 const app = new Elysia({ name: "web-instances", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "instance-info": InstanceInfoSchema,
+    "instance-info-list": InstanceInfoSchema.array(),
+    "spawn-instance-request": SpawnInstanceFromEnvironmentRequestSchema,
+  });
 
 function toResponse(inst: SpawnedInstance) {
   return {
@@ -32,13 +41,12 @@ app.post("/instances", async ({ store, error }) => {
 
 app.post("/instances/from-environment", async ({ store, body, error }) => {
   const user = store.user!;
-  const b = (body as any) ?? {};
-  const environmentId = b.environmentId;
-  if (!environmentId) {
+  const b = body as { environmentId: string };
+  if (!b.environmentId) {
     return error(400, { error: { type: "VALIDATION_ERROR", message: "environmentId is required" } });
   }
   try {
-    const inst = await spawnInstanceFromEnvironment(user.id, environmentId);
+    const inst = await spawnInstanceFromEnvironment(user.id, b.environmentId);
     return toResponse(inst);
   } catch (err: any) {
     const status = err.message === "Environment not found" ? 404
@@ -47,13 +55,13 @@ app.post("/instances/from-environment", async ({ store, body, error }) => {
       : 500;
     return error(status, { error: { type: "spawn_failed", message: err.message } });
   }
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "spawn-instance-request" });
 
 app.get("/instances", ({ store }) => {
   const user = store.user!;
   const insts = listInstances(user.id);
   return insts.map(toResponse);
-}, { sessionAuth: true });
+}, { sessionAuth: true, response: "instance-info-list" });
 
 app.delete("/instances/:id", ({ store, params, error }) => {
   const user = store.user!;
@@ -65,7 +73,7 @@ app.delete("/instances/:id", ({ store, params, error }) => {
       : 400;
     return error(statusCode, { error: { type: "bad_request", message: result.error } });
   }
-  return { ok: true };
+  return { ok: true as const };
 }, { sessionAuth: true });
 
 export default app;

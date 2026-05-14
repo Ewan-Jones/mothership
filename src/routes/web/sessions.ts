@@ -7,9 +7,21 @@ import {
 } from "../../store";
 import { getEventBus } from "../../transport/event-bus";
 import { resolveExistingWebSessionId, resolveOwnedWebSessionId } from "../../services/session";
+import {
+  SessionResponseSchema,
+  SessionSummarySchema,
+  SessionHistorySchema,
+} from "../../schemas/session.schema";
 
 const app = new Elysia({ name: "web-sessions", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "session-response": SessionResponseSchema,
+    "session-response-list": SessionResponseSchema.array(),
+    "session-summary": SessionSummarySchema,
+    "session-summary-list": SessionSummarySchema.array(),
+    "session-history": SessionHistorySchema,
+  });
 
 async function toSessionResponse(row: { id: string; environmentId: string | null; title: string | null; status: string; source: string; permissionMode: string | null; workerEpoch: number; username: string | null; createdAt: Date; updatedAt: Date }) {
   const env = row.environmentId ? await storeGetEnvironment(row.environmentId) : null;
@@ -46,14 +58,14 @@ app.get("/sessions", async ({ store }) => {
     results.push(await toSessionResponse(s));
   }
   return results;
-}, { sessionAuth: true });
+}, { sessionAuth: true, response: "session-response-list" });
 
 /** GET /web/sessions/all — List session summaries owned by the current user */
 app.get("/sessions/all", ({ store }) => {
   const user = store.user!;
   const sessions = storeListSessionsByUserId(user.id).map(toSessionSummary);
   return sessions;
-}, { sessionAuth: true });
+}, { sessionAuth: true, response: "session-summary-list" });
 
 /** GET /web/sessions/:id — Session detail */
 app.get("/sessions/:id", async ({ store, params, error }) => {

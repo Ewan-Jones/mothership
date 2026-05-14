@@ -16,6 +16,13 @@ import {
     storeGetSession,
 } from "../../store";
 import { resolveExistingSessionId } from "../../services/session";
+import {
+    FileListResponseSchema,
+    FileContentSchema,
+    FileUploadResponseSchema,
+    FileWriteResultSchema,
+    WriteFileRequestSchema,
+} from "../../schemas/file.schema";
 
 const TEXT_EXTENSIONS = new Set([
     ".txt", ".md", ".json", ".yaml", ".yml", ".ts", ".js", ".tsx", ".jsx",
@@ -109,7 +116,14 @@ function shouldHideWorkspaceEntry(entryPath: string, userDir: string): boolean {
 }
 
 const app = new Elysia({ name: "web-files", prefix: "/web/sessions" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "file-list-response": FileListResponseSchema,
+    "file-content": FileContentSchema,
+    "file-upload-response": FileUploadResponseSchema,
+    "file-write-result": FileWriteResultSchema,
+    "write-file-request": WriteFileRequestSchema,
+  });
 
 app.get("/:id/user", async ({ store, params, query, error }) => {
     const sessionId = params.id;
@@ -226,7 +240,7 @@ app.put("/:id/user/*", async ({ store, params, body, error }) => {
 
     if (!isUserPath(filePath)) return error(400, { error: { type: "validation_error", message: "Only user/ paths are writable" } });
 
-    const b = (body as any) ?? {};
+    const b = body as { content?: string };
     if (typeof b.content !== "string")
         return error(400, { error: { type: "validation_error", message: "content field required" } });
 
@@ -243,7 +257,7 @@ app.put("/:id/user/*", async ({ store, params, body, error }) => {
     const fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
     const normalizedPath = filePath.startsWith("user/") ? filePath : `user/${filePath}`;
     return { name: fileName, path: normalizedPath, size: Buffer.byteLength(b.content) };
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "write-file-request" });
 
 app.delete("/:id/user/*", async ({ store, params, error }) => {
     const sessionId = params.id;
@@ -263,7 +277,7 @@ app.delete("/:id/user/*", async ({ store, params, error }) => {
         return error(400, { error: { type: "validation_error", message: "Cannot delete directories" } });
 
     await unlink(resolved);
-    return { ok: true };
+    return { ok: true as const };
 }, { sessionAuth: true });
 
 export default app;

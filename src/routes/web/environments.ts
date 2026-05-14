@@ -19,6 +19,13 @@ import {
 import { mkdirSync, realpathSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
+import {
+    EnvironmentInfoSchema,
+    EnvironmentListResponseSchema,
+    CreateEnvironmentRequestSchema,
+    UpdateEnvironmentRequestSchema,
+    EnterEnvironmentRequestSchema,
+} from "../../schemas/environment.schema";
 
 function generateEnvSecret(): string {
     return `env_secret_${randomBytes(24).toString("hex")}`;
@@ -72,7 +79,14 @@ function sanitizeResponse(row: EnvironmentRecord) {
 }
 
 const app = new Elysia({ name: "web-environments", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "environment-info": EnvironmentInfoSchema,
+    "environment-list-response": EnvironmentListResponseSchema,
+    "create-environment-request": CreateEnvironmentRequestSchema,
+    "update-environment-request": UpdateEnvironmentRequestSchema,
+    "enter-environment-request": EnterEnvironmentRequestSchema,
+  });
 
 /** GET /web/environments — List environments for the current user */
 app.get("/environments", async ({ store }) => {
@@ -114,7 +128,7 @@ app.get("/environments", async ({ store }) => {
 /** POST /web/environments — Register a new environment */
 app.post("/environments", async ({ store, body, error }) => {
     const user = store.user!;
-    const b = (body as any) ?? {};
+    const b = body as { name: string; description?: string; agentName?: string; autoStart?: boolean; workspacePath: string };
     const { name, description, agentName, autoStart } = b;
     let { workspacePath } = b;
 
@@ -169,9 +183,9 @@ app.post("/environments", async ({ store, body, error }) => {
     try {
         record = await storeCreateEnvironment({
             name,
-            description: description ?? null,
+            description,
             workspacePath,
-            agentName: agentName ?? null,
+            agentName,
             status: "idle",
             secret,
             userId: user.id,
@@ -199,7 +213,7 @@ app.post("/environments", async ({ store, body, error }) => {
         ...sanitizeResponse(record),
         secret: record.secret,
     };
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "create-environment-request" });
 
 /** GET /web/environments/:id — Get environment detail (with secret) */
 app.get("/environments/:id", async ({ store, params, error }) => {
@@ -221,7 +235,7 @@ app.put("/environments/:id", async ({ store, params, body, error }) => {
         return error(404, { error: { type: "NOT_FOUND", message: "环境不存在" } });
     }
 
-    const b = (body as any) ?? {};
+    const b = body as { name?: string; description?: string | null; workspacePath?: string; agentName?: string | null; autoStart?: boolean };
     const patch: Partial<Pick<EnvironmentRecord, "name" | "description" | "workspacePath" | "agentName" | "autoStart">> = {};
 
     if (b.name !== undefined) {
@@ -249,7 +263,7 @@ app.put("/environments/:id", async ({ store, params, body, error }) => {
                 });
             }
         }
-        patch.agentName = b.agentName || null;
+        patch.agentName = b.agentName ?? null;
     }
     if (b.description !== undefined) {
         patch.description = b.description;
@@ -261,7 +275,7 @@ app.put("/environments/:id", async ({ store, params, body, error }) => {
     await storeUpdateEnvironment(envId, patch);
     const updated = await storeGetEnvironment(envId);
     return sanitizeResponse(updated!);
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "update-environment-request" });
 
 /** POST /web/environments/:id/enter — Enter an environment (auto-spawn instance if needed) */
 app.post("/environments/:id/enter", async ({ store, params, body, error }) => {
@@ -272,16 +286,15 @@ app.post("/environments/:id/enter", async ({ store, params, body, error }) => {
         return error(404, { error: { type: "NOT_FOUND", message: "环境不存在" } });
     }
 
-    const b = (body as any) ?? {};
-    const instanceNumber = b.instance_number as number | undefined;
+    const b = body as { instance_number?: number };
 
     let inst: import("../../services/instance").SpawnedInstance | undefined;
 
-    if (instanceNumber !== undefined) {
+    if (b.instance_number !== undefined) {
       const runningInstances = getRunningInstancesByEnvironment(envId);
-      inst = runningInstances.find((i) => i.instanceNumber === instanceNumber);
+      inst = runningInstances.find((i) => i.instanceNumber === b.instance_number);
       if (!inst) {
-        return error(404, { error: { type: "NOT_FOUND", message: `实例 ${instanceNumber} 不存在或未运行` } });
+        return error(404, { error: { type: "NOT_FOUND", message: `实例 ${b.instance_number} 不存在或未运行` } });
       }
     } else {
       const runningInstances = getRunningInstancesByEnvironment(envId);
@@ -322,7 +335,7 @@ app.post("/environments/:id/enter", async ({ store, params, body, error }) => {
         instance_status: inst.status,
         environment_id: envId,
     };
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "enter-environment-request" });
 
 /** GET /web/environments/:id/instances — List active instances for an environment */
 app.get("/environments/:id/instances", async ({ store, params, error }) => {
@@ -356,7 +369,7 @@ app.delete("/environments/:id", async ({ store, params, error }) => {
         return error(404, { error: { type: "NOT_FOUND", message: "环境不存在" } });
     }
     await storeDeleteEnvironment(envId);
-    return { ok: true };
+    return { ok: true as const };
 }, { sessionAuth: true });
 
 export default app;

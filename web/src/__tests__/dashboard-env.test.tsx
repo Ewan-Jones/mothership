@@ -3,21 +3,15 @@ import { describe, test, expect } from "bun:test";
 // Type imports
 import type { Environment, EnvironmentDetail, CreateEnvironmentRequest, UpdateEnvironmentRequest } from "../types";
 
-// API client imports
-import {
-  apiFetchEnvironments,
-  apiGetEnvironment,
-  apiCreateEnvironment,
-  apiUpdateEnvironment,
-  apiDeleteEnvironment,
-} from "../api/client";
+// Client imports
+import { client } from "../api/client";
 
 // Component imports
 import { Dashboard } from "../pages/Dashboard";
 
 describe("Dashboard Environment Management - Exports", () => {
+  // 测试类型正确导出
   test("Environment types are exported correctly", () => {
-    // Verify types are importable (compile-time check)
     const env: Environment = {
       id: "test",
       name: "test-env",
@@ -54,14 +48,13 @@ describe("Dashboard Environment Management - Exports", () => {
     expect(updateReq.description).toBe("updated");
   });
 
-  test("API client functions are exported", () => {
-    expect(typeof apiFetchEnvironments).toBe("function");
-    expect(typeof apiGetEnvironment).toBe("function");
-    expect(typeof apiCreateEnvironment).toBe("function");
-    expect(typeof apiUpdateEnvironment).toBe("function");
-    expect(typeof apiDeleteEnvironment).toBe("function");
+  // 测试 Eden Treaty client 正确导出
+  test("Eden Treaty client is exported", () => {
+    expect(client).toBeDefined();
+    expect(client.web).toBeDefined();
   });
 
+  // 测试 Dashboard 组件是函数
   test("Dashboard component is a function", () => {
     expect(typeof Dashboard).toBe("function");
   });

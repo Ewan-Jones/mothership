@@ -321,8 +321,13 @@ async function handleSetDefault(userId: string, name: string) {
   return { success: true, data: { default_agent: name } };
 }
 
+import { ConfigBodySchema } from "../../../schemas/config.schema";
+
 const app = new Elysia({ name: "web-config-agents", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "config-body": ConfigBodySchema,
+  });
 
 app.post("/config/agents", async ({ store, body, error }) => {
   const user = store.user!;
@@ -348,6 +353,6 @@ app.post("/config/agents", async ({ store, body, error }) => {
     }
     throw error_;
   }
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "config-body" });
 
 export default app;

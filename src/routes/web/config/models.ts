@@ -1,9 +1,13 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../../plugins/auth";
 import * as configPg from "../../../services/config-pg";
+import { ConfigBodySchema } from "../../../schemas/config.schema";
 
 const app = new Elysia({ name: "web-config-models", prefix: "/web" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "config-body": ConfigBodySchema,
+  });
 
 /** 可用模型缓存 */
 let cachedAvailable: { models: Array<{ id: string; provider: string; fullId: string; label: string; contextLimit: number | null; outputLimit: number | null }>; updatedAt: number } | null = null;
@@ -100,6 +104,6 @@ app.post("/config/models", async ({ store, body, error }) => {
     const message = e instanceof Error ? e.message : "Unknown error";
     return error(500, err("CONFIG_READ_ERROR", message));
   }
-}, { sessionAuth: true });
+}, { sessionAuth: true, body: "config-body" });
 
 export default app;

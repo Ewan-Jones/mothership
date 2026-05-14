@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import {
-  apiGetHermesStatus,
-  apiListChannelBindings,
-  apiCreateChannelBinding,
-  apiDeleteChannelBinding,
-  apiUpdateChannelBinding,
-  apiFetchEnvironments,
-} from "../api/client";
-import type { HermesStatus, ChannelBinding, Environment } from "../types";
+import { client } from "../api/client";
 import { DataTable, type Column } from "@/components/config/DataTable";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,10 +24,32 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+type ChannelBinding = {
+  id: string;
+  platform: string;
+  chatId: string | null;
+  agentId: string;
+  enabled: boolean;
+  agentName?: string | null;
+};
+
+type HermesStatus = {
+  connected: boolean;
+  url: string;
+  platforms: string[];
+  reconnecting: boolean;
+  lastConnectedAt: number | null;
+};
+
+type EnvironmentSummary = {
+  id: string;
+  name: string;
+};
+
 export function ChannelsPage() {
   const [hermesStatus, setHermesStatus] = useState<HermesStatus | null>(null);
   const [bindings, setBindings] = useState<ChannelBinding[]>([]);
-  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [environments, setEnvironments] = useState<EnvironmentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formPlatform, setFormPlatform] = useState("");
@@ -45,8 +59,9 @@ export function ChannelsPage() {
 
   const loadHermesStatus = useCallback(async () => {
     try {
-      const status = await apiGetHermesStatus();
-      setHermesStatus(status);
+      const { data, error } = await client.web.channels.hermes.status.get();
+      if (error) { setHermesStatus(null); return; }
+      setHermesStatus(data);
     } catch {
       setHermesStatus(null);
     }
@@ -54,17 +69,20 @@ export function ChannelsPage() {
 
   const loadBindings = useCallback(async () => {
     try {
-      const list = await apiListChannelBindings();
-      setBindings(list);
-    } catch {
+      const { data, error } = await client.web.channels.bindings.get();
+      if (error) { console.error("加载绑定列表失败", error); toast.error("加载绑定列表失败"); return; }
+      setBindings(data as unknown as ChannelBinding[]);
+    } catch (e) {
+      console.error("加载绑定列表失败", e);
       toast.error("加载绑定列表失败");
     }
   }, []);
 
   const loadEnvironments = useCallback(async () => {
     try {
-      const list = await apiFetchEnvironments();
-      setEnvironments(list);
+      const { data, error } = await client.web.environments.get();
+      if (error) { return; }
+      setEnvironments((Array.isArray(data) ? data as unknown as EnvironmentSummary[] : []).map((e: any) => ({ id: e.id, name: e.name })));
     } catch {}
   }, []);
 
@@ -87,23 +105,28 @@ export function ChannelsPage() {
 
   const handleToggleBinding = async (binding: ChannelBinding) => {
     try {
-      const updated = await apiUpdateChannelBinding(binding.id, {
+      const { data, error } = await client.web.channels.bindings[binding.id].patch({
         enabled: !binding.enabled,
       });
+      if (error) { console.error("更新绑定状态失败", error); toast.error("更新绑定状态失败"); return; }
+      const updated = data as unknown as ChannelBinding;
       setBindings((prev) =>
         prev.map((b) => (b.id === updated.id ? updated : b)),
       );
-    } catch {
+    } catch (e) {
+      console.error("更新绑定状态失败", e);
       toast.error("更新绑定状态失败");
     }
   };
 
   const handleDeleteBinding = async (id: string) => {
     try {
-      await apiDeleteChannelBinding(id);
+      const { error } = await client.web.channels.bindings[id].delete();
+      if (error) { console.error("删除绑定失败", error); toast.error("删除绑定失败"); return; }
       setBindings((prev) => prev.filter((b) => b.id !== id));
       toast.success("绑定已删除");
-    } catch {
+    } catch (e) {
+      console.error("删除绑定失败", e);
       toast.error("删除绑定失败");
     }
   };
@@ -115,11 +138,17 @@ export function ChannelsPage() {
     }
     setFormSaving(true);
     try {
-      const created = await apiCreateChannelBinding({
+      const { data, error } = await client.web.channels.bindings.post({
         platform: formPlatform,
         chatId: formChatId || null,
         agentId: formAgentId,
       });
+      if (error) {
+        console.error("创建绑定失败", error);
+        toast.error("创建绑定失败: " + (error.message || "未知错误"));
+        return;
+      }
+      const created = data as unknown as ChannelBinding;
       setBindings((prev) => [...prev, created]);
       setDialogOpen(false);
       setFormPlatform("");
@@ -127,6 +156,7 @@ export function ChannelsPage() {
       setFormAgentId("");
       toast.success("绑定创建成功");
     } catch (err) {
+      console.error("创建绑定失败", err);
       toast.error(
         "创建绑定失败: " + (err instanceof Error ? err.message : "未知错误"),
       );

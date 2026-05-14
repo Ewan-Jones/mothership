@@ -6,7 +6,7 @@ import { cn } from "../src/lib/utils";
 import { MessageSquare, Plus, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { apiGetEnvironment } from "../src/api/client";
+import { client } from "../src/api/client";
 
 interface ACPMainProps {
   client: ACPClient;
@@ -43,8 +43,10 @@ export function ACPMain({ client, agentId, initialCwd, readonly, rcsSessionId }:
     }
 
     setCwdReady(false);
-    apiGetEnvironment(agentId)
-      .then((env) => {
+    client.web.environments({ id: agentId }).get()
+      .then(({ data, error }) => {
+        if (error) throw new Error(error.message ?? "加载环境失败");
+        const env = data as { workspace_path: string };
         setCwd(env.workspace_path.replace(/\/+$/, ""));
         setCwdReady(true);
       })

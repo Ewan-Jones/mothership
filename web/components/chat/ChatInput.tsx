@@ -8,6 +8,7 @@ import type { FileInfo } from "../../src/types";
 import { CommandMenu } from "./CommandMenu";
 import { FilePickerDialog } from "../../src/components/FilePickerDialog";
 import { apiUploadFile } from "../../src/api/client";
+// apiUploadFile is retained as a utility wrapper in client.ts
 import imageCompression from "browser-image-compression";
 
 // 图片压缩配置

@@ -56,6 +56,13 @@ bun test web/src/__tests__/app-i18n.test.ts
 
 **注意**：前端代码在 `web/` 目录，但没有独立的 `package.json`。所有依赖在根目录 `package.json`，构建命令需要从项目根目录执行。前端测试使用 `import.meta.dirname` 解析文件路径，从项目根目录运行即可。
 
+### 测试账号
+
+本地开发环境的测试账号（通过 better-auth 注册）：
+
+- **邮箱**：`admin@test.com`
+- **密码**：`admin123456`
+
 ### 工作目录注意事项
 
 Bash 的 `cd` 命令会改变 persistent CWD。当在 `web/` 目录执行命令后，后续相对路径会出错。解决方案：
@@ -492,6 +499,19 @@ Permission 选项（`web/src/components/PermissionTab.tsx`）：
 - runtime / registry / resolver 这类编排组件的方法，优先说明输入输出语义和失败条件
 - 测试辅助实现（如 in-memory repository）的方法，至少说明它模拟的正式契约以及 `reset()` 等方法的用途
 - ID 工厂、brand 类型、provider session 映射这类容易混淆的基础类型，应明确说明“平台侧”和“provider 侧”的边界
+
+### TypeScript 类型规范
+
+- **禁止 `as any`**：业务代码中不得使用 `as any` 绕过类型检查。新增代码如果需要类型断言，必须使用具体类型（`as { field: string }`）或 `as unknown as TargetType` 双重断言
+- **Config 响应解包**：config 路由返回 `{ success: true, data: T }` 结构，前端使用 `unwrapConfigData<T>()`（`web/src/api/config-response.ts`）解包，禁止用 `(data as any)?.data ?? data`
+- **Config body 类型**：config 路由的 body 字段必须注册在 `src/schemas/config.schema.ts` 的 `ConfigBodySchema` 中，Eden Treaty 才能推断正确类型。新增 config 字段时先扩展 schema，不要用 `as any` 绕过
+- **Eden Treaty 路径命名**：Eden Treaty 将连字符路由路径转为 camelCase（`/web/knowledge-bases` → `client.web.knowledgeBases`），前端调用时使用 camelCase
+- **API 响应数组守卫**：对 API 返回值调用 `.filter()`、`.map()` 等数组方法前，必须用 `Array.isArray()` 守卫，防止运行时 `TypeError: x.filter is not a function`
+- **catch 块必须有 `console.error()`**：所有 `catch` 块中必须调用 `console.error(err)` 记录错误，便于浏览器 DevTools 调试
+- **允许的例外**：
+  - 测试文件（`__tests__/`）中的 `as any` 可接受
+  - `zodResolver(formConfig.schema as any)` — shadcn/react-hook-form 集成的已知限制
+  - 后端路由处理器中的 `(body as any) ?? {}` — Elysia 未注册 body schema 时的临时方案，优先注册 schema 消除
 
 ### 前端约束
 

@@ -9,17 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FormDialog } from "@/components/config/FormDialog";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
-import {
-  apiCreateKnowledgeBase,
-  apiDeleteKnowledgeResource,
-  apiDeleteKnowledgeBase,
-  apiGetKnowledgeBase,
-  apiImportKnowledgeResourceUrl,
-  apiListKnowledgeBases,
-  apiListKnowledgeResources,
-  apiUpdateKnowledgeBase,
-  apiUploadKnowledgeResources,
-} from "../api/client";
+import { client, fetchUpload } from "../api/client";
 import type {
   KnowledgeBaseDetail,
   KnowledgeBaseInfo,
@@ -27,34 +17,35 @@ import type {
   KnowledgeUploadResponse,
 } from "../types/knowledge";
 
-export async function loadKnowledgeBasesData(
-  listKnowledgeBases: typeof apiListKnowledgeBases = apiListKnowledgeBases,
-) {
-  return listKnowledgeBases();
+export async function loadKnowledgeBasesData() {
+  const { data, error } = await client.web.knowledgeBases.get();
+  if (error) throw new Error(error.message ?? "加载知识库失败");
+  return data as unknown as KnowledgeBaseInfo[];
 }
 
 export async function loadKnowledgeBaseDetailData(
   knowledgeBaseId: string,
-  getKnowledgeBase: typeof apiGetKnowledgeBase = apiGetKnowledgeBase,
-  listKnowledgeResources: typeof apiListKnowledgeResources = apiListKnowledgeResources,
 ) {
-  const [detail, resources] = await Promise.all([
-    getKnowledgeBase(knowledgeBaseId),
-    listKnowledgeResources(knowledgeBaseId),
+  const [detailRes, resourcesRes] = await Promise.all([
+    client.web.knowledgeBases[knowledgeBaseId].get(),
+    client.web.knowledgeBases[knowledgeBaseId].resources.get(),
   ]);
+  if (detailRes.error) throw new Error(detailRes.error.message ?? "加载知识库详情失败");
+  if (resourcesRes.error) throw new Error(resourcesRes.error.message ?? "加载资源列表失败");
+  const detail = (detailRes.data ?? {}) as Record<string, unknown>;
+  const resources = Array.isArray(resourcesRes.data) ? resourcesRes.data as unknown as KnowledgeResourceInfo[] : [];
   return { detail, resources };
 }
 
 export async function uploadKnowledgeBaseFiles(
   knowledgeBaseId: string,
   files: File[],
-  uploadKnowledgeResources: typeof apiUploadKnowledgeResources = apiUploadKnowledgeResources,
 ): Promise<KnowledgeUploadResponse> {
   const formData = new FormData();
   for (const file of files) {
     formData.append("files", file);
   }
-  return uploadKnowledgeResources(knowledgeBaseId, formData);
+  return fetchUpload<KnowledgeUploadResponse>(`/web/knowledgeBases/${knowledgeBaseId}/resources/upload`, formData);
 }
 
 export function summarizeKnowledgeDetail(
@@ -105,6 +96,7 @@ export function KnowledgeBasesPage() {
         : list[0]?.id ?? null;
       setSelectedId(nextId);
     } catch (error) {
+      console.error("加载知识库失败", error);
       toast.error(`加载知识库失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setLoading(false);
@@ -118,6 +110,7 @@ export function KnowledgeBasesPage() {
       setSelectedDetail(data.detail);
       setResources(data.resources);
     } catch (error) {
+      console.error("加载知识库详情失败", error);
       toast.error(`加载知识库详情失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setDetailLoading(false);
@@ -180,23 +173,26 @@ export function KnowledgeBasesPage() {
     setSaving(true);
     try {
       if (editingItem) {
-        await apiUpdateKnowledgeBase(editingItem.id, {
+        const { error: err } = await client.web.knowledgeBases[editingItem.id].patch({
           name: formName.trim(),
           slug: formSlug.trim(),
           description: formDescription.trim() || null,
         });
+        if (err) throw new Error(err.message ?? "更新失败");
         toast.success("知识库已更新");
       } else {
-        await apiCreateKnowledgeBase({
+        const { error: err } = await client.web.knowledgeBases.post({
           name: formName.trim(),
           slug: formSlug.trim(),
           description: formDescription.trim() || undefined,
         });
+        if (err) throw new Error(err.message ?? "创建失败");
         toast.success("知识库已创建");
       }
       setDialogOpen(false);
       await loadItems();
     } catch (error) {
+      console.error("保存知识库失败", error);
       toast.error(`保存失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setSaving(false);
@@ -206,7 +202,8 @@ export function KnowledgeBasesPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await apiDeleteKnowledgeBase(deleteTarget.id);
+      const { error: err } = await client.web.knowledgeBases[deleteTarget.id].delete();
+      if (err) throw new Error(err.message ?? "删除失败");
       toast.success("知识库已删除");
       setConfirmOpen(false);
       if (selectedId === deleteTarget.id) {
@@ -214,6 +211,7 @@ export function KnowledgeBasesPage() {
       }
       await loadItems();
     } catch (error) {
+      console.error("删除知识库失败", error);
       toast.error(`删除失败: ${error instanceof Error ? error.message : "未知错误"}`);
     }
   };
@@ -229,6 +227,7 @@ export function KnowledgeBasesPage() {
       await loadDetail(selectedId);
       await loadItems();
     } catch (error) {
+      console.error("上传文件失败", error);
       toast.error(`上传失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setUploading(false);
@@ -243,16 +242,18 @@ export function KnowledgeBasesPage() {
     }
     setImportingUrl(true);
     try {
-      await apiImportKnowledgeResourceUrl(selectedId, {
+      const { error: err } = await client.web.knowledgeBases[selectedId].resources.url.post({
         url: urlValue.trim(),
         sourceName: urlSourceName.trim() || undefined,
       });
+      if (err) throw new Error(err.message ?? "导入失败");
       toast.success("URL 资源已提交");
       setUrlValue("");
       setUrlSourceName("");
       await loadDetail(selectedId);
       await loadItems();
     } catch (error) {
+      console.error("导入URL失败", error);
       toast.error(`导入失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setImportingUrl(false);
@@ -263,11 +264,13 @@ export function KnowledgeBasesPage() {
     if (!selectedId) return;
     setDeletingResourceId(resourceId);
     try {
-      await apiDeleteKnowledgeResource(selectedId, resourceId);
+      const { error: err } = await client.web.knowledgeBases[selectedId].resources[resourceId].delete();
+      if (err) throw new Error(err.message ?? "删除资源失败");
       toast.success("资源已删除");
       await loadDetail(selectedId);
       await loadItems();
     } catch (error) {
+      console.error("删除资源失败", error);
       toast.error(`删除资源失败: ${error instanceof Error ? error.message : "未知错误"}`);
     } finally {
       setDeletingResourceId(null);

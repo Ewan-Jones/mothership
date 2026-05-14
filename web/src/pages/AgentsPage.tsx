@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { unwrapConfigData } from "../api/config-response";
 import { DataTable, type Column } from "@/components/config/DataTable";
 import { FormDialog } from "@/components/config/FormDialog";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
@@ -17,16 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-    apiListAgents,
-    apiGetAgent,
-    apiCreateAgent,
-    apiSetAgent,
-    apiDeleteAgent,
-    apiSetDefaultAgent,
-    apiGetModels,
-    apiListKnowledgeBases,
-} from "../api/client";
+import { client } from "../api/client";
 import type { AgentDetail, AgentInfo } from "../types/config";
 import type { KnowledgeBaseInfo } from "../types/knowledge";
 import { PermissionTab } from "../components/PermissionTab";
@@ -191,10 +183,13 @@ export function AgentsPage() {
     const loadAgents = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await apiListAgents();
-            setAgents(data.agents);
-            setDefaultAgent(data.default_agent);
+            const { data: listData, error: listErr } = await client.web.config.agents.post({ action: "list" });
+            if (listErr) throw new Error(listErr.message ?? "加载Agent列表失败");
+            const data = unwrapConfigData(listData) ?? listData;
+            setAgents(Array.isArray(data?.agents) ? data.agents : []);
+            setDefaultAgent(data?.default_agent ?? null);
         } catch (e) {
+            console.error("加载Agent列表失败", e);
             toast.error(
                 "加载Agent列表失败: " +
                     (e instanceof Error ? e.message : "未知错误"),
@@ -206,8 +201,10 @@ export function AgentsPage() {
 
     const loadModelOptions = useCallback(async () => {
         try {
-            const data = await apiGetModels();
-            setModelOptions(data.available.map((m) => m.fullId));
+            const { data: modelsData, error: modelsErr } = await client.web.config.models.post({ action: "get" });
+            if (modelsErr) return;
+            const data = unwrapConfigData(modelsData) ?? modelsData;
+            setModelOptions(Array.isArray(data?.available) ? data.available.map((m: { fullId: string }) => m.fullId) : []);
         } catch {
             /* silent */
         }
@@ -215,8 +212,9 @@ export function AgentsPage() {
 
     const loadKnowledgeOptions = useCallback(async () => {
         try {
-            const data = await apiListKnowledgeBases();
-            setKnowledgeOptions(data);
+            const { data: kbData, error: kbErr } = await client.web.knowledgeBases.get();
+            if (kbErr) return;
+            setKnowledgeOptions(kbData as unknown as KnowledgeBaseInfo[]);
         } catch {
             /* silent */
         }
@@ -303,7 +301,9 @@ export function AgentsPage() {
         setFormKnowledgeMaxResults(knowledgeDefaults.maxResults);
         setFormPermission(null);
         try {
-            const detail = await apiGetAgent(agent.name);
+            const { data: agentData, error: agentErr } = await client.web.config.agents.post({ action: "get", name: agent.name });
+            if (agentErr) throw new Error(agentErr.message ?? "加载Agent详情失败");
+            const detail = unwrapConfigData(agentData) ?? agentData;
             setFormSteps(String(detail.steps ?? 50));
             setFormPrompt(detail.prompt || "");
             setFormDescription(detail.description || "");
@@ -373,7 +373,7 @@ export function AgentsPage() {
         }
         setFormSaving(true);
         try {
-            const latestKnowledgeOptions = await apiListKnowledgeBases().catch(() => knowledgeOptions);
+            const latestKnowledgeOptions = await client.web.knowledgeBases.get().then((r) => (Array.isArray(r.data) ? r.data as unknown as KnowledgeBaseInfo[] : [])).catch(() => knowledgeOptions);
             setKnowledgeOptions(latestKnowledgeOptions);
             const validKnowledgeBaseIds = filterKnowledgeBaseIds(formKnowledgeBaseIds, latestKnowledgeOptions);
             if (validKnowledgeBaseIds.length !== formKnowledgeBaseIds.length) {
@@ -399,16 +399,19 @@ export function AgentsPage() {
                 },
             });
             if (editingAgent) {
-                await apiSetAgent(name, data);
+                const { error: setErr } = await client.web.config.agents.post({ action: "set", name, data });
+                if (setErr) throw new Error(setErr.message ?? "更新失败");
                 toast.success("Agent已更新");
             } else {
-                await apiCreateAgent(name, data);
+                const { error: crtErr } = await client.web.config.agents.post({ action: "create", name, data });
+                if (crtErr) throw new Error(crtErr.message ?? "创建失败");
                 toast.success("Agent已创建");
             }
             setDialogOpen(false);
             loadAgents();
             dispatchConfigChange("agents");
         } catch (e) {
+            console.error("保存Agent失败", e);
             toast.error(
                 "保存失败: " + (e instanceof Error ? e.message : "未知错误"),
             );
@@ -419,10 +422,12 @@ export function AgentsPage() {
 
     const handleSetDefault = async (name: string) => {
         try {
-            await apiSetDefaultAgent(name);
+            const { error: defErr } = await client.web.config.agents.post({ action: "set_default", name });
+            if (defErr) throw new Error(defErr.message ?? "设置失败");
             setDefaultAgent(name);
             toast.success(`已将 "${name}" 设为默认Agent`);
         } catch (e) {
+            console.error("设置默认Agent失败", e);
             toast.error(
                 "设置失败: " + (e instanceof Error ? e.message : "未知错误"),
             );
@@ -432,12 +437,14 @@ export function AgentsPage() {
     const confirmDelete = async () => {
         if (!deleteTarget) return;
         try {
-            await apiDeleteAgent(deleteTarget);
+            const { error: delErr } = await client.web.config.agents.post({ action: "delete", name: deleteTarget });
+            if (delErr) throw new Error(delErr.message ?? "删除失败");
             toast.success("Agent已删除");
             setConfirmOpen(false);
             loadAgents();
             dispatchConfigChange("agents");
         } catch (e) {
+            console.error("删除Agent失败", e);
             toast.error(
                 "删除失败: " + (e instanceof Error ? e.message : "未知错误"),
             );
@@ -447,13 +454,14 @@ export function AgentsPage() {
     const confirmBatchDelete = async () => {
         const customAgents = selected.filter((a) => !a.builtIn);
         try {
-            await Promise.all(customAgents.map((a) => apiDeleteAgent(a.name)));
+            await Promise.all(customAgents.map((a) => client.web.config.agents.post({ action: "delete", name: a.name }).then((r) => { if (r.error) throw new Error(r.error.message ?? "删除失败"); })));
             toast.success(`已删除 ${customAgents.length} 个Agent`);
             setBatchConfirmOpen(false);
             setSelected([]);
             loadAgents();
             dispatchConfigChange("agents");
         } catch (e) {
+            console.error("批量删除Agent失败", e);
             toast.error(
                 "批量删除失败: " +
                     (e instanceof Error ? e.message : "未知错误"),
