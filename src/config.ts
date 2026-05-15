@@ -31,6 +31,18 @@ export const config = {
   knowledgeApiKey: process.env.RCS_KNOWLEDGE_API_KEY || "",
   /** Timeout in milliseconds for knowledge provider requests. */
   knowledgeRequestTimeoutMs: parseInt(process.env.RCS_KNOWLEDGE_REQUEST_TIMEOUT_MS || "15000"),
+  /** S3-compatible object storage (RustFS / MinIO / AWS S3). */
+  s3: {
+    enabled: process.env.RCS_S3_ENABLED === "true",
+    endpoint: process.env.RCS_S3_ENDPOINT || "http://localhost:9000",
+    region: process.env.RCS_S3_REGION || "us-east-1",
+    accessKey: process.env.RCS_S3_ACCESS_KEY || "",
+    secretKey: process.env.RCS_S3_SECRET_KEY || "",
+    bucketSessions: process.env.RCS_S3_BUCKET_SESSIONS || "rcs-sessions",
+    bucketAssets: process.env.RCS_S3_BUCKET_ASSETS || "rcs-assets",
+    presignExpires: parseInt(process.env.RCS_S3_PRESIGN_EXPIRES || "3600"),
+    presignUploadExpires: parseInt(process.env.RCS_S3_PRESIGN_UPLOAD_EXPIRES || "600"),
+  },
 } as const;
 
 export function getBaseUrl(): string {

@@ -22,6 +22,7 @@ import webTasks from "./routes/web/tasks";
 import webChannels from "./routes/web/channels";
 import webKnowledgeBases from "./routes/web/knowledge-bases";
 import webFiles from "./routes/web/files";
+import webS3Files from "./routes/web/s3-files";
 import webControl from "./routes/web/control";
 import webAuth from "./routes/web/auth";
 import { workflowStaticApp } from "./routes/web/workflow-proxy";
@@ -123,6 +124,7 @@ const app = new Elysia()
   .use(webChannels)
   .use(webKnowledgeBases)
   .use(webFiles)
+  .use(webS3Files)
   .use(webControl)
   .use(webAuth)
   // Workflow proxy

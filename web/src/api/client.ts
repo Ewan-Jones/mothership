@@ -35,6 +35,18 @@ export async function fetchUpload<T>(path: string, formData: FormData): Promise<
   return data as T;
 }
 
+// --- S3 Presigned URL 上传辅助函数 ---
+
+/** 通过 presigned URL 直传文件到 S3（不经过 RCS 服务器中转） */
+export async function uploadToPresignedUrl(url: string, file: File, contentType: string): Promise<void> {
+  const res = await fetch(url, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": contentType },
+  });
+  if (!res.ok) throw new Error(`S3 upload failed: ${res.status}`);
+}
+
 // --- UUID 存储辅助函数 ---
 
 const UUID_KEY = "rcs_uuid";

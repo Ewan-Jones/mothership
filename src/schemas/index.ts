@@ -153,3 +153,26 @@ export {
   type McpToolInfo,
   type McpInspectResult,
 } from "./config.schema";
+
+// S3 Files
+export {
+  S3PresignGetQuerySchema,
+  S3PresignGetResponseSchema,
+  S3PresignPutBodySchema,
+  S3PresignPutResponseSchema,
+  S3DeleteBodySchema,
+  S3UploadQuerySchema,
+  S3UploadResponseSchema,
+  S3FileListQuerySchema,
+  S3FileEntrySchema,
+  S3FileListResponseSchema,
+  type S3PresignGetQuery,
+  type S3PresignGetResponse,
+  type S3PresignPutBody,
+  type S3PresignPutResponse,
+  type S3DeleteBody,
+  type S3UploadResponse,
+  type S3FileListQuery,
+  type S3FileEntry,
+  type S3FileListResponse,
+} from "./s3-file.schema";
