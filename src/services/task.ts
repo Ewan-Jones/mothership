@@ -280,7 +280,11 @@ async function writeLogAndReturn(
     return { success: false, error: { code: "WRITE_ERROR", message: "执行日志写入失败" } };
   }
 
-  await scheduledTaskRepo.update(taskId, { lastRunAt: now, lastStatus: status, updatedAt: now });
+  try {
+    await scheduledTaskRepo.update(taskId, { lastRunAt: now, lastStatus: status, updatedAt: now });
+  } catch (err) {
+    logError("[Task] Failed to update task status for", taskId, err);
+  }
 
   return {
     success: true,

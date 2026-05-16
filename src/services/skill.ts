@@ -236,13 +236,13 @@ export async function importSkillDirectories(
 
     return { imported, skipped, conflicts: [] };
   } catch (err) {
-    await cleanupWrittenSkills(SKILLS_DIR, attemptedNames);
+    try { await cleanupWrittenSkills(SKILLS_DIR, attemptedNames); } catch (e) { logError("[Skill] Failed to cleanup written skills:", e); }
     for (const name of attemptedNames) {
       await configPg.deleteSkill(userId, name).catch((e) => {
         logError(`[Skill] Failed to cleanup skill ${name}:`, e);
       });
     }
-    await restoreFromBackup(snapshots, SKILLS_DIR);
+    try { await restoreFromBackup(snapshots, SKILLS_DIR); } catch (e) { logError("[Skill] Failed to restore from backup:", e); }
     throw err;
   } finally {
     await cleanupBackupDir(backupRoot);

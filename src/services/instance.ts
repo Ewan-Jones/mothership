@@ -221,7 +221,7 @@ export async function stopInstance(id: string, userId: string): Promise<{ ok: bo
   const facade = getCoreRuntime();
   const snapshot = facade.getInstance(id);
   if (!snapshot) return { ok: false, error: "Instance not found" };
-  if (snapshot.status === "stopped") return { ok: false, error: "Already stopped" };
+  if (snapshot.status === "stopped" || snapshot.status === "stopping") return { ok: false, error: "Already stopped" };
 
   try {
     await facade.stopInstance(id);

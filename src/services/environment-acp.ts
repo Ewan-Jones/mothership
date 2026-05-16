@@ -171,6 +171,9 @@ export async function registerBridge(input: BridgeRegistrationInput): Promise<Br
   if (authEnvironmentId) {
     const existing = await environmentRepo.getById(authEnvironmentId);
     if (existing) {
+      if (existing.userId !== userId) {
+        throw new AppError("Environment not owned by you", "FORBIDDEN", 403);
+      }
       await environmentRepo.update(authEnvironmentId, {
         status: "active",
         lastPollAt: new Date(),
