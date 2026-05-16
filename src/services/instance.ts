@@ -8,7 +8,7 @@ import { getBaseUrl } from "../config";
 import { log } from "../logger";
 import { listAgentKnowledgeBindings } from "./agent-knowledge";
 import { getAgentConfigById, getAgentFullConfig } from "./config-pg";
-import { environmentRepo, sessionRepo } from "../repositories";
+import { environmentRepo } from "../repositories";
 import { closeInstanceLocalWs } from "../transport/acp-relay-handler";
 import { resolveExecutable } from "../utils/executable";
 
@@ -199,19 +199,7 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
   if (!env) throw new Error("Environment not found");
   if (env.userId !== userId) throw new Error("Not your environment");
 
-  // Reuse existing session if one was restored from DB, otherwise create new
-  let session = (await sessionRepo.listByEnvironment(environmentId))[0];
-  if (!session) {
-    session = await sessionRepo.create({
-      environmentId,
-      title: env.agentName || env.name,
-      source: "acp",
-      userId,
-      cwd: env.workspacePath || env.directory || null,
-    });
-  }
-  const sessionId = session.id;
-
+  // Session 由 acp-link 进程自行管理，RCS 不再创建/查找 session
   const cwd = env.workspacePath || env.directory;
   if (!cwd || !existsSync(cwd)) throw new Error(`Workspace directory does not exist: ${cwd}`);
 
@@ -312,7 +300,7 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
       status: "starting", command, error: null, apiKey: env.secret,
       createdAt: new Date(),
       environmentId,
-      sessionId,
+      sessionId: undefined,
       instanceNumber: getNextInstanceNumber(environmentId),
     };
     instances.set(id, instance);

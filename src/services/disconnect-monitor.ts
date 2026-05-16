@@ -1,7 +1,6 @@
 import { log, error as logError } from "../logger";
-import { environmentRepo, sessionRepo } from "../repositories";
+import { environmentRepo } from "../repositories";
 import { config } from "../config";
-import { updateSessionStatus } from "./session";
 
 export async function runDisconnectMonitorSweep(now = Date.now()) {
   const timeoutMs = config.disconnectTimeout * 1000;
@@ -23,17 +22,7 @@ export async function runDisconnectMonitorSweep(now = Date.now()) {
     }
   }
 
-  // Check session timeout (2x disconnect timeout with no update)
-  const sessions = await sessionRepo.listAll();
-  for (const session of sessions) {
-    if (session.status === "running" || session.status === "idle") {
-      const elapsed = now - session.updatedAt.getTime();
-      if (elapsed > timeoutMs * 2) {
-        log(`[RCS] Session ${session.id} marked inactive (no update for ${Math.round(elapsed / 1000)}s)`);
-        await updateSessionStatus(session.id, "inactive");
-      }
-    }
-  }
+  // Session 超时检查已移除 — Session 由 Agent 进程管理
 }
 
 export function startDisconnectMonitor() {

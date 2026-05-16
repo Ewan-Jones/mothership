@@ -307,7 +307,10 @@ export const channelBinding = pgTable("channel_binding", {
   agentIdx: index("idx_channel_binding_agent_id").on(table.agentId),
 }));
 
-// Agent Session 持久化表
+/**
+ * @deprecated Session 管理已下沉到 Agent 进程（acp-link），RCS 不再写入此表。
+ * 保留表结构以兼容现有数据，新代码不应依赖此表。
+ */
 export const agentSession = pgTable("agent_session", {
   id: varchar("id").primaryKey(),
   environmentId: varchar("environment_id")

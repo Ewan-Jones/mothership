@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { environmentRepo, sessionRepo } from "../repositories";
+import { environmentRepo } from "../repositories";
 import type { RegisterEnvironmentRequest, EnvironmentResponse } from "../types/api";
 import type { EnvironmentRecord } from "../repositories";
 
@@ -33,23 +33,8 @@ export async function registerEnvironment(req: RegisterEnvironmentRequest & { me
     capabilities: req.capabilities,
   });
 
-  let sessionId: string | undefined;
-  // ACP agents: reuse existing session or create one
-  if (workerType === "acp") {
-    const existing = await sessionRepo.listByEnvironment(record.id);
-    if (existing.length > 0) {
-      sessionId = existing[0].id;
-    } else {
-      const session = await sessionRepo.create({
-        environmentId: record.id,
-        title: req.machine_name || "ACP Agent",
-        source: "acp",
-      });
-      sessionId = session.id;
-    }
-  }
-
-  return { environment_id: record.id, environment_secret: record.secret, status: record.status as "active", session_id: sessionId };
+  // Session 由 acp-link 管理，RCS 不再创建
+  return { environment_id: record.id, environment_secret: record.secret, status: record.status as "active", session_id: undefined };
 }
 
 export async function deregisterEnvironment(envId: string) {
@@ -82,8 +67,7 @@ export async function reconnectEnvironment(envId: string) {
   await environmentRepo.update(envId, { status: "active" });
 }
 
-/** Delete environment with cascade: dissociate sessions, then delete */
+/** Delete environment */
 export async function deleteEnvironment(envId: string): Promise<boolean> {
-  await sessionRepo.dissociateFromEnvironment(envId);
   return environmentRepo.delete(envId);
 }

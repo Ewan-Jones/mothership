@@ -28,7 +28,7 @@ import webAuth from "./routes/web/auth";
 import { workflowStaticApp } from "./routes/web/workflow-proxy";
 import knowledgeMcpRoutes from "./routes/mcp/knowledge";
 import { stopAllInstances, spawnInstanceFromEnvironment, findRunningInstanceByEnvironment } from "./services/instance";
-import { environmentRepo, sessionRepo } from "./repositories";
+import { environmentRepo } from "./repositories";
 import { repoPlugin } from "./plugins/repositories";
 import { migrateSkillsDir } from "./services/skill";
 import { startScheduler, stopScheduler } from "./services/scheduler";
@@ -44,8 +44,6 @@ await initDb();
 console.log("[RCS] Database initialized (PostgreSQL + better-auth)");
 
 await migrateSkillsDir();
-await sessionRepo.loadFromDB();
-console.log("[RCS] Sessions restored from database");
 await startScheduler();
 
 // Initialize Hermes client if configured

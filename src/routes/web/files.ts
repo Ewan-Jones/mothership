@@ -11,8 +11,7 @@ import {
 } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { authGuardPlugin } from "../../plugins/auth";
-import { environmentRepo, sessionRepo } from "../../repositories";
-import { resolveExistingSessionId } from "../../services/session";
+import { environmentRepo } from "../../repositories";
 import {
     FileListResponseSchema,
     FileContentSchema,
@@ -59,14 +58,10 @@ function normalizeUserRoutePath(path: string): string {
 }
 
 async function resolveWorkspacePath(
-    sessionId: string,
+    environmentId: string,
     relativePath: string,
 ): Promise<ResolvedWorkspacePath | null> {
-    const internalId = await resolveExistingSessionId(sessionId);
-    const session = internalId ? await sessionRepo.getById(internalId) : undefined;
-    const envId = session?.environmentId;
-    if (!envId) return null;
-    const env = await environmentRepo.getById(envId);
+    const env = await environmentRepo.getById(environmentId);
     if (!env) return null;
 
     const workspaceDir = env.workspacePath;
@@ -112,7 +107,7 @@ function shouldHideWorkspaceEntry(entryPath: string, userDir: string): boolean {
     return entryPath.endsWith("/.opencode") || entryPath.endsWith("/.opencode/");
 }
 
-const app = new Elysia({ name: "web-files", prefix: "/web/sessions" })
+const app = new Elysia({ name: "web-files", prefix: "/web/environments" })
   .use(authGuardPlugin)
   .model({
     "file-list-response": FileListResponseSchema,
@@ -123,10 +118,10 @@ const app = new Elysia({ name: "web-files", prefix: "/web/sessions" })
   });
 
 app.get("/:id/user", async ({ store, params, query, error }) => {
-    const sessionId = params.id;
+    const envId = params.id;
     const queryPath = (query as any)?.path || "";
-    const result = await resolveWorkspacePath(sessionId, queryPath);
-    if (!result) return error(404, { error: { type: "not_found", message: "Session or environment not found" } });
+    const result = await resolveWorkspacePath(envId, queryPath);
+    if (!result) return error(404, { error: { type: "not_found", message: "Environment not found" } });
 
     const { userDir, workspaceDir, resolved } = result;
     const info = await stat(resolved);
@@ -158,12 +153,12 @@ app.get("/:id/user", async ({ store, params, query, error }) => {
 }, { sessionAuth: true });
 
 app.get("/:id/user/*", async ({ store, params, query, error, set }) => {
-    const sessionId = params.id;
+    const envId = params.id;
     const filePath = normalizeUserRoutePath((params as any)["*"]);
     const preview = (query as any)?.preview === "true";
 
-    const result = await resolveWorkspacePath(sessionId, filePath);
-    if (!result) return error(404, { error: { type: "not_found", message: "Session or environment not found" } });
+    const result = await resolveWorkspacePath(envId, filePath);
+    if (!result) return error(404, { error: { type: "not_found", message: "Environment not found" } });
 
     const { resolved, displayPath } = result;
     let info;
@@ -198,13 +193,13 @@ app.get("/:id/user/*", async ({ store, params, query, error, set }) => {
 }, { sessionAuth: true });
 
 app.post("/:id/user/*", async ({ store, params, request, error }) => {
-    const sessionId = params.id;
+    const envId = params.id;
     const dirPath = normalizeUserRoutePath((params as any)["*"] || "");
 
     if (!isUserPath(dirPath)) return error(400, { error: { type: "validation_error", message: "Only user/ paths are writable" } });
 
-    const result = await resolveWorkspacePath(sessionId, dirPath);
-    if (!result) return error(404, { error: { type: "not_found", message: "Session or environment not found" } });
+    const result = await resolveWorkspacePath(envId, dirPath);
+    if (!result) return error(404, { error: { type: "not_found", message: "Environment not found" } });
 
     const { resolved } = result;
     await mkdir(resolved, { recursive: true });
@@ -232,7 +227,7 @@ app.post("/:id/user/*", async ({ store, params, request, error }) => {
 }, { sessionAuth: true });
 
 app.put("/:id/user/*", async ({ store, params, body, error }) => {
-    const sessionId = params.id;
+    const envId = params.id;
     const filePath = normalizeUserRoutePath((params as any)["*"]);
 
     if (!isUserPath(filePath)) return error(400, { error: { type: "validation_error", message: "Only user/ paths are writable" } });
@@ -244,8 +239,8 @@ app.put("/:id/user/*", async ({ store, params, body, error }) => {
     if (b.content.length > 100 * 1024 * 1024)
         return error(413, { error: { type: "validation_error", message: "Content exceeds 100MB limit" } });
 
-    const result = await resolveWorkspacePath(sessionId, filePath);
-    if (!result) return error(404, { error: { type: "not_found", message: "Session or environment not found" } });
+    const result = await resolveWorkspacePath(envId, filePath);
+    if (!result) return error(404, { error: { type: "not_found", message: "Environment not found" } });
 
     const { resolved } = result;
     await mkdir(resolve(resolved, ".."), { recursive: true });
@@ -257,13 +252,13 @@ app.put("/:id/user/*", async ({ store, params, body, error }) => {
 }, { sessionAuth: true, body: "write-file-request" });
 
 app.delete("/:id/user/*", async ({ store, params, error }) => {
-    const sessionId = params.id;
+    const envId = params.id;
     const filePath = normalizeUserRoutePath((params as any)["*"]);
 
     if (!isUserPath(filePath)) return error(400, { error: { type: "validation_error", message: "Only user/ paths are writable" } });
 
-    const result = await resolveWorkspacePath(sessionId, filePath);
-    if (!result) return error(404, { error: { type: "not_found", message: "Session or environment not found" } });
+    const result = await resolveWorkspacePath(envId, filePath);
+    if (!result) return error(404, { error: { type: "not_found", message: "Environment not found" } });
 
     const { resolved } = result;
     let info;

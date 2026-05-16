@@ -2,7 +2,7 @@ import type { WsConnection } from "./ws-types";
 import { v4 as uuid } from "uuid";
 import { getAcpEventBus } from "./event-bus";
 import type { SessionEvent } from "./event-bus";
-import { environmentRepo, sessionRepo } from "../repositories";
+import { environmentRepo } from "../repositories";
 import { deleteEnvironment } from "../services/environment";
 import { config } from "../config";
 import { log, error as logError } from "../logger";
@@ -126,18 +126,7 @@ async function handleRegister(wsId: string, msg: Record<string, unknown>): Promi
     entry.agentId = entry.boundEnvId;
     entry.capabilities = capabilities || null;
 
-    // Auto-create session if none exists
-    const existing = await sessionRepo.listByEnvironment(entry.boundEnvId);
-    if (existing.length === 0) {
-      const env = await environmentRepo.getById(entry.boundEnvId);
-      await sessionRepo.create({
-        environmentId: entry.boundEnvId,
-        title: agentName || "ACP Agent",
-        source: "acp",
-        userId: entry.userId,
-        cwd: env?.workspacePath ?? null,
-      });
-    }
+    // Session 由 acp-link 管理，RCS 不再自动创建
 
     log(`[ACP-WS] Bound agent registered: agentId=${entry.boundEnvId} userId=${entry.userId} name=${agentName}`);
     sendToWs(entry.ws, {
@@ -158,17 +147,7 @@ async function handleRegister(wsId: string, msg: Record<string, unknown>): Promi
     capabilities: capabilities || undefined,
   });
 
-  // Auto-create session if none exists for this environment
-  const existing = await sessionRepo.listByEnvironment(record.id);
-  if (existing.length === 0) {
-    await sessionRepo.create({
-      environmentId: record.id,
-      title: agentName || "ACP Agent",
-      source: "acp",
-      userId: entry.userId,
-      cwd: directory || null,
-    });
-  }
+  // Session 由 acp-link 管理，RCS 不再自动创建
 
   entry.agentId = record.id;
   entry.capabilities = capabilities || null;

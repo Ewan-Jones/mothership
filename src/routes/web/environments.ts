@@ -1,6 +1,6 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
-import { environmentRepo, sessionRepo } from "../../repositories";
+import { environmentRepo } from "../../repositories";
 import type { EnvironmentRecord } from "../../repositories";
 import { deleteEnvironment } from "../../services/environment";
 import * as configPg from "../../services/config-pg";
@@ -89,21 +89,11 @@ app.get("/environments", async ({ store }) => {
     const envs = await environmentRepo.listByUserId(user.id);
     const results = [];
     for (const env of envs) {
-      let sessions = await sessionRepo.listByEnvironment(env.id);
-      if (sessions.length === 0) {
-        const session = await sessionRepo.create({
-          environmentId: env.id,
-          title: env.agentName || env.name,
-          source: "acp",
-          userId: user.id,
-        });
-        sessions = [session];
-      }
       const activeInstances = listInstancesByEnvironment(env.id);
       const firstInstance = activeInstances[0];
       results.push({
         ...sanitizeResponse(env),
-        session_id: sessions[0].id,
+        session_id: firstInstance?.sessionId ?? null,
         instance_status: firstInstance ? firstInstance.status : null,
         instance_id: firstInstance ? firstInstance.id : null,
         instances: activeInstances.map((inst) => ({
@@ -336,23 +326,9 @@ app.post("/environments/:id/enter", async ({ store, params, body, error }) => {
         return error(500, { error: { type: "CONFIG_WRITE_ERROR", message: "无法创建实例" } });
     }
 
-    let sessionId = inst.sessionId;
-    if (!sessionId) {
-        const sessions = await sessionRepo.listByEnvironment(envId);
-        sessionId = sessions.length > 0 ? sessions[0].id : undefined;
-    }
-    if (!sessionId) {
-        const session = await sessionRepo.create({
-            environmentId: envId,
-            title: env.agentName || env.name,
-            source: "acp",
-            userId: user.id,
-        });
-        sessionId = session.id;
-    }
-
+    // Session 由 acp-link 管理，前端通过 ACP session/list 获取
     return {
-        session_id: sessionId,
+        session_id: inst.sessionId ?? null,
         instance_id: inst.id,
         instance_number: inst.instanceNumber,
         instance_status: inst.status,
