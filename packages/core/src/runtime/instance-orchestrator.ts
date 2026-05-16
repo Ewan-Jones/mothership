@@ -1,4 +1,4 @@
-import type { EngineRelayHandle } from "@mothership/plugin-sdk";
+import type { EngineRelayHandle, EngineRuntime } from "@mothership/plugin-sdk";
 import { createCoreRuntimeError } from "../errors/core-runtime-error";
 import { CoreNodeRegistry } from "../registry/core-node-registry";
 import { EnginePluginRegistry } from "../registry/engine-plugin-registry";
@@ -37,6 +37,12 @@ export interface CreateInstanceOrchestratorOptions {
   nodeRegistry: CoreNodeRegistry;
   /** 负责保存实例状态与 runtime 缓存的 store。 */
   store: RuntimeInstanceStore;
+  /** 实例启动完成后的回调，用于写入 pluginMetadata。 */
+  onInstanceStarted?: (
+    instanceId: string,
+    runtime: EngineRuntime,
+    updateMetadata: (metadata: Record<string, unknown>) => void,
+  ) => void;
 }
 
 /**
@@ -45,7 +51,7 @@ export interface CreateInstanceOrchestratorOptions {
 export function createInstanceOrchestrator(
   options: CreateInstanceOrchestratorOptions,
 ): InstanceOrchestrator {
-  const { pluginRegistry, nodeRegistry, store } = options;
+  const { pluginRegistry, nodeRegistry, store, onInstanceStarted } = options;
 
   /**
    * 把异常统一收敛为实例 `error` 状态，便于上层读取失败快照。
@@ -160,6 +166,17 @@ export function createInstanceOrchestrator(
           status: "running",
           relayConnected: false,
         });
+
+        // 通知上层写入 plugin 补充元数据（port, token, pid 等）
+        if (onInstanceStarted) {
+          onInstanceStarted(
+            request.instanceId,
+            runtime,
+            (metadata) => {
+              store.update(request.instanceId, { pluginMetadata: metadata });
+            },
+          );
+        }
 
         return store.require(request.instanceId);
       } catch (error) {

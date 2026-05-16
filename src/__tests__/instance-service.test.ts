@@ -13,6 +13,12 @@ const mockLaunchInstance = mock(async (req: { instanceId: string; engineType: st
   launchSpec: req.launchSpec,
   relayConnected: false,
   errorMessage: undefined,
+  // port/token/pid 由 onInstanceStarted 回调写入 pluginMetadata
+  pluginMetadata: {
+    port: 8888,
+    token: "test_token_acquired_from_runtime",
+    pid: 12345,
+  },
   createdAt: new Date(),
   updatedAt: new Date(),
 }));
@@ -21,34 +27,20 @@ const mockStopInstance = mock(async (_id: string) => {});
 const mockListInstances = mock((): RuntimeInstanceSnapshot[] => []);
 const mockGetInstance = mock((_id: string): RuntimeInstanceSnapshot | null => null);
 
-const mockGetInstanceState = mock((_id: string) => ({
-  instanceId: _id,
-  status: "running" as const,
-  pid: 12345,
-  port: 8888,
-  token: "test_token_acquired_from_runtime",
-  error: null,
-}));
-
-// Mock core-bootstrap
+// Mock core-bootstrap — getCoreRuntime 现在直接返回 CoreRuntimeFacade
 mock.module("../services/core-bootstrap", () => ({
   getCoreRuntime: () => ({
-    facade: {
-      launchInstance: mockLaunchInstance,
-      stopInstance: mockStopInstance,
-      listInstances: mockListInstances,
-      getInstance: mockGetInstance,
-      getPlugin: () => null,
-      registerPlugin: () => {},
-      registerNode: () => {},
-      connectInstanceRelay: mock(async () => ({})),
-      getNode: () => null,
-      listNodes: () => [],
-      listPlugins: () => [],
-    },
-    opencodeRuntime: {
-      getInstanceState: mockGetInstanceState,
-    },
+    launchInstance: mockLaunchInstance,
+    stopInstance: mockStopInstance,
+    listInstances: mockListInstances,
+    getInstance: mockGetInstance,
+    getPlugin: () => null,
+    registerPlugin: () => {},
+    registerNode: () => {},
+    connectInstanceRelay: mock(async () => ({})),
+    getNode: () => null,
+    listNodes: () => [],
+    listPlugins: () => [],
   }),
   resetCoreRuntime: () => {},
 }));
@@ -86,31 +78,21 @@ mock.module("../services/agent-knowledge", () => ({
   listAgentKnowledgeBindings: mock(async () => []),
 }));
 
-// Mock transport
-mock.module("../transport/acp-relay-handler", () => ({
-  closeInstanceLocalWs: mock(() => {}),
-}));
-
 // Mock repositories
 mock.module("../repositories", () => ({
   environmentRepo: {
-    getById: mock(async (id: string) => {
-      // 从 id 推导 userId，确保 owner 校验通过
-      // 测试中 spawnInstanceFromEnvironment(userId, envId) 传的 userId 就是期望的 owner
-      // 这里用一个 Map 记录 envId → userId 的映射
-      return {
-        id,
-        userId: envOwnerMap.get(id) ?? "test-user",
-        agentName: "test-agent",
-        agentConfigId: null,
-        name: "test-env",
-        workspacePath: "/tmp/test-workspace",
-        directory: "/tmp/test-workspace",
-        secret: "env_secret_test123",
-        maxSessions: 5,
-        status: "active",
-      };
-    }),
+    getById: mock(async (id: string) => ({
+      id,
+      userId: envOwnerMap.get(id) ?? "test-user",
+      agentName: "test-agent",
+      agentConfigId: null,
+      name: "test-env",
+      workspacePath: "/tmp/test-workspace",
+      directory: "/tmp/test-workspace",
+      secret: "env_secret_test123",
+      maxSessions: 5,
+      status: "active",
+    })),
     update: mock(async () => true),
     create: mock(async (params: any) => ({
       id: `env_${Date.now()}`,
@@ -130,6 +112,20 @@ mock.module("../repositories", () => ({
 
 // envId → userId 映射，让 environmentRepo.getById 返回正确的 owner
 const envOwnerMap = new Map<string, string>();
+
+/** 生成满足 RuntimeInstanceSnapshot 必需字段的最小 mock */
+function mockSnapshot(overrides: Partial<RuntimeInstanceSnapshot> & { instanceId: string }): RuntimeInstanceSnapshot {
+  return {
+    engineType: "opencode",
+    nodeId: "local-default",
+    status: "running",
+    launchSpec: { workspace: "/tmp", agent: { name: "test" }, model: { provider: "openai", protocol: "openai", baseUrl: "", apiKey: "", model: "gpt-4" }, skills: [], mcpServers: [] } as any,
+    relayConnected: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
 
 const {
   spawnInstanceFromEnvironment,
@@ -161,7 +157,6 @@ describe("CoreInstanceAdapter — spawn", () => {
     mockStopInstance.mockClear();
     mockListInstances.mockClear();
     mockGetInstance.mockClear();
-    mockGetInstanceState.mockClear();
     envOwnerMap.clear();
     createdInstanceIds.length = 0;
   });
@@ -182,6 +177,7 @@ describe("CoreInstanceAdapter — spawn", () => {
     expect(call.nodeId).toBe("local-default");
     expect(call.instanceId).toMatch(/^inst_/);
 
+    // port/token/pid 来自 pluginMetadata
     expect(inst.id).toMatch(/^inst_/);
     expect(inst.port).toBe(8888);
     expect(inst.apiKey).toBe("test_token_acquired_from_runtime");
@@ -214,7 +210,6 @@ describe("CoreInstanceAdapter — query", () => {
     mockStopInstance.mockClear();
     mockListInstances.mockClear();
     mockGetInstance.mockClear();
-    mockGetInstanceState.mockClear();
   });
 
   // listInstances 按用户过滤
@@ -223,8 +218,8 @@ describe("CoreInstanceAdapter — query", () => {
     const inst2 = await spawnForUser("user-b", "env_list_b");
 
     mockListInstances.mockReturnValueOnce([
-      { instanceId: inst1.id, status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
-      { instanceId: inst2.id, status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
+      mockSnapshot({ instanceId: inst1.id, pluginMetadata: { port: 8888, token: "t", pid: 1 } }),
+      mockSnapshot({ instanceId: inst2.id, pluginMetadata: { port: 8889, token: "t2", pid: 2 } }),
     ]);
 
     const userA = listInstances("user-a");
@@ -232,8 +227,8 @@ describe("CoreInstanceAdapter — query", () => {
     expect(userA[0].userId).toBe("user-a");
 
     mockListInstances.mockReturnValueOnce([
-      { instanceId: inst1.id, status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
-      { instanceId: inst2.id, status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
+      mockSnapshot({ instanceId: inst1.id, pluginMetadata: { port: 8888, token: "t", pid: 1 } }),
+      mockSnapshot({ instanceId: inst2.id, pluginMetadata: { port: 8889, token: "t2", pid: 2 } }),
     ]);
 
     const userB = listInstances("user-b");
@@ -246,7 +241,7 @@ describe("CoreInstanceAdapter — query", () => {
     const inst = await spawnForUser("test-user", "env_find");
 
     mockListInstances.mockReturnValueOnce([
-      { instanceId: inst.id, status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
+      mockSnapshot({ instanceId: inst.id, pluginMetadata: { port: 8888, token: "t", pid: 1 } }),
     ]);
 
     const found = findRunningInstanceByEnvironment("env_find");
@@ -260,7 +255,7 @@ describe("CoreInstanceAdapter — query", () => {
     await spawnForUser("test-user", "env_find_miss");
 
     mockListInstances.mockReturnValueOnce([
-      { instanceId: "inst_no_match", status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
+      mockSnapshot({ instanceId: "inst_no_match" }),
     ]);
 
     const found = findRunningInstanceByEnvironment("env_nonexistent");
@@ -271,12 +266,9 @@ describe("CoreInstanceAdapter — query", () => {
   test("getInstance 返回已有实例", async () => {
     const inst = await spawnForUser("test-user", "env_get");
 
-    mockGetInstance.mockReturnValueOnce({
-      instanceId: inst.id,
-      status: "running",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as RuntimeInstanceSnapshot);
+    mockGetInstance.mockReturnValueOnce(
+      mockSnapshot({ instanceId: inst.id, pluginMetadata: { port: 8888, token: "t", pid: 1 } }),
+    );
 
     const found = getInstance(inst.id);
     expect(found).toBeDefined();
@@ -294,7 +286,7 @@ describe("CoreInstanceAdapter — query", () => {
     const inst = await spawnForUser("test-user", "env_list_by_env");
 
     mockListInstances.mockReturnValueOnce([
-      { instanceId: inst.id, status: "stopped", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
+      mockSnapshot({ instanceId: inst.id, status: "stopped" }),
     ]);
 
     const active = listInstancesByEnvironment("env_list_by_env");
@@ -306,7 +298,7 @@ describe("CoreInstanceAdapter — query", () => {
     const inst = await spawnForUser("test-user", "env_running");
 
     mockListInstances.mockReturnValueOnce([
-      { instanceId: inst.id, status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
+      mockSnapshot({ instanceId: inst.id, pluginMetadata: { port: 8888, token: "t", pid: 1 } }),
     ]);
 
     const running = getRunningInstancesByEnvironment("env_running");
@@ -321,19 +313,15 @@ describe("CoreInstanceAdapter — stop", () => {
     mockStopInstance.mockClear();
     mockListInstances.mockClear();
     mockGetInstance.mockClear();
-    mockGetInstanceState.mockClear();
   });
 
   // stopInstance 成功
   test("stopInstance 委托给 core.stopInstance", async () => {
     const inst = await spawnForUser("test-user", "env_stop");
 
-    mockGetInstance.mockReturnValueOnce({
-      instanceId: inst.id,
-      status: "running",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as RuntimeInstanceSnapshot);
+    mockGetInstance.mockReturnValueOnce(
+      mockSnapshot({ instanceId: inst.id }),
+    );
 
     const result = await stopInstance(inst.id, "test-user");
     expect(result.ok).toBe(true);
@@ -360,12 +348,9 @@ describe("CoreInstanceAdapter — stop", () => {
   test("stopInstance 已停止实例", async () => {
     const inst = await spawnForUser("test-user", "env_already_stopped");
 
-    mockGetInstance.mockReturnValueOnce({
-      instanceId: inst.id,
-      status: "stopped",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as RuntimeInstanceSnapshot);
+    mockGetInstance.mockReturnValueOnce(
+      mockSnapshot({ instanceId: inst.id, status: "stopped" }),
+    );
 
     const result = await stopInstance(inst.id, "test-user");
     expect(result.ok).toBe(false);
@@ -379,7 +364,6 @@ describe("CoreInstanceAdapter — ensureRunning", () => {
     mockStopInstance.mockClear();
     mockListInstances.mockClear();
     mockGetInstance.mockClear();
-    mockGetInstanceState.mockClear();
   });
 
   // 复用已有 running 实例
@@ -390,7 +374,7 @@ describe("CoreInstanceAdapter — ensureRunning", () => {
     mockLaunchInstance.mockClear();
 
     mockListInstances.mockReturnValueOnce([
-      { instanceId: inst.id, status: "running", createdAt: new Date(), updatedAt: new Date() } as RuntimeInstanceSnapshot,
+      mockSnapshot({ instanceId: inst.id, pluginMetadata: { port: 8888, token: "t", pid: 1 } }),
     ]);
 
     const result = await ensureRunning("test-user", "env_ensure");

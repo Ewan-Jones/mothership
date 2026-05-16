@@ -31,6 +31,8 @@ export interface RuntimeInstanceRecord {
   relayConnected: boolean;
   /** 最近一次失败时记录的错误信息。 */
   errorMessage?: string;
+  /** Plugin 在 startInstance 完成后写入的补充元数据（port, token, pid 等）。 */
+  pluginMetadata?: Record<string, unknown>;
   /** 实例记录首次创建时间。 */
   createdAt: Date;
   /** 实例记录最近一次更新时间。 */

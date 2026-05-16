@@ -52,6 +52,8 @@ export interface UpdateRuntimeInstanceRecordInput {
   relayConnected?: boolean;
   /** 当前错误信息，仅 `error` 状态下保留。 */
   errorMessage?: string;
+  /** Plugin 通过 store.update 写入的补充元数据。 */
+  pluginMetadata?: Record<string, unknown>;
 }
 
 /**
@@ -233,6 +235,7 @@ export function createRuntimeInstanceStore(options?: {
           nextStatus === "error"
             ? input.errorMessage ?? current.errorMessage
             : undefined,
+        pluginMetadata: input.pluginMetadata ?? current.pluginMetadata,
         updatedAt: now(),
       };
 

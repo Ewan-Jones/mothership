@@ -3,7 +3,6 @@ import { getCoreRuntime } from "./core-bootstrap";
 import { buildLaunchSpec } from "./launch-spec-builder";
 import { getAgentConfigById, getAgentFullConfig } from "./config-pg";
 import { environmentRepo } from "../repositories";
-import { closeInstanceLocalWs } from "../transport/acp-relay-handler";
 import { log } from "../logger";
 import type { RuntimeInstanceSnapshot } from "@mothership/core";
 
@@ -32,15 +31,12 @@ export interface EnsureRunningResult {
 }
 
 // ────────────────────────────────────────────
-// 补充映射：core facade 不维护的 relay 所需字段
+// 补充映射：core 不维护的 RCS 业务字段
 // ────────────────────────────────────────────
 
 interface InstanceSupplement {
   userId: string;
   environmentId: string;
-  port: number;
-  token: string;
-  pid: number | null;
   instanceNumber: number;
 }
 
@@ -70,19 +66,24 @@ function mapCoreStatus(
   }
 }
 
+/**
+ * 从 core snapshot 的 pluginMetadata 中读取 port/token/pid，
+ * 合并 supplement 中的 RCS 业务字段，生成前端兼容的 SpawnedInstance。
+ */
 function toSpawnedInstance(
   snapshot: RuntimeInstanceSnapshot,
   supplement: InstanceSupplement,
 ): SpawnedInstance {
+  const meta = snapshot.pluginMetadata ?? {};
   return {
     id: snapshot.instanceId,
     userId: supplement.userId,
-    port: supplement.port,
-    pid: supplement.pid,
+    port: (meta.port as number) ?? 0,
+    pid: (meta.pid as number | null) ?? null,
     status: mapCoreStatus(snapshot.status),
     command: "",
     error: snapshot.errorMessage ?? null,
-    apiKey: supplement.token,
+    apiKey: (meta.token as string) ?? "",
     createdAt: snapshot.createdAt,
     environmentId: supplement.environmentId,
     sessionId: undefined,
@@ -137,7 +138,8 @@ export async function spawnInstanceFromEnvironment(
   const instanceNumber = getNextInstanceNumber(environmentId);
 
   // 委托 core 执行 launch
-  const { facade, opencodeRuntime } = getCoreRuntime();
+  // port/token/pid 由 core-bootstrap 的 onInstanceStarted 回调写入 pluginMetadata
+  const facade = getCoreRuntime();
   const snapshot = await facade.launchInstance({
     instanceId,
     engineType: "opencode",
@@ -145,18 +147,9 @@ export async function spawnInstanceFromEnvironment(
     launchSpec,
   });
 
-  // 从共享的 opencode runtime 读取 port/token/pid
-  const runtimeState = opencodeRuntime.getInstanceState(instanceId);
-  const port = runtimeState?.port ?? 0;
-  const token = runtimeState?.token ?? "";
-  const pid = runtimeState?.pid ?? null;
-
   const supplement: InstanceSupplement = {
     userId,
     environmentId,
-    port,
-    token,
-    pid,
     instanceNumber,
   };
   supplements.set(instanceId, supplement);
@@ -169,7 +162,7 @@ export async function spawnInstance(userId: string): Promise<SpawnedInstance> {
 }
 
 export function listInstances(userId: string): SpawnedInstance[] {
-  const { facade } = getCoreRuntime();
+  const facade = getCoreRuntime();
   return facade.listInstances()
     .filter((s) => {
       const sup = supplements.get(s.instanceId);
@@ -181,11 +174,12 @@ export function listInstances(userId: string): SpawnedInstance[] {
     });
 }
 
-export function findRunningInstanceByEnvironment(environmentId: string): SpawnedInstance | undefined {
-  const { facade } = getCoreRuntime();
+export function findRunningInstanceByEnvironment(environmentId: string, userId?: string): SpawnedInstance | undefined {
+  const facade = getCoreRuntime();
   for (const snapshot of facade.listInstances()) {
     const sup = supplements.get(snapshot.instanceId);
     if (sup?.environmentId === environmentId && snapshot.status === "running") {
+      if (userId && sup.userId !== userId) continue;
       return toSpawnedInstance(snapshot, sup);
     }
   }
@@ -197,7 +191,7 @@ export function findInstanceBySessionId(_sessionId: string): SpawnedInstance | u
 }
 
 export function listInstancesByEnvironment(environmentId: string): SpawnedInstance[] {
-  const { facade } = getCoreRuntime();
+  const facade = getCoreRuntime();
   return facade.listInstances()
     .filter((s) => {
       const sup = supplements.get(s.instanceId);
@@ -210,7 +204,7 @@ export function listInstancesByEnvironment(environmentId: string): SpawnedInstan
 }
 
 export function getRunningInstancesByEnvironment(environmentId: string): SpawnedInstance[] {
-  const { facade } = getCoreRuntime();
+  const facade = getCoreRuntime();
   return facade.listInstances()
     .filter((s) => {
       const sup = supplements.get(s.instanceId);
@@ -222,12 +216,13 @@ export function getRunningInstancesByEnvironment(environmentId: string): Spawned
     });
 }
 
-export function getInstance(id: string): SpawnedInstance | undefined {
-  const { facade } = getCoreRuntime();
+export function getInstance(id: string, userId?: string): SpawnedInstance | undefined {
+  const facade = getCoreRuntime();
   const snapshot = facade.getInstance(id);
   if (!snapshot) return undefined;
   const sup = supplements.get(id);
   if (!sup) return undefined;
+  if (userId && sup.userId !== userId) return undefined;
   return toSpawnedInstance(snapshot, sup);
 }
 
@@ -236,15 +231,14 @@ export async function stopInstance(id: string, userId: string): Promise<{ ok: bo
   if (!sup) return { ok: false, error: "Instance not found" };
   if (sup.userId !== userId) return { ok: false, error: "Not your instance" };
 
-  const { facade } = getCoreRuntime();
+  const facade = getCoreRuntime();
   const snapshot = facade.getInstance(id);
   if (!snapshot) return { ok: false, error: "Instance not found" };
   if (snapshot.status === "stopped") return { ok: false, error: "Already stopped" };
 
-  closeInstanceLocalWs(id);
-
   try {
     await facade.stopInstance(id);
+    supplements.delete(id);
     return { ok: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -253,7 +247,7 @@ export async function stopInstance(id: string, userId: string): Promise<{ ok: bo
 }
 
 export async function stopAllInstances(): Promise<void> {
-  const { facade } = getCoreRuntime();
+  const facade = getCoreRuntime();
   for (const snapshot of facade.listInstances()) {
     if (snapshot.status !== "stopped") {
       try {
@@ -262,6 +256,7 @@ export async function stopAllInstances(): Promise<void> {
     }
   }
   supplements.clear();
+  envInstanceCounters.clear();
 }
 
 export async function ensureRunning(userId: string, environmentId: string): Promise<EnsureRunningResult> {

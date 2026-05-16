@@ -1,45 +1,20 @@
 import { createCoreRuntime, type CoreRuntimeFacade } from "@mothership/core";
-import type { EnginePlugin, EngineRuntime } from "@mothership/plugin-sdk";
-import {
-  createOpencodeRuntime,
-  type OpencodeRuntime,
-} from "@mothership/opencode";
+import type { EngineRuntime } from "@mothership/plugin-sdk";
+import { createEnginePlugin, type OpencodeRuntime } from "@mothership/opencode";
 
-export interface CoreRuntimeBundle {
-  facade: CoreRuntimeFacade;
-  opencodeRuntime: OpencodeRuntime;
-}
-
-let bundle: CoreRuntimeBundle | null = null;
+let facade: CoreRuntimeFacade | null = null;
 
 /**
- * 包装共享的 OpencodeRuntime 实例为 EnginePlugin。
- * createRuntime() 始终返回同一个 runtime 实例，使 src 层能通过
- * opencodeRuntime.getInstanceState() 读取 port/token/pid。
+ * 获取全局 CoreRuntimeFacade 单例。
+ * 首次调用时初始化：注册 opencode plugin + local node + onInstanceStarted 回调。
+ *
+ * 更换引擎时只需修改此文件：替换 plugin 和 onInstanceStarted 回调，
+ * instance.ts 和 relay handler 层无需改动。
  */
-function createSharedOpencodePlugin(runtime: OpencodeRuntime): EnginePlugin {
-  return {
-    meta: {
-      id: "opencode",
-      displayName: "OpenCode Engine",
-      version: "0.1.0",
-    },
-    createRuntime(): EngineRuntime {
-      return runtime;
-    },
-  };
-}
-
-/**
- * 获取全局 CoreRuntimeBundle 单例。
- * 首次调用时初始化：注册 opencode plugin + local node。
- */
-export function getCoreRuntime(): CoreRuntimeBundle {
-  if (!bundle) {
-    const opencodeRuntime = createOpencodeRuntime();
-    const plugin = createSharedOpencodePlugin(opencodeRuntime);
-    const facade = createCoreRuntime({
-      plugins: [plugin],
+export function getCoreRuntime(): CoreRuntimeFacade {
+  if (!facade) {
+    facade = createCoreRuntime({
+      plugins: [createEnginePlugin()],
       nodes: [
         {
           id: "local-default",
@@ -48,13 +23,23 @@ export function getCoreRuntime(): CoreRuntimeBundle {
           status: "online",
         },
       ],
+      onInstanceStarted(instanceId, runtime, updateMetadata) {
+        const opencode = runtime as OpencodeRuntime;
+        const state = opencode.getInstanceState(instanceId);
+        if (state) {
+          updateMetadata({
+            port: state.port ?? 0,
+            token: state.token ?? "",
+            pid: state.pid ?? null,
+          });
+        }
+      },
     });
-    bundle = { facade, opencodeRuntime };
   }
-  return bundle;
+  return facade;
 }
 
 /** 重置单例（仅用于测试）。 */
 export function resetCoreRuntime(): void {
-  bundle = null;
+  facade = null;
 }

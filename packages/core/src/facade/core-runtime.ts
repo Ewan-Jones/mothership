@@ -1,4 +1,4 @@
-import type { EnginePlugin, EngineRelayHandle } from "@mothership/plugin-sdk";
+import type { EnginePlugin, EngineRelayHandle, EngineRuntime } from "@mothership/plugin-sdk";
 import { CoreNodeRegistry } from "../registry/core-node-registry";
 import { EnginePluginRegistry } from "../registry/engine-plugin-registry";
 import { createInstanceOrchestrator } from "../runtime/instance-orchestrator";
@@ -44,6 +44,13 @@ export interface CoreRuntimeFacade {
   getPlugin(engineType: string): EnginePlugin | null;
   /** 查询全部已注册 plugin。 */
   listPlugins(): EnginePlugin[];
+  /** 删除实例记录及其 runtime 缓存。 */
+  deleteInstance(instanceId: string): boolean;
+  /** 写入 plugin 补充元数据（port, token, pid 等）。 */
+  updateInstanceMetadata(
+    instanceId: string,
+    metadata: Record<string, unknown>,
+  ): RuntimeInstanceSnapshot;
 }
 
 /**
@@ -56,6 +63,12 @@ export interface CreateCoreRuntimeOptions {
   nodes?: CreateCoreNodeInput[];
   /** 可选的自定义实例 store，主要用于测试或替换存储实现。 */
   store?: RuntimeInstanceStore;
+  /** 实例启动完成（status=running）后的回调，用于让上层写入 pluginMetadata。 */
+  onInstanceStarted?: (
+    instanceId: string,
+    runtime: EngineRuntime,
+    updateMetadata: (metadata: Record<string, unknown>) => void,
+  ) => void;
 }
 
 /**
@@ -71,6 +84,7 @@ export function createCoreRuntime(
     pluginRegistry,
     nodeRegistry,
     store: instanceStore,
+    onInstanceStarted: options?.onInstanceStarted,
   });
 
   for (const plugin of options?.plugins ?? []) {
@@ -124,6 +138,14 @@ export function createCoreRuntime(
     /** 查询全部 plugin。 */
     listPlugins() {
       return pluginRegistry.list();
+    },
+    /** 删除实例记录及其 runtime 缓存。 */
+    deleteInstance(instanceId) {
+      return instanceStore.delete(instanceId);
+    },
+    /** 写入 plugin 补充元数据（port, token, pid 等）。 */
+    updateInstanceMetadata(instanceId, metadata) {
+      return instanceStore.update(instanceId, { pluginMetadata: metadata });
     },
   };
 }

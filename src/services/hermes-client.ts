@@ -2,7 +2,7 @@ import { findBindingForMessage } from "./channel-binding";
 import type { ChannelBinding } from "./channel-binding";
 import { findRunningInstanceByEnvironment } from "./instance";
 import { sendToAgentWs } from "../transport/acp-ws-handler";
-import { sendToInstanceLocalWs } from "../transport/acp-relay-handler";
+import { sendToInstanceRelay } from "../transport/acp-relay-handler";
 import { eventService } from "../services/event-service";
 import { log, error as logError } from "../logger";
 
@@ -253,7 +253,7 @@ export class HermesClient {
     const instance = findRunningInstanceByEnvironment(agentId);
     log(`[Hermes] findRunningInstanceByEnvironment(${agentId}) => ${instance ? instance.id : "null"}`);
     if (instance) {
-      const sent = sendToInstanceLocalWs(instance.id, JSON.stringify(acpMsg));
+      const sent = sendToInstanceRelay(instance.id, JSON.stringify(acpMsg));
       if (sent) {
         log(`[Hermes] Routed message to instance ${instance.id} for agent ${agentId}`);
         return;
