@@ -5,6 +5,7 @@ import type { EnvironmentRecord } from "../repositories";
 import { NotFoundError } from "../errors";
 import { findOrCreateForEnvironment } from "./session";
 import { toResponse, deleteEnvironment } from "./environment-core";
+import { log } from "../logger";
 
 /** 通过 secret 获取环境信息（认证用），仅返回认证所需字段 */
 export async function getEnvironmentBySecret(secret: string): Promise<{ id: string; userId: string | null; agentName: string | null; secret: string } | null> {
@@ -185,6 +186,7 @@ export async function registerBridge(input: BridgeRegistrationInput): Promise<Br
         session_id: sessions.length > 0 ? sessions[0].id : undefined,
       };
     }
+    log(`[ACP] authEnvironmentId '${authEnvironmentId}' not found, creating new environment`);
   }
 
   // 新环境：创建 + 自动会话

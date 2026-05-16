@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { environmentRepo } from "../repositories";
-import { ValidationError, ConflictError, ConfigWriteError } from "../errors";
+import { ValidationError, ConflictError, ConfigWriteError, NotFoundError } from "../errors";
 import * as configPg from "./config-pg";
 import { listInstancesByEnvironment } from "./instance";
 import {
@@ -110,7 +110,9 @@ export async function updateWebEnvironment(envId: string, userId: string, params
   }
 
   await environmentRepo.update(envId, patch);
-  return environmentRepo.getById(envId);
+  const updated = await environmentRepo.getById(envId);
+  if (!updated) throw new NotFoundError("环境不存在（更新后未找到）");
+  return updated;
 }
 
 /** 获取用户所有环境并组装实例信息（web/environments 路由用） */

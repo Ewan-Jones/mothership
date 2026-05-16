@@ -3,6 +3,7 @@ import { scheduledTaskRepo, taskExecutionLogRepo } from "../repositories/task";
 import type { ScheduledTaskRow, TaskExecutionLogRow } from "../repositories/task";
 import { scheduleTask, rescheduleTask, unscheduleTask } from "./scheduler";
 import { parseJsonb } from "./config/jsonb";
+import { error as logError } from "../logger";
 
 function generateTaskId(): string {
   return `task_${randomBytes(12).toString("hex")}`;
@@ -297,6 +298,7 @@ export async function executeTaskById(
     if (!logRow) return { success: false, error: { code: "NOT_FOUND", message: "执行日志未找到" } };
     return { success: true, data: sanitizeExecutionLog(logRow) };
   } catch (err: unknown) {
+    logError("[Task] Execution failed for task", taskId, err);
     const message = err instanceof Error ? err.message : String(err);
     const duration = Date.now() - startTime;
 

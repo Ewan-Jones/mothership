@@ -8,6 +8,7 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { log, error as logError } from "../logger";
 import * as configPg from "./config-pg";
 import {
   createSkillValidationError,
@@ -85,7 +86,7 @@ export async function migrateSkillsDir(): Promise<void> {
   await mkdir(OLD_SKILLS_DIR, { recursive: true });
   await writeFile(MIGRATED_MARKER, new Date().toISOString(), "utf-8");
 
-  console.log("[RCS] Skills directory migrated:", OLD_SKILLS_DIR, "→", SKILLS_DIR);
+  log("[RCS] Skills directory migrated:", OLD_SKILLS_DIR, "→", SKILLS_DIR);
 }
 
 // ────────────────────────────────────────────
@@ -234,7 +235,7 @@ export async function importSkillDirectories(
     await cleanupWrittenSkills(SKILLS_DIR, attemptedNames);
     for (const name of attemptedNames) {
       await configPg.deleteSkill(userId, name).catch((e) => {
-        console.error(`[Skill] Failed to cleanup skill ${name}:`, e);
+        logError(`[Skill] Failed to cleanup skill ${name}:`, e);
       });
     }
     await restoreFromBackup(snapshots, SKILLS_DIR);
