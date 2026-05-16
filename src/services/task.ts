@@ -379,7 +379,7 @@ export async function clearExecutionLogs(taskId: string): Promise<ServiceSuccess
   return { success: true, data: undefined };
 }
 
-export async function getTaskById(taskId: string) {
+export async function getTaskById(taskId: string): Promise<ScheduledTaskRow | null> {
   return scheduledTaskRepo.getById(taskId);
 }
 

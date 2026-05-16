@@ -238,7 +238,7 @@ export async function stopInstance(id: string, userId: string): Promise<{ ok: bo
 export async function stopAllInstances(): Promise<void> {
   const facade = getCoreRuntime();
   for (const snapshot of facade.listInstances()) {
-    if (snapshot.status !== "stopped") {
+    if (snapshot.status !== "stopped" && snapshot.status !== "stopping") {
       try {
         await facade.stopInstance(snapshot.instanceId);
       } catch (err: unknown) {

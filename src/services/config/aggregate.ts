@@ -13,6 +13,15 @@ export interface AgentFullConfig {
   mcpServers: (typeof mcpServer.$inferSelect)[];
 }
 
+/** 获取用户全局 skills（environmentId=NULL, agentConfigId=NULL） */
+function listGlobalSkills(userId: string) {
+  return db.select().from(skill).where(and(
+    eq(skill.userId, userId),
+    isNull(skill.environmentId),
+    isNull(skill.agentConfigId),
+  ));
+}
+
 export async function getAgentFullConfig(userId: string, agentConfigId: string | null): Promise<AgentFullConfig> {
   // 用户级 providers 和 MCP servers 始终加载，不依赖 agentConfigId
   const [providers, mcpServers] = await Promise.all([
@@ -21,11 +30,7 @@ export async function getAgentFullConfig(userId: string, agentConfigId: string |
   ]);
 
   if (!agentConfigId) {
-    const skills = await db.select().from(skill).where(and(
-      eq(skill.userId, userId),
-      isNull(skill.environmentId),
-      isNull(skill.agentConfigId),
-    ));
+    const skills = await listGlobalSkills(userId);
     return { agentConfig: null, providers, skills, mcpServers };
   }
 
@@ -35,12 +40,8 @@ export async function getAgentFullConfig(userId: string, agentConfigId: string |
 
   if (!ac) {
     // agentConfig 不存在时回退到全局 skills，而非返回空数组
-    const fallbackSkills = await db.select().from(skill).where(and(
-      eq(skill.userId, userId),
-      isNull(skill.environmentId),
-      isNull(skill.agentConfigId),
-    ));
-    return { agentConfig: null, providers, skills: fallbackSkills, mcpServers };
+    const skills = await listGlobalSkills(userId);
+    return { agentConfig: null, providers, skills, mcpServers };
   }
 
   const skills = await db.select().from(skill).where(and(

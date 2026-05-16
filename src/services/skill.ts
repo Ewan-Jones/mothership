@@ -139,12 +139,19 @@ export async function setSkill(
   const skillDir = join(SKILLS_DIR, name);
   const contentPath = await writeSkillMd(skillDir, name, data.description, data.content, data.metadata);
 
-  await configPg.upsertSkill(userId, name, {
-    description: data.description,
-    contentPath,
-    metadata: data.metadata,
-    enabled: true,
-  });
+  try {
+    await configPg.upsertSkill(userId, name, {
+      description: data.description,
+      contentPath,
+      metadata: data.metadata,
+      enabled: true,
+    });
+  } catch (err) {
+    await deleteSkillDir(skillDir).catch((e) => {
+      logError(`[Skill] Failed to cleanup skill directory after PG upsert failure:`, e);
+    });
+    throw err;
+  }
 
   return { name, enabled: true, description: data.description, path: contentPath };
 }
