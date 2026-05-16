@@ -305,8 +305,9 @@ async function writeLogAndReturn(
 export async function executeTaskById(
   taskId: string,
   triggeredBy: "cron" | "manual",
+  prefetchedTask?: ScheduledTaskRow,
 ): Promise<ServiceResult<TaskExecutionLogResponse>> {
-  const task = await getTaskById(taskId);
+  const task = prefetchedTask ?? await getTaskById(taskId);
   if (!task) {
     return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
   }
@@ -317,7 +318,8 @@ export async function executeTaskById(
 
   try {
     const headers: Record<string, string> = parseHeaders(task.headers) ?? {};
-    if (!headers["Content-Type"] && task.method?.toUpperCase() !== "GET") {
+    const hasContentType = Object.keys(headers).some((k) => k.toLowerCase() === "content-type");
+    if (!hasContentType && task.method?.toUpperCase() !== "GET") {
       headers["Content-Type"] = "application/json";
     }
 
@@ -355,7 +357,7 @@ export async function executeTaskById(
 export async function triggerTask(userId: string, taskId: string): Promise<ServiceResult<TaskExecutionLogResponse>> {
   const task = await scheduledTaskRepo.getByUserAndId(userId, taskId);
   if (!task) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
-  return executeTaskById(taskId, "manual");
+  return executeTaskById(taskId, "manual", task);
 }
 
 export async function listExecutionLogs(

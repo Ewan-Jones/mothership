@@ -219,3 +219,13 @@
 2. **CLEANUP — scheduler skipped 分支容错**：`scheduler.ts` `executeTask` 的 skipped 分支 DB 操作包裹 try-catch，失败不再冒泡。
 3. **CLEANUP — enterEnvironment 死代码**：移除不可达的 `if (!inst)` 防御检查。
 4. 新增 `task-timeout-status.test.ts`（3 用例）。19 轮累计 217 个测试。
+
+## 2026-05-17 第二十次审查
+
+审查范围：全量 CRUD 层（aggregate、task、instance、scheduler、session、environment）
+
+修复（1 PERFORMANCE + 1 WARNING + 1 CLEANUP）：
+1. **PERFORMANCE — aggregate.ts 查询并行化**：`getAgentFullConfig` 在无 agentConfigId 时 3 路并行（原 2+1），有 agentConfigId 时 providers/mcpServers/agentConfig 3 路并行（原 3 阶段串行变 2 阶段），减少 spawn 延迟。
+2. **WARNING — task.ts Content-Type 大小写不敏感**：`executeTaskById` 检查 `headers["Content-Type"]` 改为 `Object.keys().some(k => k.toLowerCase() === "content-type")`，避免用户传 `content-type` 小写时重复添加 header。
+3. **CLEANUP — task.ts triggerTask 双查询优化**：`executeTaskById` 新增 `prefetchedTask` 可选参数，`triggerTask` 直接传入已获取的 task 数据，消除冗余 DB 查询。
+4. 新增 `aggregate-parallel-queries.test.ts`（3 用例）、`task-prefetch-content-type.test.ts`（7 用例）。20 轮累计 227 个测试。

@@ -23,20 +23,25 @@ function listGlobalSkills(userId: string) {
 }
 
 export async function getAgentFullConfig(userId: string, agentConfigId: string | null): Promise<AgentFullConfig> {
-  // 用户级 providers 和 MCP servers 始终加载，不依赖 agentConfigId
-  const [providers, mcpServers] = await Promise.all([
-    db.select().from(provider).where(eq(provider.userId, userId)),
-    db.select().from(mcpServer).where(and(eq(mcpServer.userId, userId), eq(mcpServer.enabled, true))),
-  ]);
-
   if (!agentConfigId) {
-    const skills = await listGlobalSkills(userId);
+    const [providers, mcpServers, skills] = await Promise.all([
+      db.select().from(provider).where(eq(provider.userId, userId)),
+      db.select().from(mcpServer).where(and(eq(mcpServer.userId, userId), eq(mcpServer.enabled, true))),
+      listGlobalSkills(userId),
+    ]);
     return { agentConfig: null, providers, skills, mcpServers };
   }
 
-  const [ac] = await db.select().from(agentConfig)
-    .where(and(eq(agentConfig.id, agentConfigId), eq(agentConfig.userId, userId)))
-    .limit(1);
+  // 并行拉取 providers、mcpServers、agentConfig（三者无依赖关系）
+  const [providers, mcpServers, acRows] = await Promise.all([
+    db.select().from(provider).where(eq(provider.userId, userId)),
+    db.select().from(mcpServer).where(and(eq(mcpServer.userId, userId), eq(mcpServer.enabled, true))),
+    db.select().from(agentConfig)
+      .where(and(eq(agentConfig.id, agentConfigId), eq(agentConfig.userId, userId)))
+      .limit(1),
+  ]);
+
+  const [ac] = acRows;
 
   if (!ac) {
     // agentConfig 不存在时回退到全局 skills，而非返回空数组
