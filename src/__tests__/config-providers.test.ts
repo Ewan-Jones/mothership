@@ -302,15 +302,16 @@ describe("Providers Config Route", () => {
     expect(json.error.code).toBe("NOT_FOUND");
   });
 
-  test("未知 action 返回 VALIDATION_ERROR", async () => {
+  // 未知 action 被 Elysia body schema 验证拦截
+  test("未知 action 返回验证错误", async () => {
     const res = await providersRoute.handle(new Request("http://localhost/web/config/providers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "invalid" }),
     }));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     const json = await res.json();
-    expect(json.error.code).toBe("VALIDATION_ERROR");
+    expect(json.type).toBe("validation");
   });
 
   // === Model CRUD ===
