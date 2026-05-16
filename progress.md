@@ -380,3 +380,13 @@
 1. **DRY — agent-config.ts 重复字段映射循环**：`createAgentConfig`/`updateAgentConfig` 共享完全相同的 `AGENT_SETTABLE_FIELDS`+`FIELD_ALIAS` for 循环（8 行），提取为 `buildSetFromData` 辅助函数。
 2. **DRY — model.ts addModel 重复字段映射**：`values`（insert 用）和 `set`（conflict update 用）映射相同 6 个字段，提取为 `buildModelValues` 辅助函数。
 3. 新增 `agent-config-build-set.test.ts`（4 用例）、`model-build-values.test.ts`（3 用例）。35 轮累计 354 个测试。
+
+## 2026-05-17 第三十六次审查
+
+审查范围：同 R35 全量 service 文件及 config 子目录
+
+修复（1 BUG + 1 WARNING + 1 CLEANUP）：
+1. **BUG — task.ts validateTaskInput 空 cron 更新路径**：更新模式下 `cron: ""` 跳过空检查（仅 create 路径校验），空字符串写入 DB 后 scheduler 静默失败。新增 `data.cron !== undefined && data.cron.trim().length === 0` 守卫。
+2. **WARNING — scheduler.ts stale job 残留**：任务从 DB 删除后 cron job 仍在 activeJobs Map 中，每次 tick 无用触发。`executeTask` 在 task-not-found 分支调用 `unscheduleTask` 清理。
+3. **CLEANUP — instance.ts getInstance supplement 泄漏**：core 无实例但 supplements 有条目时未清理，长期运行内存累积。与 `stopInstance` 行为对齐，发现孤立条目时 `supplements.delete(id)`。
+4. 新增 `task-cron-empty-update.test.ts`（5 用例）、`scheduler-stale-job-cleanup.test.ts`（1 用例）、`instance-getinstance-cleanup.test.ts`（4 用例）。36 轮累计 364 个测试。
