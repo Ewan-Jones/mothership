@@ -419,3 +419,13 @@
 2. **WARNING — scheduler.ts executeTask disabled 任务自动 unschedule**：DB 直接 disabled 的任务 cron job 持续无效触发，检测到 disabled 时调用 unscheduleTask 清理 cron job。
 3. **WARNING — skill.ts import finally 块 cleanupBackupDir 错误掩盖**：全局和 workspace import 的 finally 块中 cleanupBackupDir 未 try-catch，清理失败会掩盖原始业务错误。
 4. 新增 `instance-workspace-nullish.test.ts`（3 用例）、`scheduler-disabled-auto-unschedule.test.ts`（2 用例）、`skill-import-finally-cleanup.test.ts`（4 用例）。39 轮累计 389 个测试。
+
+## 2026-05-17 第四十次审查
+
+审查范围：同 R39 全量 service 文件及 config 子目录
+
+修复（1 DRY + 1 CLEANUP + 1 WARNING）：
+1. **DRY — skill.ts importSkillDirectories/importWorkspaceSkillDirectories 重复逻辑消除**：提取 `validateImportFiles` 校验函数和 `executeImportCore` 通用导入核心（备份→写入→回滚→清理），全局变体注入 PG 操作回调，workspace 变体无回调，净减约 50 行重复代码。
+2. **CLEANUP — skill.ts migrateSkillsDir 死导入瘦身**：`writeFile/rm/cp/rename` 从顶层静态导入改为函数内动态 `import()`，仅在迁移执行时加载。
+3. **WARNING — environment-web.ts createWebEnvironment 错误匹配类型守卫**：PG unique 检测从 `String(err)` 改为 `instanceof Error` 守卫后读取 `.message`，避免非 Error 对象误匹配。
+4. 新增 `skill-import-shared-validation.test.ts`（5 用例）、`env-create-duplicate-detect.test.ts`（3 用例）。40 轮累计 397 个测试。
