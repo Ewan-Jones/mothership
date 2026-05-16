@@ -7,7 +7,7 @@ import { createApiKey } from "../auth/api-key-service";
 import { getBaseUrl } from "../config";
 import { log } from "../logger";
 import { listAgentKnowledgeBindings } from "./agent-knowledge";
-import { getAgentConfigById } from "./config-pg";
+import { getAgentConfigById, getAgentFullConfig } from "./config-pg";
 import { environmentRepo, sessionRepo } from "../repositories";
 import { closeInstanceLocalWs } from "../transport/acp-relay-handler";
 import { resolveExecutable } from "../utils/executable";
@@ -215,9 +215,9 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
   const cwd = env.workspacePath || env.directory;
   if (!cwd || !existsSync(cwd)) throw new Error(`Workspace directory does not exist: ${cwd}`);
 
-  // Inject default_agent into workspace config
+  // Inject full config into workspace — RCS is the single source of truth
   // 优先使用 agentConfigId（UUID 强绑定），fallback 到 agentName（兼容过渡）
-  let resolvedAgentConfig: { name: string } | null = null;
+  let resolvedAgentConfig: { name: string; id?: string } | null = null;
   if (env.agentConfigId) {
     resolvedAgentConfig = await getAgentConfigById(env.agentConfigId);
   } else if (env.agentName) {
@@ -228,27 +228,64 @@ export async function spawnInstanceFromEnvironment(userId: string, environmentId
     try {
       const configDir = join(cwd, ".opencode");
       const configPath = join(configDir, "opencode.json");
-      let config: Record<string, unknown> = {};
-
-      if (existsSync(configPath)) {
-        const raw = readFileSync(configPath, "utf-8");
-        config = JSON.parse(raw);
-      }
+      const config: Record<string, unknown> = {
+        _generated: "RCS — DO NOT EDIT — auto-generated on spawn",
+      };
 
       config.default_agent = resolvedAgentConfig.name;
-      const knowledgeBindings = await listAgentKnowledgeBindings(resolvedAgentConfig.name);
-      if (knowledgeBindings.length > 0) {
-        const mcp = typeof config.mcp === "object" && config.mcp !== null
-          ? config.mcp as Record<string, unknown>
-          : {};
-        mcp.kb = {
-          type: "remote",
-          url: `${getBaseUrl()}/mcp/knowledge`,
-          headers: { Authorization: `Bearer ${env.secret}` },
-          enabled: true,
-          timeout: 15000,
-        };
-        config.mcp = mcp;
+
+      // 批量获取 AgentConfig 关联的完整配置
+      if (resolvedAgentConfig.id && env.userId) {
+        const fullConfig = await getAgentFullConfig(env.userId, resolvedAgentConfig.id);
+
+        if (fullConfig.agentConfig) {
+          const ac = fullConfig.agentConfig;
+          if (ac.model) config.model = ac.model;
+          if (ac.prompt) config.system_prompt = ac.prompt;
+          if (ac.steps) config.max_steps = ac.steps;
+          if (ac.temperature) config.temperature = Number(ac.temperature);
+          if (ac.topP) config.top_p = Number(ac.topP);
+          if (ac.permission) config.permission = ac.permission;
+        }
+
+        // 注入 MCP 服务器配置
+        const mcp: Record<string, unknown> = {};
+        for (const server of fullConfig.mcpServers) {
+          mcp[server.name] = {
+            ...(typeof server.config === "string" ? JSON.parse(server.config) : server.config),
+            enabled: true,
+          };
+        }
+
+        // 注入 Knowledge MCP 端点
+        const knowledgeBindings = await listAgentKnowledgeBindings(resolvedAgentConfig.name);
+        if (knowledgeBindings.length > 0) {
+          mcp.kb = {
+            type: "remote",
+            url: `${getBaseUrl()}/mcp/knowledge`,
+            headers: { Authorization: `Bearer ${env.secret}` },
+            enabled: true,
+            timeout: 15000,
+          };
+        }
+
+        if (Object.keys(mcp).length > 0) {
+          config.mcp = mcp;
+        }
+      } else {
+        // Fallback：只注入 KB MCP（兼容无 agentConfigId 的旧环境）
+        const knowledgeBindings = await listAgentKnowledgeBindings(resolvedAgentConfig.name);
+        if (knowledgeBindings.length > 0) {
+          config.mcp = {
+            kb: {
+              type: "remote",
+              url: `${getBaseUrl()}/mcp/knowledge`,
+              headers: { Authorization: `Bearer ${env.secret}` },
+              enabled: true,
+              timeout: 15000,
+            },
+          };
+        }
       }
 
       if (!existsSync(configDir)) {
