@@ -409,3 +409,13 @@
 1. **BUG — task.ts generateTaskId/generateLogId UUID 不兼容**：`task_xxx`/`log_xxx` 格式不兼容 PG `uuid` 列类型（`invalid input syntax for type uuid`），改为 `randomUUID()` 生成标准 UUID。
 2. **WARNING — instance.ts ensureRunning async gap 陈旧数据**：`maxSessions` 检查使用 `await getById` 前的陈旧 `runningInstances` 快照，async gap 后重新调用 `getRunningInstancesByEnvironment`，并发请求启动的实例可被复用。
 3. 新增 `task-log-id-uuid.test.ts`（4 用例）、`ensure-running-recheck.test.ts`（3 用例）。38 轮累计 380 个测试。
+
+## 2026-05-17 第三十九次审查
+
+审查范围：同 R38 全量 service 文件及 config 子目录
+
+修复（3 WARNING）：
+1. **WARNING — instance.ts spawnInstanceFromEnvironment workspacePath `||` → `??`**：空字符串 workspacePath 使用 `||` 会静默 fallback 到 directory，改为 `??` 保留 nullish 语义，空串触发 VALIDATION_ERROR。
+2. **WARNING — scheduler.ts executeTask disabled 任务自动 unschedule**：DB 直接 disabled 的任务 cron job 持续无效触发，检测到 disabled 时调用 unscheduleTask 清理 cron job。
+3. **WARNING — skill.ts import finally 块 cleanupBackupDir 错误掩盖**：全局和 workspace import 的 finally 块中 cleanupBackupDir 未 try-catch，清理失败会掩盖原始业务错误。
+4. 新增 `instance-workspace-nullish.test.ts`（3 用例）、`scheduler-disabled-auto-unschedule.test.ts`（2 用例）、`skill-import-finally-cleanup.test.ts`（4 用例）。39 轮累计 389 个测试。
