@@ -32,28 +32,24 @@ export async function getAgentFullConfig(userId: string, agentConfigId: string |
     return { agentConfig: null, providers, skills, mcpServers };
   }
 
-  // 并行拉取 providers、mcpServers、agentConfig（三者无依赖关系）
-  const [providers, mcpServers, acRows] = await Promise.all([
+  // 并行拉取 providers、mcpServers、agentConfig、skills（4 路并行→1 轮完成）
+  // skills 使用较宽的 filter（全局 + agent-scoped），若 agentConfig 不存在则在内存中过滤
+  const [providers, mcpServers, acRows, allSkills] = await Promise.all([
     db.select().from(provider).where(eq(provider.userId, userId)),
     db.select().from(mcpServer).where(and(eq(mcpServer.userId, userId), eq(mcpServer.enabled, true))),
     db.select().from(agentConfig)
       .where(and(eq(agentConfig.id, agentConfigId), eq(agentConfig.userId, userId)))
       .limit(1),
+    db.select().from(skill).where(and(
+      eq(skill.userId, userId),
+      isNull(skill.environmentId),
+      sql`(${skill.agentConfigId} IS NULL OR ${skill.agentConfigId} = ${agentConfigId})`,
+    )),
   ]);
 
   const [ac] = acRows;
+  // agentConfig 不存在时回退到全局 skills（过滤掉 agent-scoped 行）
+  const skills = ac ? allSkills : allSkills.filter((s) => s.agentConfigId === null);
 
-  if (!ac) {
-    // agentConfig 不存在时回退到全局 skills，而非返回空数组
-    const skills = await listGlobalSkills(userId);
-    return { agentConfig: null, providers, skills, mcpServers };
-  }
-
-  const skills = await db.select().from(skill).where(and(
-    eq(skill.userId, userId),
-    isNull(skill.environmentId),
-    sql`(${skill.agentConfigId} IS NULL OR ${skill.agentConfigId} = ${agentConfigId})`,
-  ));
-
-  return { agentConfig: ac, providers, skills, mcpServers };
+  return { agentConfig: ac ?? null, providers, skills, mcpServers };
 }

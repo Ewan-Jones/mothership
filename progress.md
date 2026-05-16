@@ -292,3 +292,11 @@
 1. **BUG — AGENT_SETTABLE_FIELDS 缺少 top_p**：前端发送 `top_p` 字段，路由白名单过滤依赖 `AGENT_SETTABLE_FIELDS` 数组，但数组仅有 `topP`（PG 列名）而无 `top_p`（前端字段名），导致 `top_p` 值在创建/更新 Agent 时被静默丢弃，`temperature` 校验有效但 `top_p` 永不写入 DB。修复为数组同时包含 `"topP"` 和 `"top_p"`。
 2. **PERF — importSkillDirectories upsertSkill 串行→并行**：导入成功后 N 个 skill 的 PG 元数据写入从 for 循环改为 `Promise.all`。
 3. 新增 `agent-settable-top-p.test.ts`（3 用例）、`skill-import-upsert-parallel.test.ts`（2 用例）。26 轮累计 282 个测试。
+
+## 2026-05-17 第二十七次审查
+
+审查范围：全量 CRUD 层（config/aggregate）
+
+修复（1 PERF）：
+1. **PERF — getAgentFullConfig agentConfigId 路径 2 轮→1 轮**：当 `agentConfigId` 存在时，providers/mcpServers/agentConfig/skills 4 路查询从 3+1 串行改为 `Promise.all` 并行；agentConfig 不存在时从内存过滤掉 agent-scoped skills（不再二次查询），减少 spawn 延迟。
+2. 更新 `aggregate-parallel-queries.test.ts`（3 用例）覆盖新的内存过滤逻辑。27 轮累计 285 个测试。
