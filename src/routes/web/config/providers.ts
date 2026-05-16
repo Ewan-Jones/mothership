@@ -4,6 +4,7 @@ import * as configPg from "../../../services/config-pg";
 import { invalidateAvailableCache } from "./models";
 import { ConfigBodySchema } from "../../../schemas/config.schema";
 import { configSuccess, configError, toKeyHint, resolveApiKey } from "../../../services/config-utils";
+import { buildModelData } from "../../../services/config/provider";
 
 type ProviderBody = { action: string; name?: string; modelId?: string; data?: Record<string, unknown> };
 
@@ -191,16 +192,6 @@ async function handleRemoveModel(userId: string, providerName: string, modelId: 
   await configPg.removeModel(p.id, modelId);
   invalidateAvailableCache();
   return configSuccess(null);
-}
-
-function buildModelData(data: Record<string, unknown>): { displayName?: string; modalities?: unknown; limitConfig?: unknown; cost?: unknown; options?: unknown } {
-  const result: { displayName?: string; modalities?: unknown; limitConfig?: unknown; cost?: unknown; options?: unknown } = {};
-  if (data.name) result.displayName = data.name as string;
-  if (data.modalities) result.modalities = data.modalities;
-  if (data.limit) result.limitConfig = data.limit;
-  if (data.cost) result.cost = data.cost;
-  if (data.options) result.options = data.options;
-  return result;
 }
 
 app.post("/config/providers", async ({ store, body, error }) => {

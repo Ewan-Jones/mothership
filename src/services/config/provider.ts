@@ -96,3 +96,20 @@ export async function deleteProvider(userId: string, name: string): Promise<bool
     .returning({ id: provider.id });
   return result.length > 0;
 }
+
+/** 将前端数据映射为 PG model 字段 */
+export function buildModelData(data: Record<string, unknown>): {
+  displayName?: string;
+  modalities?: unknown;
+  limitConfig?: unknown;
+  cost?: unknown;
+  options?: unknown;
+} {
+  const result: { displayName?: string; modalities?: unknown; limitConfig?: unknown; cost?: unknown; options?: unknown } = {};
+  if (data.name) result.displayName = data.name as string;
+  if (data.modalities) result.modalities = data.modalities;
+  if (data.limit) result.limitConfig = data.limit;
+  if (data.cost) result.cost = data.cost;
+  if (data.options) result.options = data.options;
+  return result;
+}
