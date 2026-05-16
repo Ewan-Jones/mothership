@@ -60,7 +60,8 @@ async function executeTask(taskId: string): Promise<void> {
       return;
     }
     if (!task.enabled) {
-      log(`[Scheduler] Task ${taskId} is disabled, skipping`);
+      log(`[Scheduler] Task ${taskId} is disabled, skipping and unscheduling`);
+      unscheduleTask(taskId);
       return;
     }
 

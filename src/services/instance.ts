@@ -122,7 +122,7 @@ export async function spawnInstanceFromEnvironment(
   if (!env) throw new NotFoundError("Environment not found");
   if (env.userId !== userId) throw new AppError("Not your environment", "FORBIDDEN", 403);
 
-  const cwd = env.workspacePath || env.directory;
+  const cwd = env.workspacePath ?? env.directory;
   if (!cwd) throw new AppError(`Workspace directory not set for environment: ${environmentId}`, "VALIDATION_ERROR", 400);
 
   // 解析 AgentConfig：有则加载完整配置，无则用默认 "general" agent

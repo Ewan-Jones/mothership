@@ -256,12 +256,9 @@ export async function importSkillDirectories(
     try { await restoreFromBackup(snapshots, SKILLS_DIR); } catch (e) { logError("[Skill] Failed to restore from backup:", e); }
     throw err;
   } finally {
-    await cleanupBackupDir(backupRoot);
+    try { await cleanupBackupDir(backupRoot); } catch (e) { logError("[Skill] Failed to cleanup backup dir:", e); }
   }
 }
-
-// ────────────────────────────────────────────
-// Workspace Skill 函数（仍使用文件系统）
 // ────────────────────────────────────────────
 
 const WORKSPACE_SCAN_TIMEOUT_MS = 2000;
@@ -435,6 +432,6 @@ export async function importWorkspaceSkillDirectories(
     try { await restoreFromBackup(snapshots, targetDir); } catch (e) { logError("[Skill] Failed to restore from backup:", e); }
     throw err;
   } finally {
-    await cleanupBackupDir(backupRoot);
+    try { await cleanupBackupDir(backupRoot); } catch (e) { logError("[Skill] Failed to cleanup backup dir:", e); }
   }
 }
