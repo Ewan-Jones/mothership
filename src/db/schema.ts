@@ -226,7 +226,44 @@ export const taskExecutionLog = pgTable("task_execution_log", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// Hermes 通道绑定表
+// IMChannel 一等资源表（升级自 channel_binding）
+export const imChannel = pgTable("im_channel", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  platform: varchar("platform").notNull(),
+  credentials: jsonb("credentials").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("disconnected"),
+  lastError: text("last_error"),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userPlatformIdx: index("idx_im_channel_user_platform").on(table.userId, table.platform),
+}));
+
+// IMChannel 路由规则表
+export const imChannelRoute = pgTable("im_channel_route", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  channelId: uuid("channel_id")
+    .notNull()
+    .references(() => imChannel.id, { onDelete: "cascade" }),
+  chatId: varchar("chat_id"),
+  environmentId: varchar("environment_id")
+    .notNull()
+    .references(() => environment.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  channelIdx: index("idx_im_channel_route_channel").on(table.channelId),
+  chatIdx: index("idx_im_channel_route_chat").on(table.channelId, table.chatId),
+}));
+
+// Hermes 通道绑定表（遗留，保留兼容）
 export const channelBinding = pgTable("channel_binding", {
   id: uuid("id").primaryKey().defaultRandom(),
   platform: varchar("platform").notNull(),
