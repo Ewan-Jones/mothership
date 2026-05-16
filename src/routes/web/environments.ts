@@ -60,25 +60,19 @@ app.get("/environments", async ({ store }) => {
 }, { sessionAuth: true });
 
 /** POST /web/environments — Register a new environment */
-app.post("/environments", async ({ store, body, error }) => {
+app.post("/environments", async ({ store, body }) => {
   const user = store.user!;
   const b = body as { name: string; description?: string; agentName?: string; agentConfigId?: string; autoStart?: boolean; workspacePath: string };
 
-  let record;
-  try {
-    record = await createWebEnvironment({
-      name: b.name,
-      description: b.description,
-      agentName: b.agentName,
-      agentConfigId: b.agentConfigId,
-      workspacePath: b.workspacePath,
-      autoStart: b.autoStart,
-      userId: user.id,
-    });
-  } catch (err: any) {
-    if (err.statusCode) return error(err.statusCode, { error: { type: err.code, message: err.message } });
-    throw err;
-  }
+  const record = await createWebEnvironment({
+    name: b.name,
+    description: b.description,
+    agentName: b.agentName,
+    agentConfigId: b.agentConfigId,
+    workspacePath: b.workspacePath,
+    autoStart: b.autoStart,
+    userId: user.id,
+  });
 
   if (b.autoStart && record.userId) {
     spawnInstanceFromEnvironment(record.userId, record.id)
@@ -90,47 +84,32 @@ app.post("/environments", async ({ store, body, error }) => {
 }, { sessionAuth: true, body: "create-environment-request" });
 
 /** GET /web/environments/:id — Get environment detail (with secret) */
-app.get("/environments/:id", async ({ store, params, error }) => {
+app.get("/environments/:id", async ({ store, params }) => {
   const user = store.user!;
-  try {
-    const env = await getOwnedEnvironment(params.id, user.id);
-    return { ...sanitizeResponse(env), secret: env.secret };
-  } catch (err: any) {
-    if (err.statusCode) return error(err.statusCode, { error: { type: err.code, message: err.message } });
-    throw err;
-  }
+  const env = await getOwnedEnvironment(params.id, user.id);
+  return { ...sanitizeResponse(env), secret: env.secret };
 }, { sessionAuth: true });
 
 /** PUT /web/environments/:id — Update environment metadata */
-app.put("/environments/:id", async ({ store, params, body, error }) => {
+app.put("/environments/:id", async ({ store, params, body }) => {
   const user = store.user!;
   const b = body as { name?: string; description?: string | null; workspacePath?: string; agentName?: string | null; agentConfigId?: string | null; autoStart?: boolean };
 
-  try {
-    const updated = await updateWebEnvironment(params.id, user.id, {
-      name: b.name,
-      description: b.description,
-      workspacePath: b.workspacePath,
-      agentName: b.agentName,
-      agentConfigId: b.agentConfigId,
-      autoStart: b.autoStart,
-    });
-    return sanitizeResponse(updated!);
-  } catch (err: any) {
-    if (err.statusCode) return error(err.statusCode, { error: { type: err.code, message: err.message } });
-    throw err;
-  }
+  const updated = await updateWebEnvironment(params.id, user.id, {
+    name: b.name,
+    description: b.description,
+    workspacePath: b.workspacePath,
+    agentName: b.agentName,
+    agentConfigId: b.agentConfigId,
+    autoStart: b.autoStart,
+  });
+  return sanitizeResponse(updated!);
 }, { sessionAuth: true, body: "update-environment-request" });
 
 /** POST /web/environments/:id/enter — Enter an environment */
 app.post("/environments/:id/enter", async ({ store, params, body, error }) => {
   const user = store.user!;
-  try {
-    await getOwnedEnvironment(params.id, user.id);
-  } catch (err: any) {
-    if (err.statusCode) return error(err.statusCode, { error: { type: err.code, message: err.message } });
-    throw err;
-  }
+  await getOwnedEnvironment(params.id, user.id);
 
   const b = body as { instance_number?: number };
   let inst: import("../../services/instance").SpawnedInstance | undefined;
@@ -164,14 +143,9 @@ app.post("/environments/:id/enter", async ({ store, params, body, error }) => {
 }, { sessionAuth: true, body: "enter-environment-request" });
 
 /** GET /web/environments/:id/instances — List active instances for an environment */
-app.get("/environments/:id/instances", async ({ store, params, error }) => {
+app.get("/environments/:id/instances", async ({ store, params }) => {
   const user = store.user!;
-  try {
-    await getOwnedEnvironment(params.id, user.id);
-  } catch (err: any) {
-    if (err.statusCode) return error(err.statusCode, { error: { type: err.code, message: err.message } });
-    throw err;
-  }
+  await getOwnedEnvironment(params.id, user.id);
 
   const activeInstances = listInstancesByEnvironment(params.id);
   return {
@@ -188,16 +162,11 @@ app.get("/environments/:id/instances", async ({ store, params, error }) => {
 }, { sessionAuth: true });
 
 /** DELETE /web/environments/:id — Delete environment */
-app.delete("/environments/:id", async ({ store, params, error }) => {
+app.delete("/environments/:id", async ({ store, params }) => {
   const user = store.user!;
-  try {
-    await getOwnedEnvironment(params.id, user.id);
-    await deleteEnvironment(params.id);
-    return { ok: true as const };
-  } catch (err: any) {
-    if (err.statusCode) return error(err.statusCode, { error: { type: err.code, message: err.message } });
-    throw err;
-  }
+  await getOwnedEnvironment(params.id, user.id);
+  await deleteEnvironment(params.id);
+  return { ok: true as const };
 }, { sessionAuth: true });
 
 export default app;
