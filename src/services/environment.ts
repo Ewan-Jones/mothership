@@ -176,3 +176,90 @@ export async function reconnectEnvironment(envId: string) {
 export async function deleteEnvironment(envId: string): Promise<boolean> {
   return environmentRepo.delete(envId);
 }
+
+// ────────────────────────────────────────────
+// Web 控制面板专用接口
+// ────────────────────────────────────────────
+
+/** 将 EnvironmentRecord 转为 API 响应格式 */
+export function sanitizeResponse(row: EnvironmentRecord) {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? null,
+    workspace_path: row.workspacePath,
+    agent_name: row.agentName ?? null,
+    agent_config_id: (row as any).agentConfigId ?? null,
+    status: row.status,
+    machine_name: row.machineName ?? null,
+    branch: row.branch ?? null,
+    auto_start: row.autoStart ?? false,
+    last_poll_at: row.lastPollAt
+      ? Math.floor(new Date(row.lastPollAt).getTime() / 1000)
+      : null,
+    created_at: Math.floor(new Date(row.createdAt).getTime() / 1000),
+    updated_at: Math.floor(new Date(row.updatedAt).getTime() / 1000),
+  };
+}
+
+/** 获取 Environment 并验证归属，未找到或不属于该用户时抛出 NotFoundError */
+export async function getOwnedEnvironment(envId: string, userId: string) {
+  const env = await environmentRepo.getById(envId);
+  if (!env || env.userId !== userId) {
+    throw new NotFoundError("环境不存在");
+  }
+  return env;
+}
+
+export interface UpdateWebEnvironmentParams {
+  name?: string;
+  description?: string | null;
+  workspacePath?: string;
+  agentName?: string | null;
+  agentConfigId?: string | null;
+  autoStart?: boolean;
+}
+
+/** 更新 Web 控制面板 Environment — 包含参数校验、Agent 配置解析 */
+export async function updateWebEnvironment(envId: string, userId: string, params: UpdateWebEnvironmentParams) {
+  await getOwnedEnvironment(envId, userId);
+  const patch: Record<string, unknown> = {};
+
+  if (params.name !== undefined) {
+    if (!KEBAB_CASE_RE.test(params.name)) {
+      throw new ValidationError("name 必须为 kebab-case 格式");
+    }
+    patch.name = params.name;
+  }
+  if (params.workspacePath !== undefined) {
+    const pathError = validateWorkspacePath(params.workspacePath);
+    if (pathError) throw new ValidationError(pathError);
+    patch.workspacePath = ensureWorkspaceDir(params.workspacePath);
+  }
+  if (params.agentConfigId !== undefined) {
+    if (params.agentConfigId) {
+      const agent = await configPg.getAgentConfigById(params.agentConfigId);
+      if (!agent) throw new ValidationError(`AgentConfig '${params.agentConfigId}' 不存在`);
+      patch.agentConfigId = params.agentConfigId;
+      patch.agentName = agent.name;
+    } else {
+      patch.agentConfigId = null;
+    }
+  } else if (params.agentName !== undefined) {
+    if (params.agentName) {
+      const agent = await configPg.getAgentConfig(userId, params.agentName);
+      if (!agent) throw new ValidationError(`Agent '${params.agentName}' 不存在`);
+      patch.agentConfigId = agent.id;
+    }
+    patch.agentName = params.agentName ?? null;
+  }
+  if (params.description !== undefined) {
+    patch.description = params.description;
+  }
+  if (params.autoStart !== undefined) {
+    patch.autoStart = !!params.autoStart;
+  }
+
+  await environmentRepo.update(envId, patch);
+  return environmentRepo.getById(envId);
+}
