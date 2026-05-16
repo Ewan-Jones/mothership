@@ -371,3 +371,12 @@
 2. **WARNING — agent-config.ts 服务层 top_p→topP 防御映射**：路由层已做映射，但服务层 `AGENT_SETTABLE_FIELDS` 循环直接用 `set["top_p"]=value`（Drizzle 不识别），添加 `FIELD_ALIAS` 映射表兜底，防止直接调用时值被静默丢弃。
 3. **CLEANUP — agent-config.ts validateAgentData topP 校验**：补充 `data.topP` 范围校验（0-1），消除已知校验缺口。
 4. 新增 `mcp-count-number-coercion.test.ts`（3 用例）、`agent-config-top-p-alias.test.ts`（6 用例），修正 `agent-config-validators.test.ts` expected 数组。34 轮累计 347 个测试。
+
+## 2026-05-17 第三十五次审查
+
+审查范围：同 R34 全量 service 文件及 config 子目录
+
+修复（2 DRY）：
+1. **DRY — agent-config.ts 重复字段映射循环**：`createAgentConfig`/`updateAgentConfig` 共享完全相同的 `AGENT_SETTABLE_FIELDS`+`FIELD_ALIAS` for 循环（8 行），提取为 `buildSetFromData` 辅助函数。
+2. **DRY — model.ts addModel 重复字段映射**：`values`（insert 用）和 `set`（conflict update 用）映射相同 6 个字段，提取为 `buildModelValues` 辅助函数。
+3. 新增 `agent-config-build-set.test.ts`（4 用例）、`model-build-values.test.ts`（3 用例）。35 轮累计 354 个测试。
