@@ -419,8 +419,8 @@ export async function importWorkspaceSkillDirectories(
 
     return { imported, skipped, conflicts: [] };
   } catch (err) {
-    await cleanupWrittenSkills(targetDir, attemptedNames);
-    await restoreFromBackup(snapshots, targetDir);
+    try { await cleanupWrittenSkills(targetDir, attemptedNames); } catch (e) { logError("[Skill] Failed to cleanup written skills:", e); }
+    try { await restoreFromBackup(snapshots, targetDir); } catch (e) { logError("[Skill] Failed to restore from backup:", e); }
     throw err;
   } finally {
     await cleanupBackupDir(backupRoot);

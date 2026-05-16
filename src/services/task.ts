@@ -229,10 +229,9 @@ export async function updateTask(userId: string, taskId: string, data: UpdateTas
 }
 
 export async function deleteTask(userId: string, taskId: string): Promise<ServiceResult<undefined>> {
-  const exists = await scheduledTaskRepo.existsByUserAndId(userId, taskId);
-  if (!exists) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
+  const deleted = await scheduledTaskRepo.deleteByUserAndId(userId, taskId);
+  if (!deleted) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
 
-  await scheduledTaskRepo.deleteByUserAndId(userId, taskId);
   unscheduleTask(taskId);
   return { success: true, data: undefined };
 }

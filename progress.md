@@ -179,3 +179,12 @@
 2. **CLEANUP — writeLogAndReturn 双重截断**：`task.ts` 的 `writeLogAndReturn` 对 `resultSummary` 调用 `truncateSummary`，但 2 个调用方已截断。移除冗余调用。
 3. **CLEANUP — stopScheduler 容错**：`scheduler.ts` 的 `job.cancel()` 包裹 try-catch，避免单个 job 取消失败阻断后续清理。
 4. 新增 `instance-error-codes.test.ts`（6 用例）覆盖 code→status 映射。15 轮累计 195 个测试。
+
+## 2026-05-17 第十六次审查
+
+审查范围：task TOCTOU、skill rollback 容错
+
+修复（1 CLEANUP + 1 WARNING）：
+1. **CLEANUP — deleteTask 双查询 → 单查询**：`task.ts` 的 `deleteTask` 从 `existsByUserAndId` + `deleteByUserAndId`（2次DB查询）简化为单次 `deleteByUserAndId`（已有 userId WHERE + returning 判断），消除 TOCTOU 竞态窗口。
+2. **WARNING — importWorkspaceSkillDirectories 回滚错误掩盖**：`skill.ts` 的 workspace import 回滚路径中 `cleanupWrittenSkills`/`restoreFromBackup` 若抛出异常会掩盖原始错误。包裹 try-catch + logError。
+3. 新增 `delete-task-toctou.test.ts`（4 用例）覆盖单查询删除逻辑。16 轮累计 199 个测试。

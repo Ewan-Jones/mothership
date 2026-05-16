@@ -343,5 +343,3 @@ export function listInstancesResponse(environmentId: string): InstanceListRespon
     })),
   };
 }
-
-
