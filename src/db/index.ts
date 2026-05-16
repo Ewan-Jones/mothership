@@ -352,12 +352,8 @@ export async function initDb() {
       title VARCHAR,
       status VARCHAR NOT NULL,
       source VARCHAR NOT NULL,
-      permission_mode VARCHAR,
-      worker_epoch INTEGER NOT NULL DEFAULT 0,
       username VARCHAR,
       user_id TEXT,
-      cwd VARCHAR,
-      share_mode VARCHAR(20) NOT NULL DEFAULT 'none',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );

@@ -29,7 +29,6 @@ app.post("/:id/bridge", async ({ params, error }) => {
 
   return {
     api_base_url: getBaseUrl(),
-    worker_epoch: 0,
     worker_jwt: workerJwt,
     expires_in: expiresInSeconds,
   };

@@ -5,7 +5,6 @@ export const CreateSessionRequestSchema = z.object({
   environment_id: z.string().optional(),
   title: z.string().optional(),
   source: z.string().optional(),
-  permission_mode: z.string().optional(),
   username: z.string().optional(),
   events: z.array(z.record(z.string(), z.unknown())).optional(),
 });

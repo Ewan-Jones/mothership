@@ -7,8 +7,6 @@ export const SessionResponseSchema = z.object({
   title: z.string().nullable(),
   status: z.string(),
   source: z.string(),
-  permission_mode: z.string().nullable(),
-  worker_epoch: z.number(),
   username: z.string().nullable(),
   created_at: z.number(),
   updated_at: z.number(),

@@ -98,7 +98,7 @@ app.post("/:id/worker/register", async ({ params, error }) => {
     return error(404, { error: { type: "not_found", message: "Session not found" } });
   }
 
-  return { worker_epoch: 0 };
+  return { status: "ok" };
 }, { apiKeyAuth: true });
 
 export default app;

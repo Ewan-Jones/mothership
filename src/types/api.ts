@@ -41,8 +41,6 @@ export interface SessionResponse {
   title: string | null;
   status: string;
   source: string;
-  permission_mode: string | null;
-  worker_epoch: number;
   username: string | null;
   created_at: number;
   updated_at: number;
@@ -52,17 +50,13 @@ export interface CreateSessionRequest {
   environment_id?: string;
   title?: string;
   source?: string;
-  permission_mode?: string;
   username?: string;
-  cwd?: string;
 }
 
 export interface CreateCodeSessionRequest {
   title?: string;
   source?: string;
   username?: string;
-  permission_mode?: string;
-  cwd?: string;
 }
 
 export interface WorkResponse {
