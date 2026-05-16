@@ -340,11 +340,13 @@ export async function executeTaskById(
     );
   } catch (err: unknown) {
     logError("[Task] Execution failed for task", taskId, err);
+    // 区分超时和其他错误：AbortSignal.timeout 触发的 AbortError 标为 "timeout"
+    const isTimeout = err instanceof DOMException && err.name === "AbortError";
     const message = err instanceof Error ? err.message : String(err);
     const duration = Date.now() - startTime;
 
     return writeLogAndReturn(
-      logId, task.id, "failed",
+      logId, task.id, isTimeout ? "timeout" : "failed",
       message, duration, triggeredBy, truncateSummary(message), now,
     );
   }

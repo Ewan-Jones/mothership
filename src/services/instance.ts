@@ -296,10 +296,6 @@ export async function enterEnvironment(
     inst = result.instance;
   }
 
-  if (!inst) {
-    throw new AppError("无法创建实例", "INTERNAL_ERROR", 500);
-  }
-
   // 为该环境查找或创建 RCS session（前端导航需要 session_id）
   const { id: sessionId } = await findOrCreateForEnvironment(
     environmentId,
