@@ -49,6 +49,11 @@ export async function createWebEnvironment(params: CreateWebEnvironmentParams) {
     throw new ConfigWriteError(`无法创建目录: ${msg}`);
   }
 
+  // 符号链接逃逸防御：ensureWorkspaceDir 通过 realpathSync 解析了符号链接，
+  // 需对真实路径重新校验（如 /tmp/link_to_etc → /etc 会被拦截）
+  const realPathError = validateWorkspacePath(workspacePath);
+  if (realPathError) throw new ValidationError(realPathError);
+
   // 创建记录
   const secret = generateEnvSecret();
   let record;
@@ -89,7 +94,11 @@ export async function updateWebEnvironment(envId: string, userId: string, params
   if (params.workspacePath !== undefined) {
     const pathError = validateWorkspacePath(params.workspacePath);
     if (pathError) throw new ValidationError(pathError);
-    patch.workspacePath = ensureWorkspaceDir(params.workspacePath);
+    const realPath = ensureWorkspaceDir(params.workspacePath);
+    // 符号链接逃逸防御：重新校验 realpathSync 解析后的真实路径
+    const realPathError = validateWorkspacePath(realPath);
+    if (realPathError) throw new ValidationError(realPathError);
+    patch.workspacePath = realPath;
   }
   if (params.agentConfigId !== undefined) {
     if (params.agentConfigId) {

@@ -56,7 +56,7 @@ export async function createAgentConfig(
   const set = buildSetFromData(data);
   const values = { userId, name, ...set } as typeof agentConfig.$inferInsert;
 
-  await db.insert(agentConfig).values(values as typeof agentConfig.$inferInsert)
+  await db.insert(agentConfig).values(values)
     .onConflictDoUpdate({
       target: [agentConfig.userId, agentConfig.name],
       set,

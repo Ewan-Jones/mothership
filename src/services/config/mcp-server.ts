@@ -144,7 +144,7 @@ export function validateMcpConfig(config: unknown): string | null {
   const type = cfg.type as string;
 
   if (type === "local") {
-    if (!Array.isArray(cfg.command) || cfg.command.length === 0 || !cfg.command.every((c: unknown) => typeof c === "string")) {
+    if (!Array.isArray(cfg.command) || cfg.command.length === 0 || cfg.command.some((c: unknown) => typeof c !== "string")) {
       return "INVALID_COMMAND";
     }
     if (cfg.environment !== undefined && (typeof cfg.environment !== "object" || cfg.environment === null)) {
