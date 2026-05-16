@@ -8,9 +8,11 @@ import { authGuardPlugin } from "../../plugins/auth";
 import { eventService } from "../../services/event-service";
 import { sessionWorkerRepo } from "../../repositories";
 import { v4 as uuid } from "uuid";
+import { UpdateWorkerRequestSchema, type UpdateWorkerRequest } from "../../schemas/v2-worker.schema";
 
 const app = new Elysia({ name: "v1-code-sessions-worker", prefix: "/v1/code/sessions" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({ "update-worker-request": UpdateWorkerRequestSchema });
 
 /** GET /v1/code/sessions/:id/worker — Read worker state */
 app.get("/:id/worker", async ({ params, error }) => {
@@ -39,7 +41,7 @@ app.put("/:id/worker", async ({ params, body, error }) => {
     return error(404, { error: { type: "not_found", message: "Session not found" } });
   }
 
-  const b = (body as any) ?? {};
+  const b = body as UpdateWorkerRequest;
   const prevAutomationState = getAutomationStateEventPayload(
     (await sessionWorkerRepo.get(sessionId))?.externalMetadata,
   );
@@ -75,7 +77,7 @@ app.put("/:id/worker", async ({ params, body, error }) => {
       last_heartbeat_at: worker.lastHeartbeatAt?.toISOString() ?? null,
     },
   };
-}, { sessionIngressAuth: true });
+}, { sessionIngressAuth: true, body: "update-worker-request" });
 
 /** POST /v1/code/sessions/:id/worker/heartbeat — Keep worker alive */
 app.post("/:id/worker/heartbeat", async ({ params, error }) => {

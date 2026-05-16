@@ -2,9 +2,14 @@ import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
 import { publishSessionEvent } from "../../services/transport";
 import { getSession, touchSession, updateSessionStatus } from "../../services/session";
+import { WorkerEventsRequestSchema, WorkerStateRequestSchema, type WorkerStateRequest } from "../../schemas/v2-worker-events.schema";
 
 const app = new Elysia({ name: "v1-code-sessions-worker-events", prefix: "/v1/code/sessions" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "worker-events-request": WorkerEventsRequestSchema,
+    "worker-state-request": WorkerStateRequestSchema,
+  });
 
 function extractWorkerEvents(body: unknown): Array<Record<string, unknown>> {
   if (!body || typeof body !== "object") {
@@ -35,9 +40,8 @@ app.post("/:id/worker/events", async ({ params, body, error }) => {
   if (!getSession(sessionId)) {
     return error(404, { error: { type: "not_found", message: "Session not found" } });
   }
-  const b = (body as any) ?? {};
 
-  const events = extractWorkerEvents(b);
+  const events = extractWorkerEvents(body);
   const published = [];
   for (const evt of events) {
     const eventType = typeof evt.type === "string" ? evt.type : "message";
@@ -48,7 +52,7 @@ app.post("/:id/worker/events", async ({ params, body, error }) => {
   touchSession(sessionId);
 
   return { status: "ok", count: published.length };
-}, { sessionIngressAuth: true });
+}, { sessionIngressAuth: true, body: "worker-events-request" });
 
 /** PUT /v1/code/sessions/:id/worker/state — Report worker state */
 app.put("/:id/worker/state", async ({ params, body, error }) => {
@@ -56,7 +60,7 @@ app.put("/:id/worker/state", async ({ params, body, error }) => {
   if (!getSession(sessionId)) {
     return error(404, { error: { type: "not_found", message: "Session not found" } });
   }
-  const b = (body as any) ?? {};
+  const b = body as WorkerStateRequest;
 
   if (b.status) {
     updateSessionStatus(sessionId, b.status);
@@ -65,7 +69,7 @@ app.put("/:id/worker/state", async ({ params, body, error }) => {
   }
 
   return { status: "ok" };
-}, { sessionIngressAuth: true });
+}, { sessionIngressAuth: true, body: "worker-state-request" });
 
 /** PUT /v1/code/sessions/:id/worker/external_metadata — Report worker metadata (no-op) */
 app.put("/:id/worker/external_metadata", async ({ params, error }) => {

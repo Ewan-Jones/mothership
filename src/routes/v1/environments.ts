@@ -3,9 +3,16 @@ import { randomBytes } from "node:crypto";
 import { authGuardPlugin } from "../../plugins/auth";
 import { environmentRepo, sessionRepo } from "../../repositories";
 import { deleteEnvironment } from "../../services/environment";
+import {
+  BridgeRegistrationRequestSchema,
+  type BridgeRegistrationRequest,
+} from "../../schemas/v1-environment.schema";
 
 const app = new Elysia({ name: "v1-environments", prefix: "/v1/environments" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "bridge-registration-request": BridgeRegistrationRequestSchema,
+  });
 
 function generateBridgeSecret(): string {
   return `rest_${randomBytes(24).toString("hex")}`;
@@ -14,7 +21,7 @@ function generateBridgeSecret(): string {
 /** POST /v1/environments/bridge — REST registration for acp-link compatibility */
 app.post("/bridge", async ({ store, body, error }) => {
   const user = store.user!;
-  const b = (body as any) ?? {};
+  const b = body as BridgeRegistrationRequest;
 
   // If authenticated via environment secret, return the existing environment
   const authEnvId = store.authEnvironmentId as string | undefined;
@@ -74,7 +81,7 @@ app.post("/bridge", async ({ store, body, error }) => {
     status: record.status,
     session_id: sessionId,
   };
-}, { apiKeyAuth: true });
+}, { apiKeyAuth: true, body: "bridge-registration-request" });
 
 /** DELETE /v1/environments/bridge/:id — Deregister */
 app.delete("/bridge/:id", async ({ store, params, error }) => {

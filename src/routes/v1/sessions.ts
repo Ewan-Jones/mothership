@@ -10,13 +10,26 @@ import {
 import { createWorkItem } from "../../services/work-dispatch";
 import { authGuardPlugin } from "../../plugins/auth";
 import { publishSessionEvent } from "../../services/transport";
+import {
+  CreateSessionRequestSchema,
+  UpdateSessionRequestSchema,
+  SendEventsRequestSchema,
+  type CreateSessionRequest,
+  type UpdateSessionRequest,
+  type SendEventsRequest,
+} from "../../schemas/v1-session.schema";
 
 const app = new Elysia({ name: "v1-sessions", prefix: "/v1/sessions" })
-  .use(authGuardPlugin);
+  .use(authGuardPlugin)
+  .model({
+    "create-session-request": CreateSessionRequestSchema,
+    "update-session-request": UpdateSessionRequestSchema,
+    "send-events-request": SendEventsRequestSchema,
+  });
 
 /** POST /v1/sessions — Create session */
 app.post("/", async ({ store, body }) => {
-  const b = (body as any) ?? {};
+  const b = body as CreateSessionRequest;
   const username = (store as any).username as string | undefined;
   const session = await createSession({ ...b, username });
 
@@ -32,12 +45,12 @@ app.post("/", async ({ store, body }) => {
   // Publish initial events if provided
   if (b.events && Array.isArray(b.events)) {
     for (const evt of b.events) {
-      publishSessionEvent(session.id, evt.type || "init", evt, "outbound");
+      publishSessionEvent(session.id, (evt.type as string) || "init", evt, "outbound");
     }
   }
 
   return session;
-}, { apiKeyAuth: true });
+}, { apiKeyAuth: true, body: "create-session-request" });
 
 /** GET /v1/sessions/:id — Get session */
 app.get("/:id", async ({ params, error }) => {
@@ -56,13 +69,13 @@ app.patch("/:id", async ({ params, body, error }) => {
   if (!existing) {
     return error(404, { error: { type: "not_found", message: "Session not found" } });
   }
-  const b = (body as any) ?? {};
+  const b = body as UpdateSessionRequest;
   if (b.title) {
     await updateSessionTitle(sessionId, b.title);
   }
   const session = await getSession(sessionId);
   return session;
-}, { apiKeyAuth: true });
+}, { apiKeyAuth: true, body: "update-session-request" });
 
 /** POST /v1/sessions/:id/archive — Archive session */
 app.post("/:id/archive", async ({ params, error }) => {
@@ -88,18 +101,18 @@ app.post("/:id/events", async ({ params, body, error }) => {
   if (!session) {
     return error(404, { error: { type: "not_found", message: "Session not found" } });
   }
-  const b = (body as any) ?? {};
+  const b = body as SendEventsRequest;
 
   const events = b.events
     ? Array.isArray(b.events) ? b.events : [b.events]
-    : Array.isArray(body) ? body : [body];
+    : [];
   const published = [];
   for (const evt of events) {
-    const result = publishSessionEvent(sessionId, evt.type || "message", evt, "inbound");
+    const result = publishSessionEvent(sessionId, (evt.type as string) || "message", evt, "inbound");
     published.push(result);
   }
 
   return { status: "ok", events: published.length };
-}, { apiKeyAuth: true });
+}, { apiKeyAuth: true, body: "send-events-request" });
 
 export default app;
