@@ -40,7 +40,9 @@ export async function updateMcpServer(
   config: Record<string, unknown>,
 ) {
   const updates: Partial<typeof mcpServer.$inferInsert> = { config, updatedAt: new Date() };
-  if (typeof config.type === "string") updates.type = config.type;
+  if (typeof config.type === "string" && VALID_MCP_TYPES.includes(config.type)) {
+    updates.type = config.type;
+  }
   await db.update(mcpServer)
     .set(updates)
     .where(and(eq(mcpServer.userId, userId), eq(mcpServer.name, name)));
@@ -116,6 +118,9 @@ export function isValidMcpName(name: string): boolean {
     && !/--/.test(name)
     && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(name);
 }
+
+/** 允许的 MCP 服务器类型 */
+const VALID_MCP_TYPES: string[] = ["local", "remote", "streamable-http"];
 
 /** 校验 MCP 配置结构，返回错误码或 null */
 export function validateMcpConfig(config: unknown): string | null {

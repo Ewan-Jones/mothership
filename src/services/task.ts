@@ -90,7 +90,7 @@ function validateCron(cron: string): string | null {
   return null;
 }
 
-function validateTaskInput(data: CreateTaskInput, isUpdate = false): string | null {
+function validateTaskInput(data: Partial<CreateTaskInput>, isUpdate = false): string | null {
   if (data.name !== undefined) {
     if (data.name.trim().length === 0) return "任务名称不能为空";
     if (data.name.length > 128) return "任务名称不能超过 128 字符";
@@ -204,7 +204,7 @@ export async function updateTask(userId: string, taskId: string, data: UpdateTas
   const existing = await scheduledTaskRepo.getByUserAndId(userId, taskId);
   if (!existing) return { success: false, error: { code: "NOT_FOUND", message: "任务不存在" } };
 
-  const validationError = validateTaskInput(data as CreateTaskInput, true);
+  const validationError = validateTaskInput(data, true);
   if (validationError) return { success: false, error: { code: "VALIDATION_ERROR", message: validationError } };
 
   const updates: Partial<ScheduledTaskInsert> = { updatedAt: new Date() };

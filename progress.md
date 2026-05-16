@@ -240,3 +240,14 @@
 3. **PERFORMANCE — skill.ts listSkillSources 并行查询**：`listSkills` 和 `environmentRepo.listByUserId` 从串行改为 `Promise.all` 并行。
 4. **DEAD IMPORT — environment-web.ts 移除未使用的 `randomBytes` import**。
 5. 新增 `scheduler-prefetch.test.ts`（3 用例）、`update-task-no-requery.test.ts`（3 用例）。21 轮累计 233 个测试。
+
+## 2026-05-17 第二十二次审查
+
+审查范围：全量 CRUD 层（config 子目录、task、mcp-server、provider、user-config）
+
+修复（2 BUG + 1 WARNING + 1 CLEANUP）：
+1. **BUG — provider.ts upsertProvider TOCTOU**：SELECT+INSERT/UPDATE 竞态改为 `onConflictDoUpdate` 原子操作，消除并发创建同名 provider 时的 unique violation 错误（2-3 查询→1 查询）。
+2. **BUG — user-config.ts setUserConfig TOCTOU**：同上，SELECT+INSERT/UPDATE 改为 `onConflictDoUpdate`（2 查询→1 查询）。
+3. **WARNING — mcp-server.ts updateMcpServer 未校验 type**：`config.type` 从任意字符串改为 `VALID_MCP_TYPES` 白名单校验，防止无效类型写入 DB。
+4. **CLEANUP — task.ts validateTaskInput 泛型签名**：参数从 `CreateTaskInput` 改为 `Partial<CreateTaskInput>`，消除 `updateTask` 中的 `as CreateTaskInput` 类型断言。
+5. 新增 `mcp-server-type-validation.test.ts`（7 用例）、`validate-task-partial.test.ts`（6 用例）。22 轮累计 246 个测试。

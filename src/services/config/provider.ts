@@ -60,34 +60,27 @@ export async function upsertProvider(
     extraOptions?: Record<string, unknown>;
   },
 ) {
-  const existing = await db.select({ id: provider.id }).from(provider)
-    .where(and(eq(provider.userId, userId), eq(provider.name, name)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    await db.update(provider)
-      .set({
-        displayName: data.displayName,
-        npm: data.npm,
-        baseUrl: data.baseUrl,
-        apiKey: data.apiKey,
-        extraOptions: data.extraOptions ?? undefined,
-        updatedAt: new Date(),
-      })
-      .where(eq(provider.id, existing[0].id));
-    return existing[0].id;
-  }
-
-  const inserted = await db.insert(provider).values({
-    userId,
-    name,
+  const set = {
     displayName: data.displayName,
     npm: data.npm,
     baseUrl: data.baseUrl,
     apiKey: data.apiKey,
     extraOptions: data.extraOptions ?? undefined,
-  }).returning({ id: provider.id });
-  return inserted[0].id;
+    updatedAt: new Date(),
+  };
+
+  const [row] = await db.insert(provider).values({
+    userId,
+    name,
+    ...set,
+  })
+    .onConflictDoUpdate({
+      target: [provider.userId, provider.name],
+      set,
+    })
+    .returning({ id: provider.id });
+
+  return row.id;
 }
 
 export async function deleteProvider(userId: string, name: string): Promise<boolean> {

@@ -30,25 +30,20 @@ export async function getUserConfig(userId: string): Promise<UserConfigData> {
 }
 
 export async function setUserConfig(userId: string, patch: UserConfigData) {
-  const values: Partial<typeof userConfig.$inferInsert> = { updatedAt: new Date() };
-  if (patch.defaultAgent !== undefined) values.defaultAgent = patch.defaultAgent;
-  if (patch.currentModel !== undefined) values.currentModel = patch.currentModel;
-  if (patch.smallModel !== undefined) values.smallModel = patch.smallModel;
+  const set: Partial<typeof userConfig.$inferInsert> = { updatedAt: new Date() };
+  if (patch.defaultAgent !== undefined) set.defaultAgent = patch.defaultAgent;
+  if (patch.currentModel !== undefined) set.currentModel = patch.currentModel;
+  if (patch.smallModel !== undefined) set.smallModel = patch.smallModel;
   if (patch.permission !== undefined) {
-    values.permission = patch.permission ?? null;
+    set.permission = patch.permission ?? null;
   }
 
-  const existing = await db.select({ userId: userConfig.userId }).from(userConfig)
-    .where(eq(userConfig.userId, userId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    await db.update(userConfig).set(values)
-      .where(eq(userConfig.userId, userId));
-  } else {
-    await db.insert(userConfig).values({
-      userId,
-      ...values,
+  await db.insert(userConfig).values({
+    userId,
+    ...set,
+  })
+    .onConflictDoUpdate({
+      target: [userConfig.userId],
+      set,
     });
-  }
 }
