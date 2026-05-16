@@ -209,3 +209,13 @@
 3. **DRY — aggregate.ts 重复查询**：全局 skills 查询提取 `listGlobalSkills` 辅助函数，消除两处重复。
 4. **CLEANUP — getTaskById 返回类型**：`task.ts` 补充 `Promise<ScheduledTaskRow | null>` 显式返回类型。
 5. 新增 `set-skill-rollback.test.ts`（3 用例）、`stop-all-instances-stopping.test.ts`（4 用例）。18 轮累计 214 个测试。
+
+## 2026-05-17 第十九次审查
+
+审查范围：全量 CRUD 层（task、scheduler、instance）
+
+修复（1 WARNING + 2 CLEANUP）：
+1. **WARNING — executeTaskById timeout 状态区分**：`task.ts` 检测 `AbortSignal.timeout` 触发的 `AbortError`，状态标为 `"timeout"` 而非 `"failed"`。
+2. **CLEANUP — scheduler skipped 分支容错**：`scheduler.ts` `executeTask` 的 skipped 分支 DB 操作包裹 try-catch，失败不再冒泡。
+3. **CLEANUP — enterEnvironment 死代码**：移除不可达的 `if (!inst)` 防御检查。
+4. 新增 `task-timeout-status.test.ts`（3 用例）。19 轮累计 217 个测试。
