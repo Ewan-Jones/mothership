@@ -21,10 +21,10 @@ export async function addModel(
     providerId,
     modelId: data.modelId,
     displayName: data.displayName,
-    modalities: data.modalities ? JSON.stringify(data.modalities) : undefined,
-    limitConfig: data.limitConfig ? JSON.stringify(data.limitConfig) : undefined,
-    cost: data.cost ? JSON.stringify(data.cost) : undefined,
-    options: data.options ? JSON.stringify(data.options) : undefined,
+    modalities: data.modalities ?? undefined,
+    limitConfig: data.limitConfig ?? undefined,
+    cost: data.cost ?? undefined,
+    options: data.options ?? undefined,
   });
 }
 
@@ -41,10 +41,10 @@ export async function updateModel(
 ) {
   const set: Record<string, unknown> = { updatedAt: new Date() };
   if (data.displayName !== undefined) set.displayName = data.displayName;
-  if (data.modalities !== undefined) set.modalities = JSON.stringify(data.modalities);
-  if (data.limitConfig !== undefined) set.limitConfig = JSON.stringify(data.limitConfig);
-  if (data.cost !== undefined) set.cost = JSON.stringify(data.cost);
-  if (data.options !== undefined) set.options = JSON.stringify(data.options);
+  if (data.modalities !== undefined) set.modalities = data.modalities;
+  if (data.limitConfig !== undefined) set.limitConfig = data.limitConfig;
+  if (data.cost !== undefined) set.cost = data.cost;
+  if (data.options !== undefined) set.options = data.options;
 
   await db.update(model).set(set)
     .where(and(eq(model.providerId, providerId), eq(model.modelId, modelId)));

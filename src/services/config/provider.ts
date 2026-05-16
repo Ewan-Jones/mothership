@@ -71,7 +71,7 @@ export async function upsertProvider(
         npm: data.npm,
         baseUrl: data.baseUrl,
         apiKey: data.apiKey,
-        extraOptions: data.extraOptions ? JSON.stringify(data.extraOptions) : undefined,
+        extraOptions: data.extraOptions ?? undefined,
         updatedAt: new Date(),
       })
       .where(eq(provider.id, existing[0].id));
@@ -85,7 +85,7 @@ export async function upsertProvider(
     npm: data.npm,
     baseUrl: data.baseUrl,
     apiKey: data.apiKey,
-    extraOptions: data.extraOptions ? JSON.stringify(data.extraOptions) : undefined,
+    extraOptions: data.extraOptions ?? undefined,
   }).returning({ id: provider.id });
   return inserted[0].id;
 }

@@ -60,7 +60,7 @@ export async function upsertSkill(
   const values = {
     description: data.description,
     contentPath: data.contentPath,
-    metadata: data.metadata ? JSON.stringify(data.metadata) : undefined,
+    metadata: data.metadata ?? undefined,
     enabled: data.enabled,
     agentConfigId: data.agentConfigId ?? null,
     updatedAt: new Date(),
@@ -79,7 +79,7 @@ export async function upsertSkill(
     name,
     description: data.description,
     contentPath: data.contentPath,
-    metadata: data.metadata ? JSON.stringify(data.metadata) : undefined,
+    metadata: data.metadata ?? undefined,
     enabled: data.enabled ?? true,
   }).returning({ id: skill.id });
   return inserted[0].id;

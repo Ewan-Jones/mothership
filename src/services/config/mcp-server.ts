@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { mcpServer, mcpTool } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
+import { parseJsonb } from "./jsonb";
 import { randomUUID } from "node:crypto";
 
 // ────────────────────────────────────────────
@@ -29,7 +30,7 @@ export async function createMcpServer(
     userId,
     name,
     type,
-    config: JSON.stringify(config),
+    config,
   });
 }
 
@@ -86,7 +87,7 @@ export async function replaceToolsForServer(
       serverName,
       toolName: t.name,
       description: t.description ?? null,
-      inputSchema: t.inputSchema ? JSON.stringify(t.inputSchema) : null,
+      inputSchema: t.inputSchema ?? null,
       inspectedAt: now,
     }));
     await db.insert(mcpTool).values(rows);
@@ -148,7 +149,7 @@ export function validateMcpConfig(config: unknown): string | null {
 
 /** 将 PG 行数据转为前端展示信息 */
 export function toServerInfo(name: string, row: { type: string; config: unknown; enabled: boolean }) {
-  const config = row.config as Record<string, unknown>;
+  const config = parseJsonb<Record<string, unknown>>(row.config) ?? {};
   if (!row.enabled && !("type" in config)) {
     return { name, type: "disabled" as const, enabled: false, summary: "已禁用" };
   }

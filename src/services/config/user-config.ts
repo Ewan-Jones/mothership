@@ -35,7 +35,7 @@ export async function setUserConfig(userId: string, patch: UserConfigData) {
   if (patch.currentModel !== undefined) values.currentModel = patch.currentModel;
   if (patch.smallModel !== undefined) values.smallModel = patch.smallModel;
   if (patch.permission !== undefined) {
-    values.permission = patch.permission != null ? JSON.stringify(patch.permission) : null;
+    values.permission = patch.permission ?? null;
   }
 
   const existing = await db.select({ userId: userConfig.userId }).from(userConfig)

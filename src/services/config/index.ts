@@ -7,3 +7,4 @@ export { getUserConfig, setUserConfig } from "./user-config";
 export type { UserConfigData } from "./user-config";
 export { getAgentFullConfig } from "./aggregate";
 export type { AgentFullConfig } from "./aggregate";
+export { parseJsonb, parseJsonbOr } from "./jsonb";

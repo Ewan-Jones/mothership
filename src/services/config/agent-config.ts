@@ -41,12 +41,7 @@ export async function createAgentConfig(
   const values: Record<string, unknown> = { userId, name };
   for (const field of AGENT_SETTABLE_FIELDS) {
     if (data[field] !== undefined) {
-      const val = data[field];
-      if (field === "permission" || field === "knowledge") {
-        values[field] = val != null ? JSON.stringify(val) : null;
-      } else {
-        values[field] = val;
-      }
+      values[field] = data[field] ?? null;
     }
   }
   await db.insert(agentConfig).values(values as typeof agentConfig.$inferInsert);
@@ -60,12 +55,7 @@ export async function updateAgentConfig(
   const set: Record<string, unknown> = { updatedAt: new Date() };
   for (const field of AGENT_SETTABLE_FIELDS) {
     if (data[field] !== undefined) {
-      const val = data[field];
-      if (field === "permission" || field === "knowledge") {
-        set[field] = val != null ? JSON.stringify(val) : null;
-      } else {
-        set[field] = val;
-      }
+      set[field] = data[field] ?? null;
     }
   }
   await db.update(agentConfig).set(set)
