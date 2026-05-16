@@ -11,7 +11,7 @@ import { v4 as uuid } from "uuid";
 // EventBus 相关（核心保留）
 // ────────────────────────────────────────────
 
-export async function updateSessionStatus(sessionId: string, status: string) {
+export function updateSessionStatus(sessionId: string, status: string): void {
   const bus = eventService.getAllBuses().get(sessionId);
   if (!bus) return;
   bus.publish({
@@ -23,8 +23,8 @@ export async function updateSessionStatus(sessionId: string, status: string) {
   });
 }
 
-export async function archiveSession(sessionId: string) {
-  await updateSessionStatus(sessionId, "archived");
+export function archiveSession(sessionId: string): void {
+  updateSessionStatus(sessionId, "archived");
   eventService.removeBus(sessionId);
 }
 

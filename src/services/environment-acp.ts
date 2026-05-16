@@ -44,10 +44,10 @@ export interface BridgeRegistrationResult {
 /** 旧式 WS 注册（env_ 前缀 secret），保留向后兼容 */
 export async function registerEnvironment(req: RegisterEnvironmentRequest & { metadata?: { worker_type?: string }; username?: string; userId?: string }) {
   const secret = `env_${randomBytes(24).toString("hex")}`;
-  const workerType = req.worker_type || req.metadata?.worker_type;
+  const workerType = req.worker_type ?? req.metadata?.worker_type;
   const record = await environmentRepo.create({
     secret,
-    userId: req.userId || "system",
+    userId: req.userId ?? "system",
     machineName: req.machine_name,
     directory: req.directory,
     branch: req.branch,
@@ -196,7 +196,7 @@ export async function registerBridge(input: BridgeRegistrationInput): Promise<Br
   }
 
   // 新环境：创建 + 自动会话
-  const workerType = input.worker_type || metadata?.worker_type || "acp";
+  const workerType = input.worker_type ?? metadata?.worker_type ?? "acp";
   const secret = `rest_${randomBytes(24).toString("hex")}`;
 
   const record = await environmentRepo.create({

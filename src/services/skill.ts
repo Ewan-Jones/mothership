@@ -4,7 +4,7 @@
  * 全局 Skill 和 Workspace Skill 的业务逻辑，
  * 文件系统操作全部委托给 skill-fs.ts。
  */
-import { mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdir, writeFile, rm, cp, rename } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -63,7 +63,6 @@ export interface SkillSourceInfo {
 }
 
 export async function migrateSkillsDir(): Promise<void> {
-  const { cp } = await import("node:fs/promises");
   const MIGRATED_MARKER = join(OLD_SKILLS_DIR, ".migrated");
 
   if (existsSync(SKILLS_DIR)) return;
@@ -76,7 +75,6 @@ export async function migrateSkillsDir(): Promise<void> {
   await mkdir(join(homedir(), ".agents"), { recursive: true });
 
   try {
-    const { rename } = await import("node:fs/promises");
     await rename(OLD_SKILLS_DIR, SKILLS_DIR);
   } catch (renameErr) {
     log("[RCS] Skills dir rename failed, falling back to copy:", renameErr);
