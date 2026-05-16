@@ -2,12 +2,9 @@ import Elysia from "elysia";
 import { authGuardPlugin } from "../../../plugins/auth";
 import * as configPg from "../../../services/config-pg";
 import { inspectRemoteMcpServer } from "../../../services/mcp-inspector";
-import { db } from "../../../db";
-import { mcpTool } from "../../../db/schema";
-import { eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 import { ConfigBodySchema } from "../../../schemas/config.schema";
 import { configSuccess, configError, configValidationError, configNotFound, isValidResourceName } from "../../../services/config-utils";
+import { countToolsByServer, deleteToolsByServer, replaceToolsForServer, listToolsByServer } from "../../../services/config/mcp-server";
 
 // 内部类型定义（与前端 web/src/types/config.ts 对齐）
 type McpLocalConfig = {
@@ -106,10 +103,8 @@ async function handleList(userId: string) {
   const serversWithCount = await Promise.all(
     servers.map(async (s) => {
       try {
-        const tools = await db.select({ id: mcpTool.id })
-          .from(mcpTool)
-          .where(eq(mcpTool.serverName, s.name));
-        return { ...toServerInfo(s.name, s), toolsCount: tools.length };
+        const toolsCount = await countToolsByServer(s.name);
+        return { ...toServerInfo(s.name, s), toolsCount };
       } catch {
         return { ...toServerInfo(s.name, s), toolsCount: 0 };
       }
@@ -156,7 +151,7 @@ async function handleDelete(userId: string, name: string) {
   if (!deleted) return { success: false, error: { code: "NOT_FOUND", message: `MCP server '${name}' not found` } };
 
   try {
-    await db.delete(mcpTool).where(eq(mcpTool.serverName, name));
+    await deleteToolsByServer(name);
   } catch {
     // ignore db errors on cleanup
   }
@@ -282,19 +277,7 @@ async function handleInspect(userId: string, name: string) {
     return { success: false, error: { code: "VALIDATION_ERROR", message: result.message ?? "无法连接到 MCP 服务器" } };
   }
 
-  await db.delete(mcpTool).where(eq(mcpTool.serverName, name));
-  const now = new Date();
-  if (result.tools.length > 0) {
-    const rows = result.tools.map((t) => ({
-      id: randomUUID(),
-      serverName: name,
-      toolName: t.name,
-      description: t.description ?? null,
-      inputSchema: t.inputSchema ? JSON.stringify(t.inputSchema) : null,
-      inspectedAt: now,
-    }));
-    await db.insert(mcpTool).values(rows);
-  }
+  await replaceToolsForServer(name, result.tools);
 
   return {
     success: true,
@@ -309,9 +292,7 @@ async function handleInspect(userId: string, name: string) {
 }
 
 async function handleListTools(name: string) {
-  const tools = await db.select()
-    .from(mcpTool)
-    .where(eq(mcpTool.serverName, name));
+  const tools = await listToolsByServer(name);
 
   return {
     success: true,
