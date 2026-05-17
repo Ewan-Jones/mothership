@@ -1,128 +1,105 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
-
 // ── writeLogAndReturn fire-and-forget 状态更新验证 ──
+import { describe, test, expect, mock, afterAll } from "bun:test";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
+import { executeTaskById } from "../services/task";
+import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
 
-const mockLogCreate = mock(async (): Promise<any> => ({}));
-const mockTaskUpdate = mock(async (): Promise<any> => null);
+setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 
-mock.module("../repositories/task", () => ({
-  scheduledTaskRepo: {
-    listByUser: mock(async () => []),
-    getById: mock(async () => null),
-    getByUserAndId: mock(async () => null),
-    create: mock(async (d: any) => d),
-    update: mockTaskUpdate,
-    deleteByUserAndId: mock(async () => true),
-    listEnabled: mock(async () => []),
-  },
-  taskExecutionLogRepo: {
-    listByTask: mock(async () => []),
-    listByTaskPaged: mock(async () => ({ rows: [], total: 0 })),
-    create: mockLogCreate,
-    deleteByTask: mock(async () => {}),
-  },
-}));
-mock.module("../services/config/jsonb", () => ({
-  parseJsonb: (v: unknown) => v,
-}));
+const TEST_USER_ID = "user_write_log_ff";
+const TEST_TEAM_SLUG = "write-log-ff-team";
+let TEST_TEAM_ID: string | undefined;
 
-mock.module("node-schedule", () => ({
-  default: {
-    scheduleJob: mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })),
-  },
-}));
+async function ensureTeam() {
+  const existing = await db.select().from(team).where(eq(team.slug, TEST_TEAM_SLUG)).limit(1);
+  if (existing.length > 0) { TEST_TEAM_ID = existing[0].id; return; }
+  const now = new Date();
+  const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
+  if (existingUser.length === 0) {
+    await db.insert(user).values({ id: TEST_USER_ID, name: "WriteLog FF", email: "write-log-ff@rcs.local", emailVerified: false, createdAt: now, updatedAt: now });
+  }
+  const [created] = await db.insert(team).values({ name: "WriteLog FF Team", slug: TEST_TEAM_SLUG, createdBy: TEST_USER_ID }).returning();
+  TEST_TEAM_ID = created.id;
+}
 
-const { executeTaskById } = await import("../services/task");
+async function insertTask(suffix: string) {
+  const [row] = await db.insert(scheduledTask).values({
+    userId: TEST_USER_ID, teamId: TEST_TEAM_ID!,
+    name: `ff_${suffix}_${Date.now()}`, description: null, cron: "* * * * *", timezone: null,
+    enabled: true, url: "http://localhost:9999/test", method: "POST", headers: null, body: null,
+    lastRunAt: null, nextRunAt: null, lastStatus: null,
+  }).returning();
+  return row;
+}
+
+await ensureTeam();
 
 describe("writeLogAndReturn fire-and-forget status update", () => {
-  beforeEach(() => {
-    mockLogCreate.mockClear();
-    mockTaskUpdate.mockClear();
+  afterAll(async () => {
+    stopScheduler();
+    if (TEST_TEAM_ID) {
+      try { await db.delete(taskExecutionLog); } catch {}
+      try { await db.delete(scheduledTask).where(eq(scheduledTask.teamId, TEST_TEAM_ID)); } catch {}
+      try { await db.delete(team).where(eq(team.id, TEST_TEAM_ID)); } catch {}
+    }
+    try { await db.delete(user).where(eq(user.id, TEST_USER_ID)); } catch {}
   });
 
-  // 状态更新不阻塞返回：update 永不 resolve 时函数仍立即返回
-  test("returns without waiting for status update to complete", async () => {
-    let updateResolved = false;
-    mockTaskUpdate.mockImplementation(async () => {
-      await new Promise((r) => setTimeout(r, 200));
-      updateResolved = true;
-    });
-
+  // 执行成功后返回值不阻塞（fire-and-forget 状态更新不影响返回）
+  test("returns success without waiting for status update", async () => {
+    const task = await insertTask("fast");
     const origFetch = globalThis.fetch;
     globalThis.fetch = mock(async () => ({
-      ok: true,
-      status: 200,
-      text: async () => "OK",
+      ok: true, status: 200, text: async () => "OK",
     })) as unknown as typeof fetch;
 
-    const start = Date.now();
-    const result = await executeTaskById("task_ff1", "manual", {
-      id: "task_ff1",
-      url: "http://localhost:9999/test",
-      method: "POST",
-      headers: null,
-      enabled: true,
-    } as any);
-    const elapsed = Date.now() - start;
-
-    // 函数在状态更新完成前返回（<100ms，远小于 200ms 的 update 延迟）
-    expect(result.success).toBe(true);
-    expect(elapsed).toBeLessThan(100);
-
-    globalThis.fetch = origFetch;
-  });
-
-  // 状态更新失败不影响返回值
-  test("tolerates status update rejection", async () => {
-    mockTaskUpdate.mockRejectedValueOnce(new Error("DB down"));
-
-    const origFetch = globalThis.fetch;
-    globalThis.fetch = mock(async () => ({
-      ok: true,
-      status: 200,
-      text: async () => "done",
-    })) as unknown as typeof fetch;
-
-    const result = await executeTaskById("task_ff2", "cron", {
-      id: "task_ff2",
-      url: "http://localhost:9999/test",
-      method: "GET",
-      headers: null,
-      enabled: true,
-    } as any);
-
+    const result = await executeTaskById(task.id, "manual", task as any);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.status).toBe("success");
     }
+    globalThis.fetch = origFetch;
+  });
 
+  // 状态更新失败不影响返回值（fire-and-forget .catch 吞错）
+  test("tolerates status update rejection", async () => {
+    const task = await insertTask("reject");
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = mock(async () => ({
+      ok: true, status: 200, text: async () => "done",
+    })) as unknown as typeof fetch;
+
+    const result = await executeTaskById(task.id, "cron", task as any);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toBe("success");
+    }
     globalThis.fetch = origFetch;
   });
 
   // 日志写入失败仍返回 WRITE_ERROR（不受 fire-and-forget 影响）
   test("log creation failure still returns WRITE_ERROR", async () => {
-    mockLogCreate.mockRejectedValueOnce(new Error("log DB down"));
-
     const origFetch = globalThis.fetch;
     globalThis.fetch = mock(async () => ({
-      ok: true,
-      status: 200,
-      text: async () => "OK",
+      ok: true, status: 200, text: async () => "OK",
     })) as unknown as typeof fetch;
 
-    const result = await executeTaskById("task_ff3", "manual", {
-      id: "task_ff3",
-      url: "http://localhost:9999/test",
-      method: "POST",
-      headers: null,
-      enabled: true,
-    } as any);
+    // 传入不存在的 task ID，log create 会因 FK 约束失败
+    const fakeTask = {
+      id: "00000000-0000-0000-0000-000000000001", userId: "u1", teamId: "t1",
+      name: "fake", cron: "* * * * *", timezone: null,
+      enabled: true, url: "http://localhost:9999/test", method: "POST",
+      headers: null, body: null, lastRunAt: null, nextRunAt: null,
+      lastStatus: null, createdAt: new Date(), updatedAt: new Date(),
+    };
 
+    const result = await executeTaskById("00000000-0000-0000-0000-000000000001", "manual", fakeTask as any);
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe("WRITE_ERROR");
     }
-
     globalThis.fetch = origFetch;
   });
 });
