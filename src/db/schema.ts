@@ -246,7 +246,9 @@ export const scheduledTask = pgTable("scheduled_task", {
   lastStatus: varchar("last_status"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  teamIdx: index("idx_scheduled_task_team_id").on(table.teamId),
+}));
 
 // 任务执行日志表
 export const taskExecutionLog = pgTable("task_execution_log", {
@@ -460,7 +462,7 @@ export const workflow = pgTable("workflow", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  teamNameIdx: index("idx_workflow_team_name").on(table.teamId, table.name),
+  teamNameIdx: uniqueIndex("idx_workflow_team_name").on(table.teamId, table.name),
 }));
 
 // Workflow 执行记录
