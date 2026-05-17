@@ -1,127 +1,90 @@
-import { describe, test, expect, mock } from "bun:test";
+// ── validateTaskInput 泛型签名（不再需要 as CreateTaskInput）──
+import { describe, test, expect, mock, afterAll } from "bun:test";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
+import { updateTask, createTask } from "../services/task";
+import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
 
-// ── validateTaskInput 泛型签名（不再需要 as CreateTaskInput） ──
+setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 
-const TEAM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
+const TEST_USER_ID = "user_validate_partial";
+const TEST_TEAM_SLUG = "validate-partial-team";
+let TEST_TEAM_ID: string | undefined;
 
-// 直接 import 纯函数
-// validateTaskInput 是模块私有函数，通过间接方式测试
-// 但我们可以验证 updateTask 不再需要 cast
+async function ensureTeam() {
+  const now = new Date();
+  const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
+  if (existingUser.length === 0) {
+    await db.insert(user).values({ id: TEST_USER_ID, name: "Validate Partial", email: "validate-partial@rcs.local", emailVerified: false, createdAt: now, updatedAt: now }).catch(() => {});
+  }
+  const existing = await db.select().from(team).where(eq(team.slug, TEST_TEAM_SLUG)).limit(1);
+  if (existing.length > 0) { TEST_TEAM_ID = existing[0].id; return; }
+  const [created] = await db.insert(team).values({ name: "Validate Partial Team", slug: TEST_TEAM_SLUG, createdBy: TEST_USER_ID }).returning();
+  TEST_TEAM_ID = created.id;
+}
 
-// 改为测试 validateTaskInput 通过 createTask 的验证路径
-const mockTaskCreate = mock(async (d: any) => d);
-const mockTaskGetByTeamAndId = mock(async (): Promise<any> => ({
-  id: "task_v1",
-  userId: "u1",
-  teamId: TEAM_ID,
-  name: "test",
-  cron: "0 * * * *",
-  url: "http://localhost",
-  method: "GET",
-  headers: null,
-  body: null,
-  enabled: true,
-  lastRunAt: null,
-  nextRunAt: null,
-  lastStatus: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}));
-const mockTaskUpdate = mock(async (): Promise<any> => ({
-  id: "task_v1",
-  userId: "u1",
-  teamId: TEAM_ID,
-  name: "updated",
-  cron: "0 * * * *",
-  url: "http://localhost",
-  method: "GET",
-  headers: null,
-  body: null,
-  enabled: true,
-  lastRunAt: null,
-  nextRunAt: null,
-  lastStatus: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}));
+async function insertTask() {
+  const [row] = await db.insert(scheduledTask).values({
+    userId: TEST_USER_ID, teamId: TEST_TEAM_ID!,
+    name: `vp_${Date.now()}`, description: null, cron: "0 * * * *", timezone: null,
+    enabled: true, url: "http://localhost:9999/test", method: "GET", headers: null, body: null,
+    lastRunAt: null, nextRunAt: null, lastStatus: null,
+  }).returning();
+  return row;
+}
 
-mock.module("../repositories/task", () => ({
-  scheduledTaskRepo: {
-    listByTeam: mock(async () => []),
-    getById: mock(async () => null),
-    getByTeamAndId: mockTaskGetByTeamAndId,
-    create: mockTaskCreate,
-    update: mockTaskUpdate,
-    deleteByTeamAndId: mock(async () => true),
-    listEnabled: mock(async () => []),
-  },
-  taskExecutionLogRepo: {
-    listByTask: mock(async () => []),
-    listByTaskPaged: mock(async () => ({ rows: [], total: 0 })),
-    create: mock(async () => ({ id: "log_1" })),
-    deleteByTask: mock(async () => {}),
-  },
-}));
-mock.module("../services/scheduler", () => ({
-  scheduleTask: mock(() => {}),
-  rescheduleTask: mock(() => {}),
-  unscheduleTask: mock(() => {}),
-}));
-
-mock.module("../services/config/jsonb", () => ({
-  parseJsonb: (v: unknown) => v,
-}));
-
-const { updateTask, createTask } = await import("../services/task");
+await ensureTeam();
 
 describe("validateTaskInput accepts partial without cast", () => {
+  afterAll(async () => {
+    stopScheduler();
+    if (TEST_TEAM_ID) {
+      try { await db.delete(taskExecutionLog); } catch {}
+      try { await db.delete(scheduledTask).where(eq(scheduledTask.teamId, TEST_TEAM_ID)); } catch {}
+      try { await db.delete(team).where(eq(team.id, TEST_TEAM_ID)); } catch {}
+    }
+    try { await db.delete(user).where(eq(user.id, TEST_USER_ID)); } catch {}
+  });
+
   // updateTask 接受 Partial<CreateTaskInput>，不需要提供所有字段
   test("updateTask validates partial data without cast", async () => {
-    const result = await updateTask(TEAM_ID, "task_v1", {
-      name: "updated",
-    });
-
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { name: "updated" });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.name).toBe("updated");
     }
   });
 
-  // 只更新 enabled 字段（不是 CreateTaskInput 的一部分）
+  // 只更新 enabled 字段
   test("updateTask accepts enabled-only update", async () => {
-    const result = await updateTask(TEAM_ID, "task_v1", {
-      enabled: false,
-    });
-
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { enabled: false });
     expect(result.success).toBe(true);
   });
 
-  // 空对象 update 通过验证（所有字段 undefined）
+  // 空对象 update 通过验证
   test("updateTask accepts empty update", async () => {
-    const result = await updateTask(TEAM_ID, "task_v1", {});
-
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, {});
     expect(result.success).toBe(true);
   });
 
   // 部分字段验证：只提供 method
   test("updateTask validates method field only", async () => {
-    const result = await updateTask(TEAM_ID, "task_v1", {
-      method: "DELETE",
-    });
-
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { method: "DELETE" });
     expect(result.success).toBe(true);
-    // 验证 repo.update 收到了正确的 method
-    const calls = mockTaskUpdate.mock.calls as any[][];
-    const updateArg = calls[calls.length - 1][1];
-    expect(updateArg.method).toBe("DELETE");
+    if (result.success) {
+      expect(result.data.method).toBe("DELETE");
+    }
   });
 
   // 验证失败：空 method 字符串
   test("updateTask rejects empty method string", async () => {
-    const result = await updateTask(TEAM_ID, "task_v1", {
-      method: "",
-    });
-
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { method: "" });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.code).toBe("VALIDATION_ERROR");
@@ -130,13 +93,12 @@ describe("validateTaskInput accepts partial without cast", () => {
 
   // createTask 仍需要完整字段
   test("createTask requires full input", async () => {
-    const result = await createTask(TEAM_ID, {
+    const result = await createTask(TEST_TEAM_ID!, {
       name: "new-task",
       cron: "*/10 * * * *",
       url: "http://localhost:9999/hook",
       method: "POST",
-    });
-
+    }, TEST_USER_ID);
     expect(result.success).toBe(true);
   });
 });

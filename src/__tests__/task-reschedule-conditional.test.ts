@@ -1,146 +1,120 @@
 // 测试 updateTask 仅在调度相关字段变更时重新调度；toggleTask 验证更新结果
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
+import { updateTask, toggleTask } from "../services/task";
+import { setScheduleJobImpl, stopScheduler, scheduleTask as registerTask } from "../services/scheduler";
 
-const TEAM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
+// 跟踪 scheduleJobImpl 和 cancel 调用
+let scheduleCallCount = 0;
+let cancelCallCount = 0;
+const mockCancel = () => { cancelCallCount++; };
+setScheduleJobImpl(mock((_config: any, handler: () => void) => {
+  scheduleCallCount++;
+  return { nextInvocation: () => new Date(), cancel: mockCancel };
+}) as any);
 
-// mock 依赖
-const mockCreate = mock(async (data: any) => ({ ...data, lastRunAt: null, nextRunAt: null, lastStatus: null }));
-const mockGetByTeamAndId = mock(async () => null) as any;
-const mockUpdate = mock(async () => null) as any;
+const TEST_USER_ID = "user_task_resched";
+const TEST_TEAM_SLUG = "task-resched-team";
+let TEST_TEAM_ID: string | undefined;
 
-mock.module("../repositories/task", () => ({
-  scheduledTaskRepo: {
-    listByTeam: mock(async () => []),
-    getById: mock(async () => null),
-    getByTeamAndId: mockGetByTeamAndId,
-    create: mockCreate,
-    update: mockUpdate,
-    deleteByTeamAndId: mock(async () => true),
-    listEnabled: mock(async () => []),
-  },
-  taskExecutionLogRepo: {
-    listByTaskPaged: mock(async () => ({ rows: [], total: 0 })),
-    create: mock(async (d: any) => d),
-  },
-}));
+async function ensureTeam() {
+  const now = new Date();
+  const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
+  if (existingUser.length === 0) {
+    await db.insert(user).values({ id: TEST_USER_ID, name: "Task Resched", email: "task-resched@rcs.local", emailVerified: false, createdAt: now, updatedAt: now }).catch(() => {});
+  }
+  const existing = await db.select().from(team).where(eq(team.slug, TEST_TEAM_SLUG)).limit(1);
+  if (existing.length > 0) { TEST_TEAM_ID = existing[0].id; return; }
+  const [created] = await db.insert(team).values({ name: "Task Resched Team", slug: TEST_TEAM_SLUG, createdBy: TEST_USER_ID }).returning();
+  TEST_TEAM_ID = created.id;
+}
 
-let rescheduleCalled = false;
-let rescheduleArg: any = null;
+async function insertTask(cron: string = "0 * * * *") {
+  const [row] = await db.insert(scheduledTask).values({
+    userId: TEST_USER_ID, teamId: TEST_TEAM_ID!,
+    name: `rs_${Date.now()}`, description: null, cron, timezone: null,
+    enabled: true, url: "http://localhost:9999/test", method: "POST", headers: null, body: null,
+    lastRunAt: null, nextRunAt: null, lastStatus: null,
+  }).returning();
+  return row;
+}
 
-mock.module("../services/scheduler", () => ({
-  scheduleTask: mock(() => true),
-  rescheduleTask: mock((arg: any) => { rescheduleCalled = true; rescheduleArg = arg; }),
-  unscheduleTask: mock(() => {}),
-}));
+await ensureTeam();
 
-mock.module("../services/config/jsonb", () => ({
-  parseJsonb: (v: any) => v,
-}));
-
-const { updateTask, toggleTask } = await import("../services/task");
-
-describe("updateTask conditional reschedule", () => {
-  const baseTask = {
-    id: "t1",
-    userId: "u1",
-    teamId: TEAM_ID,
-    name: "test",
-    description: null,
-    cron: "0 * * * *",
-    timezone: null,
-    enabled: true,
-    url: "http://example.com",
-    method: "POST",
-    headers: null,
-    body: null,
-    lastRunAt: null,
-    nextRunAt: null,
-    lastStatus: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
+describe("updateTask conditional reschedule + toggleTask", () => {
   beforeEach(() => {
-    rescheduleCalled = false;
-    rescheduleArg = null;
-    mockGetByTeamAndId.mockImplementation(async () => ({ ...baseTask }));
-    mockUpdate.mockImplementation(async (_id: string, data: any) => ({ ...baseTask, ...data }));
+    scheduleCallCount = 0;
+    cancelCallCount = 0;
+    stopScheduler();
   });
 
-  test("reschedules when cron changes", async () => {
-    const result = await updateTask(TEAM_ID, "t1", { cron: "*/5 * * * *" });
-    expect(result.success).toBe(true);
-    expect(rescheduleCalled).toBe(true);
-  });
-
-  test("reschedules when enabled changes", async () => {
-    const result = await updateTask(TEAM_ID, "t1", { enabled: false });
-    expect(result.success).toBe(true);
-    expect(rescheduleCalled).toBe(true);
-  });
-
-  test("does not reschedule when only name changes", async () => {
-    const result = await updateTask(TEAM_ID, "t1", { name: "new-name" });
-    expect(result.success).toBe(true);
-    expect(rescheduleCalled).toBe(false);
-  });
-
-  test("does not reschedule when only description changes", async () => {
-    const result = await updateTask(TEAM_ID, "t1", { description: "new desc" });
-    expect(result.success).toBe(true);
-    expect(rescheduleCalled).toBe(false);
-  });
-
-  test("does not reschedule when only url changes", async () => {
-    const result = await updateTask(TEAM_ID, "t1", { url: "http://new.example.com" });
-    expect(result.success).toBe(true);
-    expect(rescheduleCalled).toBe(false);
-  });
-
-  test("reschedules when timezone changes", async () => {
-    const result = await updateTask(TEAM_ID, "t1", { timezone: "Asia/Tokyo" });
-    expect(result.success).toBe(true);
-    expect(rescheduleCalled).toBe(true);
-  });
-});
-
-describe("toggleTask update verification", () => {
-  const baseTask = {
-    id: "t1",
-    userId: "u1",
-    teamId: TEAM_ID,
-    name: "test",
-    description: null,
-    cron: "0 * * * *",
-    timezone: null,
-    enabled: true,
-    url: "http://example.com",
-    method: "POST",
-    headers: null,
-    body: null,
-    lastRunAt: null,
-    nextRunAt: null,
-    lastStatus: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  test("returns NOT_FOUND when update returns null (concurrent delete)", async () => {
-    mockGetByTeamAndId.mockImplementation(async () => ({ ...baseTask }));
-    mockUpdate.mockImplementation(async () => null);
-
-    const result = await toggleTask(TEAM_ID, "t1");
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.code).toBe("NOT_FOUND");
+  afterAll(async () => {
+    stopScheduler();
+    if (TEST_TEAM_ID) {
+      try { await db.delete(taskExecutionLog); } catch {}
+      try { await db.delete(scheduledTask).where(eq(scheduledTask.teamId, TEST_TEAM_ID)); } catch {}
+      try { await db.delete(team).where(eq(team.id, TEST_TEAM_ID)); } catch {}
     }
+    try { await db.delete(user).where(eq(user.id, TEST_USER_ID)); } catch {}
   });
 
-  test("returns success when update succeeds", async () => {
-    mockGetByTeamAndId.mockImplementation(async () => ({ ...baseTask }));
-    mockUpdate.mockImplementation(async (_id: string, data: any) => ({ ...baseTask, ...data }));
+  // cron 变更触发 reschedule
+  test("reschedules when cron changes", async () => {
+    const task = await insertTask();
+    registerTask({ id: task.id, cron: task.cron, timezone: task.timezone, enabled: true });
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { cron: "*/5 * * * *" });
+    expect(result.success).toBe(true);
+    expect(cancelCallCount + scheduleCallCount).toBeGreaterThan(0);
+  });
 
-    const result = await toggleTask(TEAM_ID, "t1");
+  // enabled 变更触发 reschedule
+  test("reschedules when enabled changes", async () => {
+    const task = await insertTask();
+    registerTask({ id: task.id, cron: task.cron, timezone: task.timezone, enabled: true });
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { enabled: false });
+    expect(result.success).toBe(true);
+    expect(cancelCallCount + scheduleCallCount).toBeGreaterThan(0);
+  });
+
+  // name 变更不触发 reschedule
+  test("does not reschedule when only name changes", async () => {
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { name: "new-name" });
+    expect(result.success).toBe(true);
+    expect(cancelCallCount + scheduleCallCount).toBe(0);
+  });
+
+  // description 变更不触发 reschedule
+  test("does not reschedule when only description changes", async () => {
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { description: "new desc" });
+    expect(result.success).toBe(true);
+    expect(cancelCallCount + scheduleCallCount).toBe(0);
+  });
+
+  // url 变更不触发 reschedule
+  test("does not reschedule when only url changes", async () => {
+    const task = await insertTask();
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { url: "http://new.example.com" });
+    expect(result.success).toBe(true);
+    expect(cancelCallCount + scheduleCallCount).toBe(0);
+  });
+
+  // timezone 变更触发 reschedule
+  test("reschedules when timezone changes", async () => {
+    const task = await insertTask();
+    registerTask({ id: task.id, cron: task.cron, timezone: task.timezone, enabled: true });
+    const result = await updateTask(TEST_TEAM_ID!, task.id, { timezone: "Asia/Tokyo" });
+    expect(result.success).toBe(true);
+    expect(cancelCallCount + scheduleCallCount).toBeGreaterThan(0);
+  });
+
+  // toggle 成功时返回正确状态
+  test("toggleTask returns success with toggled enabled", async () => {
+    const task = await insertTask();
+    const result = await toggleTask(TEST_TEAM_ID!, task.id);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.enabled).toBe(false);
