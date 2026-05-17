@@ -1,55 +1,38 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
+import { _deps, _resetDeps, importSkillDirectories, importWorkspaceSkillDirectories } from "../services/skill";
 
-// mock logger
-const mockLog = mock(() => {});
-const mockLogError = mock(() => {});
-// mock config-pg
-mock.module("../services/config-pg", () => ({
-  getSkill: mock(() => Promise.resolve(null)),
-  upsertSkill: mock(() => Promise.resolve("skill-id")),
-  deleteSkill: mock(() => Promise.resolve(true)),
-}));
-
-// mock repositories
-mock.module("../repositories", () => ({
-  environmentRepo: { listByUserId: mock(() => Promise.resolve([])) },
-}));
-
-// mock skill-fs
 const mockGroupUploadFiles = mock(() => new Map());
-const mockValidateImportFiles = mock(() => { throw new Error("should not be called"); });
-const mockResolveImportPlan = mock(() => ({ pendingEntries: [], skipped: [] }));
-const mockWriteImportFiles = mock(() => Promise.resolve([]));
-const mockBuildImportedSkillInfos = mock(() => Promise.resolve([]));
-const mockBackupSkillDirs = mock(() => Promise.resolve(new Map()));
-const mockCleanupWrittenSkills = mock(() => Promise.resolve());
-const mockRestoreFromBackup = mock(() => Promise.resolve());
-const mockCreateBackupDir = mock(() => Promise.resolve("/tmp/backup"));
-const mockCleanupBackupDir = mock(() => Promise.resolve());
-const mockWriteSkillMd = mock(() => Promise.resolve("/tmp/skill/SKILL.md"));
-const mockDeleteSkillDir = mock(() => Promise.resolve());
-const mockListSkillsFromDir = mock(() => []);
-const mockReadSkillDetailFromMd = mock(() => null);
-const mockCreateSkillValidationError = (msg: string) => new Error(msg);
 
-mock.module("../services/skill-fs", () => ({
-  createSkillValidationError: mockCreateSkillValidationError,
-  groupUploadFiles: mockGroupUploadFiles,
-  listSkillsFromDir: mockListSkillsFromDir,
-  readSkillDetailFromMd: mockReadSkillDetailFromMd,
-  writeSkillMd: mockWriteSkillMd,
-  deleteSkillDir: mockDeleteSkillDir,
-  resolveImportPlan: mockResolveImportPlan,
-  writeImportFiles: mockWriteImportFiles,
-  buildImportedSkillInfos: mockBuildImportedSkillInfos,
-  backupSkillDirs: mockBackupSkillDirs,
-  cleanupWrittenSkills: mockCleanupWrittenSkills,
-  restoreFromBackup: mockRestoreFromBackup,
-  createBackupDir: mockCreateBackupDir,
-  cleanupBackupDir: mockCleanupBackupDir,
-}));
+beforeEach(() => {
+  _deps.configPg = {
+    getSkill: mock(async () => null),
+    upsertSkill: mock(async () => "skill-id"),
+    deleteSkill: mock(async () => true),
+    listSkills: mock(async () => []),
+    enableSkill: mock(async () => true),
+    disableSkill: mock(async () => true),
+  } as any;
+  _deps.skillFs = {
+    createSkillValidationError: (msg: string) => new Error(msg),
+    groupUploadFiles: mockGroupUploadFiles,
+    listSkillsFromDir: mock(async () => []),
+    readSkillDetailFromMd: mock(async () => null),
+    writeSkillMd: mock(async () => "/tmp/skill/SKILL.md"),
+    deleteSkillDir: mock(async () => {}),
+    resolveImportPlan: mock(() => ({ pendingEntries: [], skipped: [] })),
+    writeImportFiles: mock(async () => []),
+    buildImportedSkillInfos: mock(async () => []),
+    backupSkillDirs: mock(async () => new Map()),
+    cleanupWrittenSkills: mock(async () => {}),
+    restoreFromBackup: mock(async () => {}),
+    createBackupDir: mock(async () => "/tmp/backup"),
+    cleanupBackupDir: mock(async () => {}),
+  };
+});
 
-const { importSkillDirectories, importWorkspaceSkillDirectories } = await import("../services/skill");
+afterEach(() => {
+  _resetDeps();
+});
 
 describe("skill import shared validation", () => {
   it("空文件列表抛出验证错误", async () => {

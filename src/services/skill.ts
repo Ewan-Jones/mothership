@@ -10,24 +10,70 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { log, error as logError } from "../logger";
 import type { AuthContext } from "../plugins/auth";
-import { environmentRepo } from "../repositories";
-import * as configPg from "./config-pg";
+import { environmentRepo as _environmentRepo } from "../repositories";
+import * as _configPg from "./config-pg";
 import {
-  createSkillValidationError,
-  groupUploadFiles,
-  listSkillsFromDir,
-  readSkillDetailFromMd,
-  writeSkillMd,
-  deleteSkillDir,
-  resolveImportPlan,
-  writeImportFiles,
-  buildImportedSkillInfos,
-  backupSkillDirs,
-  cleanupWrittenSkills,
-  restoreFromBackup,
-  createBackupDir,
-  cleanupBackupDir,
+  createSkillValidationError as _createSkillValidationError,
+  groupUploadFiles as _groupUploadFiles,
+  listSkillsFromDir as _listSkillsFromDir,
+  readSkillDetailFromMd as _readSkillDetailFromMd,
+  writeSkillMd as _writeSkillMd,
+  deleteSkillDir as _deleteSkillDir,
+  resolveImportPlan as _resolveImportPlan,
+  writeImportFiles as _writeImportFiles,
+  buildImportedSkillInfos as _buildImportedSkillInfos,
+  backupSkillDirs as _backupSkillDirs,
+  cleanupWrittenSkills as _cleanupWrittenSkills,
+  restoreFromBackup as _restoreFromBackup,
+  createBackupDir as _createBackupDir,
+  cleanupBackupDir as _cleanupBackupDir,
 } from "./skill-fs";
+
+// ────────────────────────────────────────────
+// 可替换依赖（测试时注入 mock）
+// ────────────────────────────────────────────
+
+export const _deps = {
+  environmentRepo: _environmentRepo,
+  configPg: _configPg,
+  skillFs: {
+    createSkillValidationError: _createSkillValidationError,
+    groupUploadFiles: _groupUploadFiles,
+    listSkillsFromDir: _listSkillsFromDir,
+    readSkillDetailFromMd: _readSkillDetailFromMd,
+    writeSkillMd: _writeSkillMd,
+    deleteSkillDir: _deleteSkillDir,
+    resolveImportPlan: _resolveImportPlan,
+    writeImportFiles: _writeImportFiles,
+    buildImportedSkillInfos: _buildImportedSkillInfos,
+    backupSkillDirs: _backupSkillDirs,
+    cleanupWrittenSkills: _cleanupWrittenSkills,
+    restoreFromBackup: _restoreFromBackup,
+    createBackupDir: _createBackupDir,
+    cleanupBackupDir: _cleanupBackupDir,
+  },
+};
+
+export function _resetDeps() {
+  _deps.environmentRepo = _environmentRepo;
+  _deps.configPg = _configPg;
+  _deps.skillFs = {
+    createSkillValidationError: _createSkillValidationError,
+    groupUploadFiles: _groupUploadFiles,
+    listSkillsFromDir: _listSkillsFromDir,
+    readSkillDetailFromMd: _readSkillDetailFromMd,
+    writeSkillMd: _writeSkillMd,
+    deleteSkillDir: _deleteSkillDir,
+    resolveImportPlan: _resolveImportPlan,
+    writeImportFiles: _writeImportFiles,
+    buildImportedSkillInfos: _buildImportedSkillInfos,
+    backupSkillDirs: _backupSkillDirs,
+    cleanupWrittenSkills: _cleanupWrittenSkills,
+    restoreFromBackup: _restoreFromBackup,
+    createBackupDir: _createBackupDir,
+    cleanupBackupDir: _cleanupBackupDir,
+  };
+}
 import type {
   SkillInfo,
   SkillDetail,
@@ -111,7 +157,7 @@ function stripNameAndDescription(metadata: Record<string, string>): Record<strin
 }
 
 export async function listSkills(ctx: AuthContext): Promise<SkillInfo[]> {
-  const rows = await configPg.listSkills(ctx);
+  const rows = await _deps.configPg.listSkills(ctx);
   return rows.map((r) => ({
     name: r.name,
     enabled: r.enabled,
@@ -121,11 +167,11 @@ export async function listSkills(ctx: AuthContext): Promise<SkillInfo[]> {
 }
 
 export async function getSkill(ctx: AuthContext, name: string): Promise<SkillDetail | null> {
-  const meta = await configPg.getSkill(ctx, name);
+  const meta = await _deps.configPg.getSkill(ctx, name);
   if (!meta) return null;
 
   const contentPath = meta.contentPath ?? skillContentPath(name);
-  const detail = await readSkillDetailFromMd(contentPath);
+  const detail = await _deps.skillFs.readSkillDetailFromMd(contentPath);
 
   return {
     name,
@@ -143,17 +189,17 @@ export async function setSkill(
   data: { description: string; content: string; metadata?: Record<string, string> },
 ): Promise<SkillInfo> {
   const skillDir = join(SKILLS_DIR, name);
-  const contentPath = await writeSkillMd(skillDir, name, data.description, data.content, data.metadata);
+  const contentPath = await _deps.skillFs.writeSkillMd(skillDir, name, data.description, data.content, data.metadata);
 
   try {
-    await configPg.upsertSkill(ctx, name, {
+    await _deps.configPg.upsertSkill(ctx, name, {
       description: data.description,
       contentPath,
       metadata: data.metadata,
       enabled: true,
     });
   } catch (err) {
-    await deleteSkillDir(skillDir).catch((e) => {
+    await _deps.skillFs.deleteSkillDir(skillDir).catch((e) => {
       logError(`[Skill] Failed to cleanup skill directory after PG upsert failure:`, e);
     });
     throw err;
@@ -163,35 +209,35 @@ export async function setSkill(
 }
 
 export async function deleteSkill(ctx: AuthContext, name: string): Promise<boolean> {
-  const deleted = await configPg.deleteSkill(ctx, name);
+  const deleted = await _deps.configPg.deleteSkill(ctx, name);
   if (!deleted) return false;
   const skillDir = join(SKILLS_DIR, name);
-  await deleteSkillDir(skillDir).catch((e) => {
+  await _deps.skillFs.deleteSkillDir(skillDir).catch((e) => {
     logError(`[Skill] Failed to cleanup skill directory ${skillDir}:`, e);
   });
   return true;
 }
 
 export async function enableSkill(ctx: AuthContext, name: string): Promise<boolean> {
-  return configPg.enableSkill(ctx, name);
+  return _deps.configPg.enableSkill(ctx, name);
 }
 
 export async function disableSkill(ctx: AuthContext, name: string): Promise<boolean> {
-  return configPg.disableSkill(ctx, name);
+  return _deps.configPg.disableSkill(ctx, name);
 }
 
 /** 校验上传文件并检测冲突（全局和 workspace 共享） */
 function validateImportFiles(files: UploadSkillFile[]): Map<string, UploadSkillFile[]> {
   if (files.length === 0) {
-    throw createSkillValidationError("未提供任何上传文件");
+    throw _deps.skillFs.createSkillValidationError("未提供任何上传文件");
   }
-  const grouped = groupUploadFiles(files);
+  const grouped = _deps.skillFs.groupUploadFiles(files);
   if (grouped.size === 0) {
-    throw createSkillValidationError("未解析出任何 skill");
+    throw _deps.skillFs.createSkillValidationError("未解析出任何 skill");
   }
   for (const [name, skillFiles] of grouped) {
     if (!skillFiles.some((file) => file.relativePath === "SKILL.md")) {
-      throw createSkillValidationError(`Skill "${name}" 缺少 SKILL.md`);
+      throw _deps.skillFs.createSkillValidationError(`Skill "${name}" 缺少 SKILL.md`);
     }
   }
   return grouped;
@@ -207,22 +253,22 @@ async function executeImportCore(
   onSkillWritten?: (info: { name: string; description: string; path: string }) => Promise<void>,
   onRollbackCleanup?: (names: string[]) => Promise<void>,
 ): Promise<ImportSkillsResult> {
-  const backupRoot = await createBackupDir(backupPrefix);
+  const backupRoot = await _deps.skillFs.createBackupDir(backupPrefix);
   const snapshots = new Map<string, string | null>();
   const attemptedNames: string[] = [];
 
   try {
     if (overwriteNames.length > 0) {
-      const backed = await backupSkillDirs(backupRoot, targetDir, overwriteNames);
+      const backed = await _deps.skillFs.backupSkillDirs(backupRoot, targetDir, overwriteNames);
       for (const [bName, bPath] of backed) snapshots.set(bName, bPath);
-      await cleanupWrittenSkills(targetDir, overwriteNames);
+      await _deps.skillFs.cleanupWrittenSkills(targetDir, overwriteNames);
       if (onConflictCleanup) await onConflictCleanup(overwriteNames);
     }
 
-    const writtenNames = await writeImportFiles(targetDir, pendingEntries);
+    const writtenNames = await _deps.skillFs.writeImportFiles(targetDir, pendingEntries);
     attemptedNames.push(...writtenNames);
 
-    const imported = await buildImportedSkillInfos(targetDir, writtenNames);
+    const imported = await _deps.skillFs.buildImportedSkillInfos(targetDir, writtenNames);
 
     if (onSkillWritten) {
       await Promise.all(imported.map((info) => onSkillWritten(info)));
@@ -230,16 +276,16 @@ async function executeImportCore(
 
     return { imported, skipped: [], conflicts: [] };
   } catch (err) {
-    try { await cleanupWrittenSkills(targetDir, attemptedNames); } catch (e) { logError("[Skill] Failed to cleanup written skills:", e); }
+    try { await _deps.skillFs.cleanupWrittenSkills(targetDir, attemptedNames); } catch (e) { logError("[Skill] Failed to cleanup written skills:", e); }
     if (onRollbackCleanup) {
       await onRollbackCleanup(attemptedNames).catch((e) => {
         logError("[Skill] Failed to rollback PG records:", e);
       });
     }
-    try { await restoreFromBackup(snapshots, targetDir); } catch (e) { logError("[Skill] Failed to restore from backup:", e); }
+    try { await _deps.skillFs.restoreFromBackup(snapshots, targetDir); } catch (e) { logError("[Skill] Failed to restore from backup:", e); }
     throw err;
   } finally {
-    try { await cleanupBackupDir(backupRoot); } catch (e) { logError("[Skill] Failed to cleanup backup dir:", e); }
+    try { await _deps.skillFs.cleanupBackupDir(backupRoot); } catch (e) { logError("[Skill] Failed to cleanup backup dir:", e); }
   }
 }
 
@@ -254,7 +300,7 @@ export async function importSkillDirectories(
   const entries = Array.from(grouped.entries());
   const existingResults = await Promise.all(
     entries.map(async ([name]) => {
-      const existing = await configPg.getSkill(ctx, name);
+      const existing = await _deps.configPg.getSkill(ctx, name);
       return existing
         ? { name, enabled: existing.enabled, path: existing.contentPath ?? skillContentPath(name) }
         : null;
@@ -266,7 +312,7 @@ export async function importSkillDirectories(
     return { imported: [], skipped: [], conflicts };
   }
 
-  const { pendingEntries, skipped } = resolveImportPlan(grouped, conflicts, strategy);
+  const { pendingEntries, skipped } = _deps.skillFs.resolveImportPlan(grouped, conflicts, strategy);
 
   if (pendingEntries.length === 0) {
     return { imported: [], skipped, conflicts: [] };
@@ -282,11 +328,11 @@ export async function importSkillDirectories(
     "rcs-skill-import-",
     // onConflictCleanup: overwrite 时清理 PG 冲突记录（pre-write）
     strategy === "overwrite" ? async (names) => {
-      await Promise.all(names.map((name) => configPg.deleteSkill(ctx, name)));
+      await Promise.all(names.map((name) => _deps.configPg.deleteSkill(ctx, name)));
     } : undefined,
     // onSkillWritten: 并行写入 PG 元数据
     async (info) => {
-      await configPg.upsertSkill(ctx, info.name, {
+      await _deps.configPg.upsertSkill(ctx, info.name, {
         description: info.description,
         contentPath: info.path,
         enabled: true,
@@ -294,7 +340,7 @@ export async function importSkillDirectories(
     },
     // onRollbackCleanup: 回滚时清理已尝试写入的 PG 记录
     async (names) => {
-      await Promise.all(names.map((name) => configPg.deleteSkill(ctx, name)));
+      await Promise.all(names.map((name) => _deps.configPg.deleteSkill(ctx, name)));
     },
   );
 
@@ -310,13 +356,13 @@ function getWorkspaceSkillDir(workspacePath: string): string {
 
 export async function listWorkspaceSkills(workspacePath: string): Promise<SkillInfo[]> {
   const skillsDir = getWorkspaceSkillDir(workspacePath);
-  return listSkillsFromDir(skillsDir);
+  return _deps.skillFs.listSkillsFromDir(skillsDir);
 }
 
 export async function listSkillSources(ctx: AuthContext): Promise<SkillSourceInfo[]> {
   // 两个查询无依赖关系，并行执行
   const [environments, globalSkills] = await Promise.all([
-    environmentRepo.listByUserId(ctx.userId),
+    _deps.environmentRepo.listByUserId(ctx.userId),
     listSkills(ctx),
   ]);
   const sources: SkillSourceInfo[] = [{
@@ -381,7 +427,7 @@ export async function listSkillSources(ctx: AuthContext): Promise<SkillSourceInf
 export async function getWorkspaceSkill(workspacePath: string, name: string): Promise<SkillDetail | null> {
   const skillsDir = getWorkspaceSkillDir(workspacePath);
   const mdPath = join(skillsDir, name, "SKILL.md");
-  const detail = await readSkillDetailFromMd(mdPath);
+  const detail = await _deps.skillFs.readSkillDetailFromMd(mdPath);
   if (!detail) return null;
 
   return {
@@ -402,14 +448,14 @@ export async function setWorkspaceSkill(
   const skillsDir = getWorkspaceSkillDir(workspacePath);
   await mkdir(skillsDir, { recursive: true });
   const skillDir = join(skillsDir, name);
-  const mdPath = await writeSkillMd(skillDir, name, data.description, data.content, data.metadata);
+  const mdPath = await _deps.skillFs.writeSkillMd(skillDir, name, data.description, data.content, data.metadata);
   return { name, enabled: true, description: data.description, path: mdPath };
 }
 
 export async function deleteWorkspaceSkill(workspacePath: string, name: string): Promise<boolean> {
   const skillDir = join(getWorkspaceSkillDir(workspacePath), name);
   if (!existsSync(skillDir)) return false;
-  await deleteSkillDir(skillDir);
+  await _deps.skillFs.deleteSkillDir(skillDir);
   return true;
 }
 
@@ -434,7 +480,7 @@ export async function importWorkspaceSkillDirectories(
     return { imported: [], skipped: [], conflicts };
   }
 
-  const { pendingEntries, skipped } = resolveImportPlan(grouped, conflicts, strategy);
+  const { pendingEntries, skipped } = _deps.skillFs.resolveImportPlan(grouped, conflicts, strategy);
 
   if (pendingEntries.length === 0) {
     return { imported: [], skipped, conflicts: [] };
