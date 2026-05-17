@@ -1,5 +1,5 @@
-import { eventService } from "../services/event-service";
-import { v4 as uuid } from "uuid";
+import { eventService as realEventService } from "../services/event-service";
+import { v4 as uuidReal } from "uuid";
 
 /**
  * Session 管理已下沉到 Agent 进程（acp-link）。
@@ -8,14 +8,28 @@ import { v4 as uuid } from "uuid";
  */
 
 // ────────────────────────────────────────────
+// DI 注入点（测试时覆盖）
+// ────────────────────────────────────────────
+export let _eventService = realEventService;
+export let _uuid = uuidReal;
+
+export function _setEventService(es: typeof realEventService) {
+  _eventService = es;
+}
+
+export function _setUuid(fn: () => string) {
+  _uuid = fn;
+}
+
+// ────────────────────────────────────────────
 // EventBus 相关（核心保留）
 // ────────────────────────────────────────────
 
 export function updateSessionStatus(sessionId: string, status: string): void {
-  const bus = eventService.getAllBuses().get(sessionId);
+  const bus = _eventService.getAllBuses().get(sessionId);
   if (!bus) return;
   bus.publish({
-    id: uuid(),
+    id: _uuid(),
     sessionId,
     type: "session_status",
     payload: { status },
@@ -25,7 +39,7 @@ export function updateSessionStatus(sessionId: string, status: string): void {
 
 export function archiveSession(sessionId: string): void {
   updateSessionStatus(sessionId, "archived");
-  eventService.removeBus(sessionId);
+  _eventService.removeBus(sessionId);
 }
 
 // ────────────────────────────────────────────
@@ -39,20 +53,20 @@ interface LightweightSession {
 
 /** Session 由 Agent 管理，此函数仅检查 EventBus 是否活跃 */
 export async function getSession(sessionId: string): Promise<LightweightSession | null> {
-  const bus = eventService.getAllBuses().get(sessionId);
+  const bus = _eventService.getAllBuses().get(sessionId);
   if (!bus) return null;
   return { id: sessionId, status: "active" };
 }
 
 /** Session 由 Agent 管理，直接返回 sessionId */
 export async function resolveExistingSessionId(sessionId: string): Promise<string | null> {
-  const bus = eventService.getAllBuses().get(sessionId);
+  const bus = _eventService.getAllBuses().get(sessionId);
   return bus ? sessionId : null;
 }
 
 /** Session 不再由 RCS 创建，返回轻量存根 */
 export async function createSession(_req: Record<string, unknown>): Promise<LightweightSession> {
-  const id = `session_${uuid().replace(/-/g, "")}`;
+  const id = `session_${_uuid().replace(/-/g, "")}`;
   return { id, status: "idle" };
 }
 

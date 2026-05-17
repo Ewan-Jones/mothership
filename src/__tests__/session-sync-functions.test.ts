@@ -1,26 +1,16 @@
+// ── session.ts 同步函数返回 Promise 验证 ──
 import { test, expect, mock, describe, beforeEach } from "bun:test";
+import { getSession, resolveExistingSessionId, createSession, _setEventService, _setUuid } from "../services/session";
 
-// ── mock.module 必须在 import 被测模块之前注册 ──
-
+// 注入 mock eventService
 const mockBuses = new Map();
 
-mock.module("../services/event-service", () => ({
-  eventService: { getAllBuses: () => mockBuses },
-}));
+_setEventService({
+  getAllBuses: () => mockBuses,
+  removeBus: () => {},
+} as any);
 
-mock.module("../repositories", () => ({
-  sessionRepo: {
-    listByEnvironment: mock(() => Promise.resolve([])),
-    create: mock(() => Promise.resolve({ id: "ses_test" })),
-    bindOwner: mock(() => Promise.resolve()),
-  },
-}));
-
-mock.module("uuid", () => ({
-  v4: () => "test-uuid",
-}));
-
-import { getSession, resolveExistingSessionId, createSession } from "../services/session";
+_setUuid(() => "test-uuid");
 
 describe("getSession — 同步返回 Promise", () => {
   beforeEach(() => {

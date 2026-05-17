@@ -1,31 +1,17 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
-
 // ── session.ts async 函数移除冗余 Promise.resolve 验证 ──
+import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { getSession, resolveExistingSessionId, createSession, updateSessionStatus, archiveSession, _setEventService, _setUuid } from "../services/session";
 
+// 注入 mock eventService
 const mockBuses = new Map<string, { publish: typeof mock }>();
-const mockGetAllBuses = mock(() => mockBuses);
 const mockRemoveBus = mock((_id: string) => {});
 
-mock.module("../services/event-service", () => ({
-  eventService: {
-    getAllBuses: mockGetAllBuses,
-    removeBus: mockRemoveBus,
-  },
-}));
+_setEventService({
+  getAllBuses: () => mockBuses,
+  removeBus: mockRemoveBus,
+} as any);
 
-mock.module("uuid", () => ({
-  v4: () => "test-uuid-1234-5678-9abc-def012345678",
-}));
-
-mock.module("../repositories", () => ({
-  sessionRepo: {
-    listByEnvironment: mock(async () => []),
-    create: mock(async (p: { id: string }) => ({ id: p.id })),
-    bindOwner: mock(async () => {}),
-  },
-}));
-
-const { getSession, resolveExistingSessionId, createSession, updateSessionStatus, archiveSession } = await import("../services/session");
+_setUuid(() => "test-uuid-1234-5678-9abc-def012345678");
 
 describe("session async cleanup (removed redundant Promise.resolve)", () => {
   beforeEach(() => {
