@@ -19,89 +19,10 @@ export interface BoundKnowledgeBase {
 export { setKnowledgeProviderForTesting as setKnowledgeRuntimeProviderForTesting } from "./knowledge-provider/registry";
 
 /**
- * Resolves the ordered bound knowledge bases for an agent, optionally scoped to a user.
- */
-export async function resolveBoundKnowledgeBasesForAgent(
-  agentName: string,
-  userId?: string,
-): Promise<BoundKnowledgeBase[]> {
-  const rows = await agentKnowledgeBindingRepo.listJoinedWithKnowledgeBase(agentName);
-
-  return rows
-    .filter((row) => !!row.kbRemoteId && (!userId || row.kbUserId === userId))
-    .sort((a, b) => a.priority - b.priority)
-    .map((row) => ({
-      id: row.kbId,
-      remoteId: row.kbRemoteId!,
-      remoteAccountId: row.kbRemoteAccountId?.trim() || row.kbUserId,
-      remoteUserId: row.kbRemoteUserId?.trim() || row.kbUserId,
-      priority: row.priority,
-    }));
-}
-
-/**
- * Searches across the agent's bound knowledge bases after server-side access filtering.
- */
-export async function searchKnowledgeForAgent(input: {
-  agentName: string;
-  query: string;
-  topK: number;
-  userId?: string;
-}): Promise<KnowledgeSearchResult[]> {
-  const knowledgeBases = await resolveBoundKnowledgeBasesForAgent(input.agentName, input.userId);
-  if (knowledgeBases.length === 0) {
-    return [];
-  }
-
-  const provider = getKnowledgeRuntimeProvider();
-  const results = await provider.search({
-    knowledgeBases: knowledgeBases.map((item) => ({
-      remoteId: item.remoteId,
-      remoteAccountId: item.remoteAccountId,
-      remoteUserId: item.remoteUserId,
-    })),
-    query: input.query,
-    topK: input.topK,
-  });
-
-  const knowledgeBaseIdByRemoteId = new Map(knowledgeBases.map((item) => [item.remoteId, item.id]));
-  const resourceRemoteIds = Array.from(
-    new Set(
-      results
-        .map((item) => item.resourceId?.trim())
-        .filter((value): value is string => !!value),
-    ),
-  );
-  const resourceIdByRemoteId = new Map<string, string>();
-  if (resourceRemoteIds.length > 0) {
-    const resourceRows = await knowledgeResourceRepo.findByRemoteIds(resourceRemoteIds);
-    for (const row of resourceRows) {
-      if (row.remoteId) {
-        resourceIdByRemoteId.set(row.remoteId, row.id);
-      }
-    }
-  }
-
-  return results.map((item) => ({
-    title: item.title,
-    snippet: item.snippet,
-    source: item.source,
-    score: item.score,
-    knowledgeBaseId: item.knowledgeBaseId
-      ? knowledgeBaseIdByRemoteId.get(item.knowledgeBaseId) ?? item.knowledgeBaseId
-      : null,
-    resourceId: item.resourceId
-      ? resourceIdByRemoteId.get(item.resourceId) ?? item.resourceId
-      : null,
-  }));
-}
-
-/**
  * Reads a knowledge resource only if it belongs to a knowledge base bound to the agent.
  */
 export async function readKnowledgeResourceForAgent(input: {
   agentConfigId?: string;
-  agentName?: string;
   resourceId: string;
   userId?: string;
 }): Promise<KnowledgeResourceContent & { knowledgeBaseId: string }> {
@@ -119,9 +40,7 @@ export async function readKnowledgeResourceForAgent(input: {
 
   const boundKnowledgeBases = input.agentConfigId
     ? await resolveBoundKnowledgeBasesByConfigId(input.agentConfigId, input.userId)
-    : input.agentName
-      ? await resolveBoundKnowledgeBasesForAgent(input.agentName, input.userId)
-      : [];
+    : [];
   if (!boundKnowledgeBases.some((item) => item.id === result.resource.knowledgeBaseId)) {
     throw new Error("Knowledge resource is not bound to the agent");
   }

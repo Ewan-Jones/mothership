@@ -6,7 +6,6 @@ import * as z from "zod/v4";
 import { getEnvironmentBySecret } from "../../services/environment";
 import {
   readKnowledgeResourceForAgent,
-  searchKnowledgeForAgent,
   searchKnowledgeByConfigId,
 } from "../../services/knowledge-runtime";
 

@@ -67,18 +67,6 @@ export function resolveAgentKnowledgePolicy(
 }
 
 /**
- * Lists enabled knowledge base bindings for an agent in priority order.
- */
-export async function listAgentKnowledgeBindings(agentName: string): Promise<AgentKnowledgeBindingRecord[]> {
-  const rows = await agentKnowledgeBindingRepo.listEnabledByAgentName(agentName);
-  return rows.map((row) => ({
-    knowledgeBaseId: row.knowledgeBaseId,
-    priority: row.priority,
-    enabled: row.enabled,
-  }));
-}
-
-/**
  * Counts how many agent bindings exist for each knowledge base id.
  */
 export async function countBindingsByKnowledgeBaseIds(
@@ -90,48 +78,6 @@ export async function countBindingsByKnowledgeBaseIds(
   }
 
   return agentKnowledgeBindingRepo.countByKnowledgeBaseIds(ids);
-}
-
-/**
- * Replaces all agent knowledge bindings with the provided ordered knowledge base ids.
- */
-export async function syncAgentKnowledgeBindings(
-  userId: string,
-  agentName: string,
-  knowledge: AgentKnowledgeConfig | null | undefined,
-): Promise<void> {
-  const knowledgeBaseIds = normalizeKnowledgeBaseIds(knowledge?.knowledgeBaseIds);
-  await agentKnowledgeBindingRepo.deleteByAgentName(agentName);
-
-  if (knowledgeBaseIds.length === 0) {
-    return;
-  }
-
-  // Verify all referenced knowledge bases exist and belong to the user
-  const existingIds = new Set<string>();
-  for (const kbId of knowledgeBaseIds) {
-    const kb = await knowledgeBaseRepo.getByUserAndId(userId, kbId);
-    if (kb) {
-      existingIds.add(kb.id);
-    }
-  }
-  const missingIds = knowledgeBaseIds.filter((id) => !existingIds.has(id));
-  if (missingIds.length > 0) {
-    throw new InvalidKnowledgeBindingError(`知识库不存在或无权限访问: ${missingIds.join(", ")}`);
-  }
-
-  const now = new Date();
-  await agentKnowledgeBindingRepo.createMany(
-    knowledgeBaseIds.map((knowledgeBaseId, priority) => ({
-      id: generateBindingId(),
-      agentName,
-      knowledgeBaseId,
-      priority,
-      enabled: true,
-      createdAt: now,
-      updatedAt: now,
-    })),
-  );
 }
 
 /**

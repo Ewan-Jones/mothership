@@ -175,9 +175,13 @@ describe("Knowledge base routes", () => {
       createdAt: now,
       updatedAt: now,
     }).returning();
+    const [acForBinding] = await db.insert(agentConfig).values({
+      userId: "kb-user-1",
+      teamId: TEST_TEAM_ID,
+      name: "build",
+    }).returning();
     await db.insert(agentKnowledgeBinding).values({
-      agentConfigId: null,
-      agentName: "build",
+      agentConfigId: acForBinding.id,
       knowledgeBaseId: kbA.id,
       priority: 0,
       enabled: true,

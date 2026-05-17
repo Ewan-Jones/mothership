@@ -205,11 +205,9 @@ export const knowledgeResource = pgTable("knowledge_resource", {
 
 export const agentKnowledgeBinding = pgTable("agent_knowledge_binding", {
   id: uuid("id").primaryKey().defaultRandom(),
-  // 新：UUID FK 关联 AgentConfig（替代 agentName）
   agentConfigId: uuid("agent_config_id")
+    .notNull()
     .references(() => agentConfig.id, { onDelete: "cascade" }),
-  // 旧：暂时保留
-  agentName: varchar("agent_name"),
   knowledgeBaseId: uuid("knowledge_base_id")
     .notNull()
     .references(() => knowledgeBase.id, { onDelete: "cascade" }),
@@ -221,9 +219,6 @@ export const agentKnowledgeBinding = pgTable("agent_knowledge_binding", {
   agentConfigIdx: index("idx_agent_knowledge_binding_agent_config").on(table.agentConfigId),
   kbIdx: index("idx_agent_knowledge_binding_kb").on(table.knowledgeBaseId),
   agentConfigKbIdx: uniqueIndex("idx_agent_knowledge_binding_agent_config_kb").on(table.agentConfigId, table.knowledgeBaseId),
-  // 旧索引保留
-  agentIdx: index("idx_agent_knowledge_binding_agent").on(table.agentName),
-  agentKbIdx: uniqueIndex("idx_agent_knowledge_binding_agent_kb").on(table.agentName, table.knowledgeBaseId),
 }));
 
 // 定时任务表（HTTP Cron 触发器）
