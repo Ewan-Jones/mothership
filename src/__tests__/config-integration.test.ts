@@ -1,34 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 // Mock auth
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "test-user", email: "test@test.com", name: "Test" },
-        session: { id: "sess_test", userId: "test-user", token: "tok" },
-      }),
-      signUpEmail: async () => ({}),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: "test-team", name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
-
 // Mock config-pg service
 mock.module("../services/config-pg", () => ({
   listProviders: async () => [],
@@ -84,6 +58,19 @@ function request(path: string, init?: RequestInit) {
 }
 
 describe("Config Route Integration", () => {
+  beforeEach(() => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
+  });
+
+  afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
+  });
+
   test("mocked sessionAuth 通过后返回成功", async () => {
     const res = await request("/web/config/providers", {
       method: "POST",

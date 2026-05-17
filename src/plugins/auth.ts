@@ -3,6 +3,32 @@ import { auth } from "../auth/better-auth";
 import { verifyWorkerJwt } from "../auth/jwt";
 import { AppError } from "../errors";
 
+// ────────────────────────────────────────────
+// 测试注入：路由级测试通过 setTestAuth 绕过认证
+// ────────────────────────────────────────────
+
+let _testAuth: {
+  user: UserInfo;
+  session: AuthSessionInfo;
+  authContext: AuthContext | null;
+} | null = null;
+
+export function setTestAuth(auth: {
+  user: UserInfo;
+  session?: AuthSessionInfo;
+  authContext: AuthContext | null;
+}) {
+  _testAuth = {
+    user: auth.user,
+    session: auth.session ?? { id: "test-session", userId: auth.user.id, token: "test" },
+    authContext: auth.authContext,
+  };
+}
+
+export function resetTestAuth() {
+  _testAuth = null;
+}
+
 interface UserInfo {
   id: string;
   email: string;
@@ -79,6 +105,13 @@ export const authGuardPlugin = new Elysia({ name: "auth-guard" })
       if (!enabled) return {};
       return {
         beforeHandle: async ({ store, request, error }: any) => {
+          // 测试注入：直接设置 user 和 authContext，跳过 real auth
+          if (_testAuth) {
+            store.user = _testAuth.user;
+            store.authSession = _testAuth.session;
+            if (_testAuth.authContext) store.authContext = _testAuth.authContext;
+            return;
+          }
           const session = await auth.api.getSession({ headers: request.headers });
           if (!session?.user) {
             return error(401, { error: { type: "unauthorized", message: "Not authenticated" } });

@@ -1,36 +1,10 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, mock , afterEach } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 // In-memory mock for user config and providers
 let _userConfig: { defaultAgent: string | null; currentModel: string | null; smallModel: string | null; permission: unknown } = { defaultAgent: null, currentModel: null, smallModel: null, permission: null };
 let _providers: Map<string, { id: string; name: string; models: Map<string, Record<string, unknown>> }> = new Map();
-
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "test-user", email: "test@test.com", name: "Test" },
-        session: { id: "sess_test", userId: "test-user", token: "tok" },
-      }),
-      signUpEmail: async () => ({}),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: "test-team", name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
 
 mock.module("../services/config-pg", () => ({
   getUserConfig: async (_ctx: any) => ({ ..._userConfig }),
@@ -53,7 +27,17 @@ mock.module("../services/config-pg", () => ({
 const modelsRoute = (await import("../routes/web/config/models")).default;
 
 describe("Models Config Route", () => {
+    afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
+  });
+
   beforeEach(() => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
     _userConfig = { defaultAgent: null, currentModel: null, smallModel: null, permission: null };
     _providers = new Map();
   });

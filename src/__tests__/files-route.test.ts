@@ -1,42 +1,16 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-mock.module("../auth/better-auth", () => ({
-    auth: {
-        api: {
-            getSession: async () => ({
-                user: { id: "test-user", email: "test@test.com", name: "Test" },
-                session: { id: "sess_test", userId: "test-user", token: "tok" },
-            }),
-            signUpEmail: async () => ({}),
-        },
-    },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "d0000000-0000-0000-0000-000000000005", userId: "test-user", role: "owner" }),
-  getAuthContextByTeamId: async () => ({ teamId: "d0000000-0000-0000-0000-000000000005", userId: "test-user", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
-
 import Elysia from "elysia";
 import { db } from "../db";
-import { user as userTable, team as teamTable } from "../db/schema";
+import { user as userTable, team as teamTable, teamMember } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { resetAllRepos, environmentRepo, sessionRepo } from "../repositories";
 import { deleteEnvironment } from "../services/environment";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 const TEST_TEAM_ID = "d0000000-0000-0000-0000-000000000005";
 
@@ -67,6 +41,16 @@ async function ensureTeam() {
             updatedAt: now,
         });
     }
+    // 确保 teamMember 记录存在（loadTeamContext 需要查询）
+    const [membership] = await db.select().from(teamMember)
+        .where(eq(teamMember.teamId, TEST_TEAM_ID)).limit(1);
+    if (!membership) {
+        await db.insert(teamMember).values({
+            teamId: TEST_TEAM_ID,
+            userId: "test-user",
+            role: "owner",
+        });
+    }
 }
 
 await ensureUser();
@@ -75,7 +59,10 @@ await ensureTeam();
 let workspaceDir = "";
 
 function request(app: Elysia, path: string, init?: RequestInit) {
-    return app.handle(new Request(`http://localhost${path}`, init));
+    // 注入 x-active-team-id header，确保 loadTeamContext 命中正确的团队
+    const headers = new Headers(init?.headers);
+    headers.set("x-active-team-id", TEST_TEAM_ID);
+    return app.handle(new Request(`http://localhost${path}`, { ...init, headers }));
 }
 
 describe("Files Route", () => {
@@ -84,12 +71,18 @@ describe("Files Route", () => {
     let envId: string;
 
     beforeEach(async () => {
+        const authCtx = { teamId: TEST_TEAM_ID, userId: "test-user", role: "owner" as const };
+        setTestAuth({
+            user: { id: "test-user", email: "test@test.com", name: "Test" },
+            authContext: authCtx,
+        });
+        setTestTeamContext(authCtx);
+
         workspaceDir = await mkdtemp(join(tmpdir(), "rcs-files-test-"));
         await mkdir(join(workspaceDir, "user"), { recursive: true });
 
         resetAllRepos();
 
-        // Create real environment and session with test workspace
         const env = await environmentRepo.create({
             userId: "test-user",
             teamId: TEST_TEAM_ID,
@@ -103,6 +96,11 @@ describe("Files Route", () => {
         const mod = await import("../routes/web/files");
         app = new Elysia();
         app.use(mod.default);
+    });
+
+    afterEach(() => {
+        resetTestAuth();
+        setTestTeamContext(null);
     });
 
     afterAll(async () => {
@@ -123,10 +121,8 @@ describe("Files Route", () => {
     });
 
     test("GET /:sessionId/user — 404 for invalid session without environment", async () => {
-        // Delete the specific environment and clear sessions so no fallback is available
         await deleteEnvironment(envId);
         resetAllRepos();
-        // Also delete any other environments for this user to prevent fallback
         for (const env of await environmentRepo.listByUserId("test-user")) {
             await deleteEnvironment(env.id);
         }

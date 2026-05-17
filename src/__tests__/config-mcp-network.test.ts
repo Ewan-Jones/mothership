@@ -1,4 +1,6 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, mock , afterEach } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 // In-memory mock for MCP servers
 let _mcpStore: Record<string, { type: string; config: Record<string, unknown>; enabled: boolean }> = {};
@@ -11,34 +13,6 @@ let _inspectResult: any = {
   tools: [{ name: "tool1", description: "desc1", inputSchema: { type: "object" } }],
   transport: "streamable-http" as const,
 };
-
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "test-user", email: "test@test.com", name: "Test" },
-        session: { id: "sess_test", userId: "test-user", token: "tok" },
-      }),
-      signUpEmail: async () => ({}),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: "test-team", name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
 
 mock.module("../services/config-pg", () => ({
   getMcpServer: async (_ctx: any, name: string) => {
@@ -111,7 +85,17 @@ function postRequest(body: Record<string, unknown>) {
 }
 
 describe("MCP Config Route - Network Actions", () => {
+    afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
+  });
+
   beforeEach(() => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
     _mcpStore = {
       "my-local": { type: "local", config: { type: "local", command: ["npx", "mcp-server"], environment: { KEY: "VALUE" }, timeout: 5000 }, enabled: true },
       "my-remote": { type: "remote", config: { type: "remote", url: "https://example.com/mcp", headers: { Auth: "Bearer t" }, timeout: 10000 }, enabled: true },

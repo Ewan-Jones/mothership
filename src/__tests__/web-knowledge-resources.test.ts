@@ -1,42 +1,17 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, afterEach, describe, expect, test } from "bun:test";
 
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "kb-user-1", email: "kb@test.com", name: "KB User" },
-        session: { id: "sess-kb-1", userId: "kb-user-1", token: "tok-kb-1" },
-      }),
-    },
-  },
-}));
+import { default as Elysia } from "elysia";
+import { db } from "../db";
+import { eq } from "drizzle-orm";
+import { knowledgeBase, knowledgeResource, user, team } from "../db/schema";
+import webKnowledgeBases from "../routes/web/knowledge-bases";
+import { setKnowledgeProviderForTesting } from "../services/knowledge-base";
+import { setKnowledgeUploadProviderForTesting } from "../services/knowledge-upload";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
 
 // 固定的测试团队 UUID
 const TEST_TEAM_ID = "a0000000-0000-0000-0000-000000000002";
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: TEST_TEAM_ID, userId: "kb-user-1", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: TEST_TEAM_ID, userId: "kb-user-1", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
-
-const { default: Elysia } = await import("elysia");
-const { db } = await import("../db");
-const { eq } = await import("drizzle-orm");
-const { knowledgeBase, knowledgeResource, user, team } = await import("../db/schema");
-const webKnowledgeBases = (await import("../routes/web/knowledge-bases")).default;
-const { setKnowledgeProviderForTesting } = await import("../services/knowledge-base");
-const { setKnowledgeUploadProviderForTesting } = await import("../services/knowledge-upload");
+const TEST_USER_ID = "kb-user-1";
 
 const testApp = new Elysia().use(webKnowledgeBases);
 
@@ -84,10 +59,10 @@ const fakeProvider = {
 
 async function ensureUser() {
   const now = new Date();
-  const [existing] = await db.select().from(user).where(eq(user.id, "kb-user-1"));
+  const [existing] = await db.select().from(user).where(eq(user.id, TEST_USER_ID));
   if (!existing) {
     await db.insert(user).values({
-      id: "kb-user-1",
+      id: TEST_USER_ID,
       name: "KB User",
       email: "kb@test.com",
       emailVerified: false,
@@ -106,7 +81,7 @@ async function ensureTeam() {
       id: TEST_TEAM_ID,
       name: "KB Resource Test Team",
       slug: "kb-resource-test-team",
-      createdBy: "kb-user-1",
+      createdBy: TEST_USER_ID,
       createdAt: now,
       updatedAt: now,
     });
@@ -118,7 +93,7 @@ let seededKbId: string;
 async function seedKnowledgeBase() {
   const now = new Date();
   const [row] = await db.insert(knowledgeBase).values({
-    userId: "kb-user-1",
+    userId: TEST_USER_ID,
     teamId: TEST_TEAM_ID,
     name: "Docs",
     slug: "docs",
@@ -135,14 +110,22 @@ async function seedKnowledgeBase() {
 
 describe("Knowledge resource routes", () => {
   beforeEach(async () => {
+    setTestAuth({
+      user: { id: TEST_USER_ID, email: "kb@test.com", name: "KB User" },
+      authContext: { teamId: TEST_TEAM_ID, userId: TEST_USER_ID, role: "owner" },
+    });
     setKnowledgeProviderForTesting(fakeProvider as any);
     setKnowledgeUploadProviderForTesting(fakeProvider as any);
     await db.delete(knowledgeResource);
     await db.delete(knowledgeBase);
-    await db.delete(user).where(eq(user.id, "kb-user-1"));
+    await db.delete(user).where(eq(user.id, TEST_USER_ID));
     await ensureUser();
     await ensureTeam();
     await seedKnowledgeBase();
+  });
+
+  afterEach(() => {
+    resetTestAuth();
   });
 
   test("multipart upload creates pending/processing resource with sourcePath", async () => {

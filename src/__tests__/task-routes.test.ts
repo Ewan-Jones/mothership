@@ -1,38 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, teamMember, user } from "../db/schema";
 
 const TEAM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 const TEST_USER_ID = "test_user";
-
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: TEST_USER_ID, email: "task-routes@test.com", name: "Test" },
-        session: { id: "sess_test", userId: TEST_USER_ID, token: "tok" },
-      }),
-      signUpEmail: async () => ({}),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: TEAM_ID, userId: TEST_USER_ID, role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: TEAM_ID, userId: TEST_USER_ID, role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: TEAM_ID, name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
 
 const mockScheduleTask = mock(() => {});
 const mockUnscheduleTask = mock(() => {});
@@ -116,6 +90,11 @@ async function createTaskViaRoute(overrides: Record<string, unknown> = {}) {
 
 describe("Task Routes", () => {
   beforeEach(async () => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
     await cleanup();
     mockScheduleTask.mockClear();
     mockUnscheduleTask.mockClear();
@@ -123,6 +102,8 @@ describe("Task Routes", () => {
   });
 
   afterEach(async () => {
+    resetTestAuth();
+    setTestTeamContext(null);
     await cleanup();
   });
 

@@ -1,31 +1,6 @@
-import { describe, expect, mock, test } from "bun:test";
-
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "test-user-1", email: "test@test.com", name: "TestUser" },
-        session: { id: "sess-1", userId: "test-user-1", token: "tok-1" },
-      }),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "test-team", userId: "test-user-1", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: "test-team", userId: "test-user-1", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: "test-team", name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
+import { describe, expect, mock, test, beforeEach, afterEach } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 mock.module("../services/hermes-client", () => ({
   getHermesClient: () => ({
@@ -81,6 +56,19 @@ function request(path: string, init?: RequestInit) {
 }
 
 describe("channel routes", () => {
+  beforeEach(() => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
+  });
+
+  afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
+  });
+
   test("GET /web/channels/providers returns disabled providers", async () => {
     const res = await request("/web/channels/providers");
     expect(res.status).toBe(200);

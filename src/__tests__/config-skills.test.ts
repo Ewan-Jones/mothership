@@ -1,4 +1,6 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, mock , afterEach } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
@@ -21,34 +23,6 @@ async function createSkill(dir: string, name: string, description: string, conte
 }
 
 // Mock auth
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "test-user", email: "test@test.com", name: "Test" },
-        session: { id: "sess_test", userId: "test-user", token: "tok" },
-      }),
-      signUpEmail: async () => ({}),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: "test-team", name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
-
 // Mock skill service to use temp directories
 mock.module("../services/skill", () => ({
   SKILLS_DIR: skillsDir,
@@ -165,7 +139,17 @@ mock.module("../services/skill", () => ({
 const skillsRoute = (await import("../routes/web/config/skills")).default;
 
 describe("Skills Config Route", () => {
+    afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
+  });
+
   beforeEach(async () => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
     if (existsSync(skillsDir)) await rm(skillsDir, { recursive: true, force: true });
     if (existsSync(disabledDir)) await rm(disabledDir, { recursive: true, force: true });
     await mkdir(skillsDir, { recursive: true });
@@ -445,7 +429,7 @@ describe("Skills Config Route", () => {
 });
 
 // Cleanup
-import { afterAll } from "bun:test";
+import { afterAll , afterEach } from "bun:test";
 afterAll(async () => {
   if (existsSync(tempDir)) await rm(tempDir, { recursive: true, force: true });
 });

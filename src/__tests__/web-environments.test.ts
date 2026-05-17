@@ -1,4 +1,6 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, mock , afterEach } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 // 固定的测试团队 UUID
 const TEST_TEAM_ID = "d0000000-0000-0000-0000-000000000001";
@@ -10,34 +12,6 @@ mock.module("../config", () => ({
 }));
 
 // Mock auth to bypass authentication
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "test-user-1", email: "test@test.com", name: "TestUser" },
-        session: { id: "sess-1", userId: "test-user-1", token: "tok-1" },
-      }),
-      signUpEmail: async () => ({}),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: TEST_TEAM_ID, userId: "test-user-1", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: TEST_TEAM_ID, userId: "test-user-1", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
-
 // Mock instance service
 mock.module("../services/instance", () => ({
   findRunningInstanceByEnvironment: mock(() => undefined),
@@ -114,7 +88,17 @@ await ensureTestUser();
 await ensureTestTeam();
 
 describe("Web Environments CRUD API", () => {
+    afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
+  });
+
   beforeEach(() => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
     resetAllRepos();
     (instanceMock.listInstancesByEnvironment as any).mockClear?.();
     (instanceMock.listInstancesByEnvironment as any).mockReturnValue?.([]);

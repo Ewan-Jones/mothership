@@ -1,59 +1,13 @@
 import { describe, expect, mock, test, beforeEach, afterEach } from "bun:test";
+import { setConfig, resetConfig } from "../config";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
-// Mock config before any imports that use it
-mock.module("../config", () => ({
-  config: {
-    port: 3000,
-    host: "0.0.0.0",
-    apiKeys: [],
-    baseUrl: "http://localhost:3000",
-    pollTimeout: 8,
-    heartbeatInterval: 20,
-    wsIdleTimeout: 255,
-    wsKeepaliveInterval: 20,
-    disconnectTimeout: 120,
-    jwtExpiresIn: 3600,
-    acpxGUrl: "http://localhost:8848",
-  },
-  getBaseUrl: () => "http://localhost:3000",
-}));
-
-// Mock better-auth so sessionAuth returns a valid session
-let authenticated = true;
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => {
-        if (!authenticated) return null;
-        return {
-          user: { id: "test-user", email: "test@test.com", name: "Test" },
-          session: { id: "sess_test", userId: "test-user", token: "tok" },
-        };
-      },
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: "test-team", name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
+setConfig({ acpxGUrl: "http://localhost:8848" });
 
 import Elysia from "elysia";
 import { workflowStaticApp, workflowApiApp } from "../routes/web/workflow-proxy";
 
-// Save original fetch
 const originalFetch = globalThis.fetch;
 
 function elysiaRequest(app: any, path: string, init?: RequestInit) {
@@ -62,10 +16,16 @@ function elysiaRequest(app: any, path: string, init?: RequestInit) {
 
 describe("Workflow Proxy", () => {
   beforeEach(() => {
-    authenticated = true;
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
   });
 
   afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
     globalThis.fetch = originalFetch;
   });
 
@@ -122,12 +82,11 @@ describe("Workflow Proxy", () => {
       body: JSON.stringify({ name: "test-workflow" }),
     });
     expect(res.status).toBe(201);
-    // Body is forwarded as ReadableStream (request.body)
     expect(capturedInit.body).toBeDefined();
   });
 
   test("unauthenticated request returns 401", async () => {
-    authenticated = false;
+    resetTestAuth();
 
     const app = new Elysia().use(workflowStaticApp);
     const res1 = await elysiaRequest(app, "/workflow-ui/");

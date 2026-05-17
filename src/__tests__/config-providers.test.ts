@@ -1,35 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 // In-memory PG mock for providers
 let _providers: Map<string, { id: string; name: string; displayName: string | null; npm: string | null; baseUrl: string | null; apiKey: string | null; extraOptions: Record<string, unknown> | null; models: Map<string, Record<string, unknown>> }> = new Map();
-
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "test-user", email: "test@test.com", name: "Test" },
-        session: { id: "sess_test", userId: "test-user", token: "tok" },
-      }),
-      signUpEmail: async () => ({}),
-    },
-  },
-}));
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-    getAuthContextByTeamId: async () => ({ teamId: "test-team", userId: "test-user", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: "test-team", name: "Test Team", slug: "test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
 
 mock.module("../services/config-pg", () => ({
   listProviders: async (_ctx: any) => {
@@ -126,7 +100,17 @@ function createFetchMock(handler: () => Promise<Response> | Response): typeof fe
 }
 
 describe("Providers Config Route", () => {
+    afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
+  });
+
   beforeEach(() => {
+    setTestAuth({
+      user: { id: "test-user", email: "test@test.com", name: "Test" },
+      authContext: { teamId: "test-team", userId: "test-user", role: "owner" },
+    });
+    setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" });
     _providers = new Map();
   });
 
@@ -445,7 +429,7 @@ describe("Providers Config Route", () => {
 });
 
 describe("Provider Test action - edge cases", () => {
-  beforeEach(() => { _providers = new Map(); });
+  beforeEach(() => { _providers = new Map(); setTestAuth({ user: { id: "test-user", email: "test@test.com", name: "Test" }, authContext: { teamId: "test-team", userId: "test-user", role: "owner" } }); setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" }); });
 
   test("test non-existent provider returns NOT_FOUND", async () => {
     const res = await providersRoute.handle(new Request("http://localhost/web/config/providers", {
@@ -460,7 +444,7 @@ describe("Provider Test action - edge cases", () => {
 });
 
 describe("Provider atomic write", () => {
-  beforeEach(() => { _providers = new Map(); });
+  beforeEach(() => { _providers = new Map(); setTestAuth({ user: { id: "test-user", email: "test@test.com", name: "Test" }, authContext: { teamId: "test-team", userId: "test-user", role: "owner" } }); setTestTeamContext({ teamId: "test-team", userId: "test-user", role: "owner" }); });
 
   test("concurrent set operations don't lose data", async () => {
     _providers.set("provider-a", { id: "prov-a", name: "A", displayName: null, npm: null, baseUrl: "http://a", apiKey: "key-a", extraOptions: null, models: new Map() });

@@ -1,6 +1,16 @@
 import type { AuthContext } from "../plugins/auth";
 import { getAuthContextByTeamId, ensurePersonalTeam, listMyTeams } from "./team";
 
+// ────────────────────────────────────────────
+// 测试注入：路由级测试通过 setTestTeamContext 绕过 DB 查询
+// ────────────────────────────────────────────
+
+let _testTeamContext: AuthContext | null = null;
+
+export function setTestTeamContext(ctx: AuthContext | null) {
+  _testTeamContext = ctx;
+}
+
 /** 从请求中解析 activeTeamId（header > query param > cookie） */
 function extractActiveTeamId(request: Request): string | null {
   const header = request.headers.get("x-active-team-id");
@@ -20,6 +30,8 @@ function extractActiveTeamId(request: Request): string | null {
  * 无团队时自动创建个人团队。
  */
 export async function loadTeamContext(user: { id: string }, request: Request): Promise<AuthContext | null> {
+  // 测试注入：直接返回预设的团队上下文，跳过 DB 查询
+  if (_testTeamContext) return _testTeamContext;
   try {
     let activeTeamId = extractActiveTeamId(request);
     if (!activeTeamId) {

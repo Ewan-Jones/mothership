@@ -1,53 +1,33 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, afterEach, describe, expect, test } from "bun:test";
 
-mock.module("../auth/better-auth", () => ({
-  auth: {
-    api: {
-      getSession: async () => ({
-        user: { id: "kb-user-1", email: "kb@test.com", name: "KB User" },
-        session: { id: "sess-kb-1", userId: "kb-user-1", token: "tok-kb-1" },
-      }),
-    },
-  },
-}));
-
-// 固定的测试团队 UUID，与 mock getAuthContext 返回一致
-const TEST_TEAM_ID = "a0000000-0000-0000-0000-000000000001";
-
-mock.module("../services/team", () => ({
-  getAuthContext: async () => ({ teamId: TEST_TEAM_ID, userId: "kb-user-1", role: "owner" }),
-  getAuthContextByTeamId: async () => ({ teamId: TEST_TEAM_ID, userId: "kb-user-1", role: "owner" }),
-  ensurePersonalTeam: async () => {},
-  listMyTeams: async () => [{ id: TEST_TEAM_ID, name: "KB Test Team", slug: "kb-test-team" }],
-  getTeamDetail: async () => null,
-  createTeam: async () => null,
-  switchTeam: async () => null,
-  addMember: async () => {},
-  removeMember: async () => false,
-  updateRole: async () => false,
-  getTeamMembers: async () => [],
-  updateTeam: async () => false,
-  deleteTeam: async () => false,
-}));
-
-const { default: Elysia } = await import("elysia");
-const { db } = await import("../db");
-const {
+import { default as Elysia } from "elysia";
+import { db } from "../db";
+import {
   agentConfig,
   agentKnowledgeBinding,
   knowledgeBase,
   knowledgeResource,
   user,
   team,
-} = await import("../db/schema");
-const { eq } = await import("drizzle-orm");
-const webKnowledgeBases = (await import("../routes/web/knowledge-bases")).default;
-const { setKnowledgeProviderForTesting } = await import("../services/knowledge-base");
+} from "../db/schema";
+import { eq } from "drizzle-orm";
+import webKnowledgeBases from "../routes/web/knowledge-bases";
+import { setKnowledgeProviderForTesting } from "../services/knowledge-base";
+import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
+
+// 固定的测试团队 UUID，与 authContext 返回一致
+const TEST_TEAM_ID = "a0000000-0000-0000-0000-000000000001";
+const TEST_USER_ID = "kb-user-1";
+
+import { teamMember } from "../db/schema";
 
 const testApp = new Elysia().use(webKnowledgeBases);
 
 function request(path: string, init?: RequestInit) {
-  return testApp.handle(new Request(`http://localhost${path}`, init));
+  const headers = new Headers(init?.headers);
+  headers.set("x-active-team-id", TEST_TEAM_ID);
+  return testApp.handle(new Request(`http://localhost${path}`, { ...init, headers }));
 }
 
 const fakeProvider = {
@@ -79,10 +59,10 @@ const fakeProvider = {
 
 async function ensureUser() {
   const now = new Date();
-  const [existing] = await db.select().from(user).where(eq(user.id, "kb-user-1"));
+  const [existing] = await db.select().from(user).where(eq(user.id, TEST_USER_ID));
   if (!existing) {
     await db.insert(user).values({
-      id: "kb-user-1",
+      id: TEST_USER_ID,
       name: "KB User",
       email: "kb@test.com",
       emailVerified: false,
@@ -101,24 +81,40 @@ async function ensureTeam() {
       id: TEST_TEAM_ID,
       name: "KB Test Team",
       slug: "kb-test-team",
-      createdBy: "kb-user-1",
+      createdBy: TEST_USER_ID,
       createdAt: now,
       updatedAt: now,
     });
+  }
+  const [membership] = await db.select().from(teamMember)
+    .where(eq(teamMember.teamId, TEST_TEAM_ID)).limit(1);
+  if (!membership) {
+    await db.insert(teamMember).values({ teamId: TEST_TEAM_ID, userId: TEST_USER_ID, role: "owner" });
   }
 }
 
 describe("Knowledge base routes", () => {
   beforeEach(async () => {
+    const authCtx = { teamId: TEST_TEAM_ID, userId: TEST_USER_ID, role: "owner" as const };
+    setTestAuth({
+      user: { id: TEST_USER_ID, email: "kb@test.com", name: "KB User" },
+      authContext: authCtx,
+    });
+    setTestTeamContext(authCtx);
     setKnowledgeProviderForTesting(fakeProvider as any);
     await db.delete(agentKnowledgeBinding);
     await db.delete(knowledgeResource);
     await db.delete(knowledgeBase);
     await db.delete(agentConfig);
-    await db.delete(user).where(eq(user.id, "kb-user-1"));
+    await db.delete(user).where(eq(user.id, TEST_USER_ID));
     await db.delete(user).where(eq(user.id, "other-user"));
     await ensureUser();
     await ensureTeam();
+  });
+
+  afterEach(() => {
+    resetTestAuth();
+    setTestTeamContext(null);
   });
 
   test("POST /web/knowledgeBases returns 201 with UUID id", async () => {
@@ -150,7 +146,7 @@ describe("Knowledge base routes", () => {
       updatedAt: now,
     });
     const [kbA] = await db.insert(knowledgeBase).values({
-      userId: "kb-user-1",
+      userId: TEST_USER_ID,
       teamId: TEST_TEAM_ID,
       name: "Docs A",
       slug: "docs-a",
@@ -176,7 +172,7 @@ describe("Knowledge base routes", () => {
       updatedAt: now,
     }).returning();
     const [acForBinding] = await db.insert(agentConfig).values({
-      userId: "kb-user-1",
+      userId: TEST_USER_ID,
       teamId: TEST_TEAM_ID,
       name: "build",
     }).returning();
@@ -200,7 +196,7 @@ describe("Knowledge base routes", () => {
   test("PATCH /web/knowledgeBases/:id updates description and preserves other fields", async () => {
     const now = new Date("2026-01-01T00:00:00Z");
     const [kb] = await db.insert(knowledgeBase).values({
-      userId: "kb-user-1",
+      userId: TEST_USER_ID,
       teamId: TEST_TEAM_ID,
       name: "Docs",
       slug: "docs",
@@ -236,7 +232,7 @@ describe("Knowledge base routes", () => {
     } as any);
     const now = new Date();
     const [kb] = await db.insert(knowledgeBase).values({
-      userId: "kb-user-1",
+      userId: TEST_USER_ID,
       teamId: TEST_TEAM_ID,
       name: "Docs",
       slug: "docs",
@@ -270,7 +266,7 @@ describe("Knowledge base routes", () => {
     } as any);
     const now = new Date();
     const [kb] = await db.insert(knowledgeBase).values({
-      userId: "kb-user-1",
+      userId: TEST_USER_ID,
       teamId: TEST_TEAM_ID,
       name: "Docs Busy",
       slug: "docs-busy",
