@@ -400,21 +400,6 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_channel_binding_agent_id ON channel_binding(agent_id);
   `);
 
-  await client.unsafe(`
-    CREATE TABLE IF NOT EXISTS agent_session (
-      id VARCHAR PRIMARY KEY,
-      environment_id UUID REFERENCES environment(id) ON DELETE SET NULL,
-      title VARCHAR,
-      status VARCHAR NOT NULL,
-      source VARCHAR NOT NULL,
-      username VARCHAR,
-      user_id TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_agent_session_env ON agent_session(environment_id);
-  `);
-
   // skill 引用 agent_config(id)，放在 agent_config 之后
   await client.unsafe(`
     CREATE TABLE IF NOT EXISTS skill (
