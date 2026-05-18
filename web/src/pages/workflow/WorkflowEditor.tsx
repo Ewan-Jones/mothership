@@ -63,11 +63,12 @@ const PALETTE_ITEMS = [
 ] as const;
 
 interface WorkflowEditorProps {
+  workflowId?: string;
   onViewRuns?: () => void;
   onRunStarted?: (runId: string) => void;
 }
 
-function WorkflowEditorInner({ onViewRuns, onRunStarted }: WorkflowEditorProps) {
+function WorkflowEditorInner({ workflowId, onViewRuns, onRunStarted }: WorkflowEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([createStartNode()]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { fitView, screenToFlowPosition } = useReactFlow();
