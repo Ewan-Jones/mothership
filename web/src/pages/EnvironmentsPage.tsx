@@ -98,17 +98,22 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
 
   useEffect(() => {
     loadEnvs();
-    client.web.config.agents
-      .post({ action: "list" })
-      .then(({ data, error: err }) => {
-        if (err || !data) return;
-        const result = data as { data?: { agents?: Array<{ id: string; name: string }> } } | null;
-        setAgentOptions((result?.data?.agents ?? []).map((a) => ({ id: a.id, name: a.name })));
-      })
-      .catch(() => {});
-  }, [loadEnvs]);
+    loadAgentOptions();
+  }, [loadEnvs, loadAgentOptions]);
 
-  const openCreateDialog = useCallback(() => {
+  const loadAgentOptions = useCallback(async () => {
+    try {
+      const { data, error: err } = await client.web.config.agents.post({ action: "list" });
+      if (err || !data) return;
+      const result = data as { data?: { agents?: Array<{ id: string; name: string }> } } | null;
+      setAgentOptions((result?.data?.agents ?? []).map((a) => ({ id: a.id, name: a.name })));
+    } catch {
+      /* silent */
+    }
+  }, []);
+
+  const openCreateDialog = useCallback(async () => {
+    await loadAgentOptions();
     setEditingEnv(null);
     setFormName("");
     setFormDescription("");
@@ -117,9 +122,10 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
     setFormAutoStart(false);
     setFormError("");
     setDialogOpen(true);
-  }, []);
+  }, [loadAgentOptions]);
 
-  const openEditDialog = useCallback((env: Environment) => {
+  const openEditDialog = useCallback(async (env: Environment) => {
+    await loadAgentOptions();
     setEditingEnv(env);
     setFormName(env.name);
     setFormDescription(env.description || "");
@@ -128,7 +134,7 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
     setFormAutoStart(env.auto_start ?? false);
     setFormError("");
     setDialogOpen(true);
-  }, []);
+  }, [loadAgentOptions]);
 
   const handleFormSubmit = useCallback(async () => {
     if (!formName || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formName)) {
