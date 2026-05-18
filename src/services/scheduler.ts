@@ -4,9 +4,9 @@ import { scheduledTaskRepo } from "../repositories/task";
 import { createExecutionLog, executeTaskById, getTaskById } from "./task";
 
 // 可替换的 scheduleJob 实现（测试时覆盖）
-export type ScheduleJobFn = (config: schedule.ScheduleJobArgs, handler: () => void) => schedule.Job | null;
+export type ScheduleJobFn = (config: schedule.Spec, handler: () => void) => schedule.Job | null;
 export let scheduleJobImpl: ScheduleJobFn = (config, handler) =>
-  schedule.scheduleJob(config as schedule.JobReference, handler);
+  schedule.scheduleJob(config as schedule.RecurrenceSpecObjLit, handler);
 
 export function setScheduleJobImpl(fn: ScheduleJobFn) {
   scheduleJobImpl = fn;

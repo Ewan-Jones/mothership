@@ -20,7 +20,7 @@ beforeEach(() => {
     disableSkill: mock(async () => true),
   } as any;
   _deps.skillFs = {
-    createSkillValidationError: (msg: string) => new Error(msg),
+    createSkillValidationError: (msg: string) => { const e = new Error(msg) as any; e.code = "TEST"; return e; },
     groupUploadFiles: (files: { skillName: string; relativePath: string; content: string }[]) => {
       const map = new Map<string, { skillName: string; relativePath: string; content: string }[]>();
       for (const f of files) {
@@ -37,11 +37,11 @@ beforeEach(() => {
     resolveImportPlan: (grouped: Map<string, unknown>) => ({
       pendingEntries: Array.from(grouped.entries()),
       skipped: [],
-    }),
+    }) as any,
     writeImportFiles: mock(async (_dir: string, entries: [string, unknown][]) => entries.map(([n]) => n)),
     buildImportedSkillInfos: mock(async (_dir: string, names: string[]) =>
       names.map((n) => ({ name: n, description: `desc-${n}`, path: `/path/${n}/SKILL.md` })),
-    ),
+    ) as any,
     backupSkillDirs: mock(async () => new Map()),
     cleanupWrittenSkills: mock(async () => {}),
     restoreFromBackup: mock(async () => {}),

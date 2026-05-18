@@ -73,7 +73,7 @@ describe("getAgentFullConfig", () => {
       apiKeyHint: null,
       baseUrl: null,
       updatedAt: new Date(),
-    });
+    } as any);
     await db.insert(mcpServer).values({
       userId: TEST_USER_ID,
       teamId: TEST_TEAM_ID!,
@@ -92,7 +92,7 @@ describe("getAgentFullConfig", () => {
       enabled: true,
       agentConfigId: null,
       updatedAt: new Date(),
-    });
+    } as any);
 
     const result = await getAgentFullConfig({ teamId: TEST_TEAM_ID!, userId: TEST_USER_ID, role: "owner" }, null);
 

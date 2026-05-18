@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { _deps, _resetDeps, listSkillSources } from "../services/skill";
 
-const mockListByUserId = mock(async () => []);
+const mockListByUserId = mock(async (): Promise<any[]> => []);
 
 beforeEach(() => {
   mockListByUserId.mockReset();
@@ -20,7 +20,7 @@ beforeEach(() => {
   } as any;
   _deps.skillFs = {
     listSkillsFromDir: mock(async () => []),
-    createSkillValidationError: (msg: string) => new Error(msg),
+    createSkillValidationError: (msg: string) => { const e = new Error(msg) as any; e.code = "TEST"; return e; },
     groupUploadFiles: () => new Map(),
     readSkillDetailFromMd: mock(async () => null),
     writeSkillMd: mock(async () => "/tmp/SKILL.md"),
@@ -46,7 +46,7 @@ describe("listSkillSources skips environments without workspacePath", () => {
     mockListByUserId.mockResolvedValueOnce([
       { id: "env-1", workspacePath: null, name: "ACP Agent", status: "active" },
       { id: "env-2", workspacePath: "/tmp/ws", name: "Web Env", status: "active" },
-    ]);
+    ] as any);
 
     const sources = await listSkillSources({
       teamId: "f0000000-0000-0000-0000-000000000001",
@@ -64,7 +64,7 @@ describe("listSkillSources skips environments without workspacePath", () => {
     mockListByUserId.mockResolvedValueOnce([
       { id: "env-1", workspacePath: null, name: "Agent 1", status: "active" },
       { id: "env-2", workspacePath: undefined, name: "Agent 2", status: "active" },
-    ]);
+    ] as any);
 
     const sources = await listSkillSources({
       teamId: "f0000000-0000-0000-0000-000000000001",

@@ -21,7 +21,7 @@ beforeEach(() => {
   _deps.skillFs = {
     writeSkillMd: mockWriteSkillMd,
     deleteSkillDir: mockDeleteSkillDir,
-    createSkillValidationError: (msg: string) => new Error(msg),
+    createSkillValidationError: (msg: string) => { const e = new Error(msg) as any; e.code = "TEST"; return e; },
     groupUploadFiles: () => new Map(),
     listSkillsFromDir: mock(async () => []),
     readSkillDetailFromMd: mock(async () => null),

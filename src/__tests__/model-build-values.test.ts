@@ -54,7 +54,7 @@ async function ensureProvider() {
       apiKeyHint: null,
       baseUrl: null,
       updatedAt: new Date(),
-    })
+    } as any)
     .returning();
   TEST_PROVIDER_ID = created.id;
 }

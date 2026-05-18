@@ -25,7 +25,7 @@ beforeEach(() => {
     create: mock(async (d: any) => ({ id: "ses_1", ...d })),
   } as any;
   _deps.findOrCreateForEnvironment = mock(async () => ({ id: "ses_1" }));
-  _deps.deleteEnvironment = mock(async () => {});
+  _deps.deleteEnvironment = mock(async () => {}) as any;
 });
 
 afterEach(() => {

@@ -519,7 +519,7 @@ describe("Skills Config Route", () => {
 });
 
 // Cleanup
-import { afterAll, afterEach } from "bun:test";
+import { afterAll } from "bun:test";
 
 afterAll(async () => {
   if (existsSync(tempDir)) await rm(tempDir, { recursive: true, force: true });

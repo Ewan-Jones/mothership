@@ -10,7 +10,7 @@ beforeEach(() => {
   } as any;
   _deps.sessionRepo = {} as any;
   _deps.findOrCreateForEnvironment = mock(async () => ({ id: "ses_1" }));
-  _deps.deleteEnvironment = mock(async () => {});
+  _deps.deleteEnvironment = mock(async () => {}) as any;
 });
 
 afterEach(() => {

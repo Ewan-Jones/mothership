@@ -21,9 +21,9 @@ beforeEach(() => {
     disableSkill: mock(async () => true),
   } as any;
   _deps.skillFs = {
-    createSkillValidationError: (msg: string) => new Error(msg),
+    createSkillValidationError: (msg: string) => { const e = new Error(msg) as any; e.code = "TEST"; return e; },
     groupUploadFiles: () =>
-      new Map([["test-skill", [{ relativePath: "SKILL.md", content: "---\nname: test\n---\ncontent" }]]]),
+      new Map([["test-skill", [{ relativePath: "SKILL.md", content: "---\nname: test\n---\ncontent" }]]]) as any,
     listSkillsFromDir: mock(async () => []),
     readSkillDetailFromMd: mock(async () => null),
     writeSkillMd: mock(async () => "/tmp/skill/SKILL.md"),
@@ -36,9 +36,9 @@ beforeEach(() => {
         ],
       ],
       skipped: [],
-    })),
+    })) as any,
     writeImportFiles: mockWriteImportFiles,
-    buildImportedSkillInfos: mockBuildImportedSkillInfos,
+    buildImportedSkillInfos: mockBuildImportedSkillInfos as any,
     backupSkillDirs: mockBackupSkillDirs,
     cleanupWrittenSkills: mockCleanupWrittenSkills,
     restoreFromBackup: mockRestoreFromBackup,

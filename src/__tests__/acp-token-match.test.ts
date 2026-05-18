@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { resetConfig, setConfig } from "../config";
 
-setConfig({ apiKeys: ["test-api-key"] });
+setConfig({} as any);
 
 import { eq } from "drizzle-orm";
 import { db } from "../db";
