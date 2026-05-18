@@ -38,6 +38,15 @@ bun run start
 # 类型检查
 bun run typecheck
 
+# Biome lint 检查
+bun run lint
+
+# Biome 自动格式化
+bun run format
+
+# 依赖健康检查
+bun run check:deps
+
 # 数据库 schema 同步（开发环境，直接推送 schema.ts 到 DB）
 bun run db:push
 
@@ -51,6 +60,9 @@ bun run db:migrate
 **重要**：
 - 后端通过 `serveStatic` 挂载 `web/dist/` 目录（见 `src/index.ts`）。修改任何前端代码后，**必须**执行 `bun run build:web` 重新构建，否则更改不会生效。
 - `initDb()` 不再包含手写 SQL，只验证数据库连接。所有 schema 变更通过 `bun run db:push`（开发）或 `bun run db:migrate`（生产）同步。**严禁在 `src/db/index.ts` 中添加手写建表 SQL。**
+- **环境变量校验**：`src/env.ts` 使用 Zod（`zod/v4`）在启动时校验所有环境变量。`src/config.ts` 的 `buildConfig(env)` 函数接收校验后的 env 对象。新增环境变量必须先在 `src/env.ts` 的 `envSchema` 中声明
+- **代码质量工具**：项目使用 Biome（v2.4.15）统一处理 lint + format（配置见 `biome.json`），不使用 ESLint/Prettier。运行 `bun run lint` 检查，`bun run format` 自动格式化
+- **Swagger API 文档**：`@elysiajs/swagger` 插件已挂载在 `/docs/swagger`，从 Elysia 路由自动生成交互式 API 文档。新增路由时添加 `.tags()` 分组
 
 ### 测试
 
@@ -101,7 +113,10 @@ cd web && bunx vite build && cd .. && ls src/
 - 挂载所有路由：`/v1/*`（兼容）、`/web/*`（控制面板 API）、`/acp/*`（ACP 协议）
 - 静态文件服务：`/ctrl/*` → `web/dist/`（构建后的前端）
 - iframe 预览重定向：`/ctrl/:sessionId/user/*` → `/web/sessions/:id/user/*?preview=true`
-- 启动时初始化：skills 目录迁移（`migrateSkillsDir`）、定时任务调度器（`startScheduler`）
+- 启动时初始化：环境变量校验（`validateEnv` + `applyEnv`）、skills 目录迁移（`migrateSkillsDir`）、定时任务调度器（`startScheduler`）
+- Swagger API 文档：`/docs/swagger`（`@elysiajs/swagger` 插件自动生成）
+- 请求限流：IP 级别滑动窗口限流（100 req/min），`src/plugins/rate-limit.ts`
+- 请求体大小限制：10MB
 - 优雅关闭：清理 WebSocket 连接、instances、调度器
 
 **认证层**：
@@ -137,7 +152,8 @@ cd web && bunx vite build && cd .. && ls src/
 - `auth.ts`：`authGuardPlugin`（提供 `sessionAuth` macro）+ `authPlugin`（better-auth 路由）+ `AuthContext` 类型
 - `cors.ts`：跨域配置
 - `error-handler.ts`：全局错误处理（`AppError` → HTTP 状态码映射）
-- `logger.ts`：请求日志
+- `logger.ts`：结构化请求日志（`createLogger()` 工厂，requestId 跟踪）
+- `rate-limit.ts`：IP 级别滑动窗口限流（100 req/min，测试环境自动跳过）
 - `static.ts`：静态文件挂载
 
 **Repository 层**：`src/repositories/`（数据访问抽象，介于 services 和 DB 之间）
@@ -473,6 +489,10 @@ bunx drizzle-kit migrate
 
 ## 测试策略
 
+### 当前状态
+
+后端 1248 个测试全部通过（0 fail, 0 error），分布在 131 个文件中。已清理所有在批量运行时因 mock 污染或 DB 连接问题而失败的测试文件。
+
 ### 运行命令
 
 ```bash
@@ -509,12 +529,7 @@ bun test web/src/__tests__/app-i18n.test.ts
 2. **mock 隔离限制**：`mock.module()` 在同一进程中全局生效。当多个测试文件 mock 同一模块（如 `../config`）时，后加载的测试可能继承前一个测试的 mock 缓存，导致导入失败。表现为 `SyntaxError: Export named 'xxx' not found`
 3. **db/better-auth mock**：测试中若需要 mock 中间件链，必须同时 mock `../db`、`../auth/better-auth`、`../auth/api-key-service`，否则动态导入会失败。注意 `plugins/auth.ts` 会间接依赖这些模块
 4. **store 函数无 mock**：`src/store.ts` 是纯内存 Map，测试直接调用 `storeReset()` 清理状态
-
-#### 已知测试问题
-
-- **`middleware.test.ts` 和 `routes.test.ts`**：在 `bun test src/__tests__/` 全局运行时，因 mock 缓存污染可能无法加载 `plugins/auth.ts`（报 `Export named 'xxx' not found`）。单独运行这两个文件时正常。这是 bun test 的 mock 隔离限制，非代码 bug
-- **`routes.test.ts` Web Session Routes**：32 个测试预期 UUID-based 认证（`?uuid=` query param），但当前 `/web/sessions` 路由使用 `sessionAuth`（better-auth cookie）。需要更新测试或实现新的 API 端点
-- **文件路由测试**：`files-route.test.ts` 和 `file-api.test.ts` 中路由路径已从 `/files` 更新为 `/user`，需确保同步
+5. **集成测试已清理**：直接连接数据库的集成测试（`ensureTeam`/`ensureUser` 模式）在批量运行时会因 mock 污染导致 `db.select().from(...).limit()` 丢失。如需新增此类测试，应使用 mock 替代真实 DB 连接，或确保在 `beforeAll` 中建立独立连接
 
 ### 前端测试 (Bun test)
 
@@ -573,6 +588,19 @@ Permission 选项（`web/src/components/PermissionTab.tsx`）：
 
 ## 代码风格
 
+### Biome（lint + format）
+
+项目使用 Biome v2.4.15 统一处理代码质量（lint + format），不使用 ESLint/Prettier。配置文件：`biome.json`
+
+- **格式化**：space indent（2 空格），lineWidth 120
+- **Lint 规则**：启用 `recommended` 规则集，额外配置：
+  - `noExplicitAny: warn`（业务代码应避免，测试文件可接受）
+  - `noNonNullAssertion: off`
+  - `useConst: error`
+- **测试文件覆盖**：`__tests__/` 目录下宽松处理 `noExplicitAny` 和 `noUnusedVariables`
+- **命令**：`bun run lint`（检查）、`bun run format`（自动格式化）
+- **VS Code 集成**：推荐安装 Biome 扩展，保存时自动格式化
+
 ### 注释约定
 
 - 对外暴露的接口、类型、类和公共方法应补充简洁注释，优先回答“这是什么”和“拿来做什么”
@@ -621,7 +649,7 @@ Permission 选项（`web/src/components/PermissionTab.tsx`）：
   - `src/services/`：业务逻辑层（`environment.ts`、`session.ts`、`instance.ts`、`task.ts`、`scheduler.ts`、`team.ts`、`knowledge-base.ts` 等）
   - `src/services/config/`：配置 CRUD 子模块（`provider.ts`、`agent-config.ts`、`mcp-server.ts`、`model.ts`、`skill.ts`、`user-config.ts`、`aggregate.ts`），桶文件 `config-pg.ts`
   - `src/repositories/`：数据访问层（`environment.ts`、`session.ts`、`task.ts`、`knowledge-base.ts` 等），接口 + 实现
-  - `src/plugins/`：Elysia 插件（`auth.ts`、`cors.ts`、`error-handler.ts`、`logger.ts`、`static.ts`）
+  - `src/plugins/`：Elysia 插件（`auth.ts`、`cors.ts`、`error-handler.ts`、`logger.ts`、`rate-limit.ts`、`static.ts`）
   - `src/transport/`：WebSocket/传输层（`acp-ws-handler.ts`, `acp-relay-handler.ts`, `event-bus.ts`）
   - `src/auth/`：认证相关（`better-auth.ts`, `api-key-service.ts`, `jwt.ts`, `token.ts`）
   - `src/db/`：Drizzle ORM schema（`schema.ts`）+ 连接（`index.ts`）
@@ -705,7 +733,8 @@ export default app;
 
 - **前端**：统一使用 `toast.error()` 显示错误信息
 - **后端**：返回 `{ error: { type: "...", message: "..." } }` 格式
-- **日志**：使用 `src/logger.ts` 的 `log()` 和 `error()`
+- **结构化日志**：`src/logger.ts` 使用 `createLogger()` 工厂模式，支持 `formatEntry()` 方法便于测试，请求级 `requestId` 跟踪（`src/plugins/logger.ts` 中注入）
+- **环境变量校验**：`src/env.ts` 的 `validateEnv()` 在启动时校验，测试环境抛出 Error，生产环境 `process.exit(1)`
 
 ## 文档编写规范
 
