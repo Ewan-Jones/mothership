@@ -49,4 +49,6 @@ export { CancellationManager } from "./scheduler/cancellation";
 export { topologicalSort, identifyParallelGroups, buildReverseAdjacency } from "./scheduler/topological-sort";
 // 执行器
 export { ProcessExecutor } from "./executor/process-executor";
+export { AuditExecutor, verifyApprovalToken } from "./executor/awaitable-executor";
+export type { PendingApproval } from "./executor/awaitable-executor";
 export { NodeExecutorRegistry, createNodeExecutorRegistry } from "./executor/node-executor";
