@@ -627,6 +627,7 @@ export const workflowSnapshot = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     snapshotId: varchar("snapshot_id").notNull(),
     runId: varchar("run_id").notNull(),
+    workflowId: uuid("workflow_id"),
     lastEventId: varchar("last_event_id").notNull(),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
     nodeStates: jsonb("node_states").notNull(),
@@ -639,6 +640,7 @@ export const workflowSnapshot = pgTable(
   (table) => ({
     runIdx: index("idx_workflow_snapshot_run").on(table.runId),
     teamIdx: index("idx_workflow_snapshot_team").on(table.teamId),
+    workflowIdx: index("idx_workflow_snapshot_workflow").on(table.workflowId),
   }),
 );
 

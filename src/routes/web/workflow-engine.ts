@@ -11,6 +11,9 @@ import { authGuardPlugin } from "../../plugins/auth";
 import { loadTeamContext } from "../../services/team-context";
 import { getTeamEngine } from "../../services/workflow";
 import { createPgStorageAdapter } from "../../services/workflow/pg-storage-adapter";
+import { db } from "../../db";
+import { workflowSnapshot } from "../../db/schema";
+import { and, eq } from "drizzle-orm";
 
 const app = new Elysia({ name: "web-workflow-engine", prefix: "/web" }).use(authGuardPlugin);
 
@@ -29,7 +32,15 @@ app.post(
         case "run": {
           const yaml = payload.yaml as string;
           const params = payload.params as Record<string, unknown> | undefined;
+          const workflowId = payload.workflowId as string | undefined;
           const result = await engine.run(yaml, params);
+          // 回写 workflowId 到该 run 的所有快照
+          if (workflowId) {
+            await db
+              .update(workflowSnapshot)
+              .set({ workflowId })
+              .where(and(eq(workflowSnapshot.runId, result.runId), eq(workflowSnapshot.teamId, authCtx.teamId)));
+          }
           return { success: true, data: result };
         }
 
@@ -99,6 +110,23 @@ app.post(
           const runId = payload.runId as string;
           const yaml = payload.yaml as string;
           const result = await engine.recover(runId, yaml);
+          return { success: true, data: result };
+        }
+
+        // 从指定节点重新运行
+        case "rerunFrom": {
+          const prevRunId = payload.runId as string;
+          const fromNodeId = payload.fromNodeId as string;
+          const yaml = payload.yaml as string;
+          const workflowId = payload.workflowId as string | undefined;
+          const result = await engine.rerunFrom(prevRunId, yaml, fromNodeId);
+          // 回写 workflowId 到新 run 的快照
+          if (workflowId) {
+            await db
+              .update(workflowSnapshot)
+              .set({ workflowId })
+              .where(and(eq(workflowSnapshot.runId, result.runId), eq(workflowSnapshot.teamId, authCtx.teamId)));
+          }
           return { success: true, data: result };
         }
 

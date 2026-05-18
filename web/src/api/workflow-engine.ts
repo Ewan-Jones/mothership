@@ -81,6 +81,7 @@ export interface DAGSnapshot {
 export interface RunSummary {
   run_id: string;
   project_id?: string;
+  workflow_id?: string;
   workflow_name: string;
   status: DAGStatus;
   started_at: string;
@@ -141,8 +142,8 @@ async function wfFetch<T>(
 
 export const workflowEngineApi = {
   /** 执行工作流（同步，会阻塞到完成或 SUSPENDED） */
-  async run(yaml: string, params?: Record<string, unknown>): Promise<DAGRunResult> {
-    return wfFetch<DAGRunResult>("run", { yaml, params });
+  async run(yaml: string, params?: Record<string, unknown>, workflowId?: string): Promise<DAGRunResult> {
+    return wfFetch<DAGRunResult>("run", { yaml, params, workflowId });
   },
 
   /** 校验 + 执行计划（不执行） */
@@ -193,5 +194,10 @@ export const workflowEngineApi = {
   /** 崩溃恢复 */
   async recover(runId: string, yaml: string): Promise<DAGRunResult> {
     return wfFetch<DAGRunResult>("recover", { runId, yaml });
+  },
+
+  /** 从指定节点重新运行（保留上游输出，目标及下游重新执行） */
+  async rerunFrom(runId: string, yaml: string, fromNodeId: string, workflowId?: string): Promise<DAGRunResult> {
+    return wfFetch<DAGRunResult>("rerunFrom", { runId, yaml, fromNodeId, workflowId });
   },
 };

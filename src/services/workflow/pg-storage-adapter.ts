@@ -331,6 +331,7 @@ function mapSnapshotToRunSummary(row: typeof workflowSnapshot.$inferSelect): Run
 
   return {
     run_id: row.runId,
+    workflow_id: row.workflowId ?? undefined,
     workflow_name: "",
     status: row.dagStatus as DAGStatus,
     started_at: row.timestamp.toISOString(),

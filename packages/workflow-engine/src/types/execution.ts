@@ -57,6 +57,7 @@ export interface DAGSnapshot {
 export interface RunSummary {
   run_id: string;
   project_id?: string;
+  workflow_id?: string;
   workflow_name: string;
   status: DAGStatus;
   started_at: string;

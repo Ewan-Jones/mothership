@@ -10,11 +10,14 @@ type WfView = "list" | "edit" | "versions" | "runs";
 interface WfRoute {
   view: WfView;
   workflowId?: string;
+  runId?: string;
 }
 
 function parseWfPath(): WfRoute {
   const path = window.location.pathname.replace(/^\/ctrl\/?/, "");
   const parts = path.split("/");
+  const params = new URLSearchParams(window.location.search);
+  const runId = params.get("runId") ?? undefined;
 
   if (parts[0] !== "workflow") return { view: "list" };
 
@@ -28,7 +31,7 @@ function parseWfPath(): WfRoute {
   }
   // /ctrl/workflow/:workflowId/edit
   if (parts[1] && parts[2] === "edit") {
-    return { view: "edit", workflowId: parts[1] };
+    return { view: "edit", workflowId: parts[1], runId };
   }
   // /ctrl/workflow（默认列表页）
   return { view: "list" };
@@ -48,13 +51,14 @@ export function WorkflowPage() {
     return () => window.removeEventListener("popstate", sync);
   }, []);
 
-  const navigateTo = useCallback((view: WfView, workflowId?: string) => {
+  const navigateTo = useCallback((view: WfView, workflowId?: string, runId?: string) => {
     let path = "/ctrl/workflow";
     if (view === "runs") path = "/ctrl/workflow/runs";
     if (view === "edit" && workflowId) path = `/ctrl/workflow/${workflowId}/edit`;
     if (view === "versions" && workflowId) path = `/ctrl/workflow/${workflowId}/versions`;
+    if (runId) path += `?runId=${runId}`;
     window.history.pushState(null, "", path);
-    setRoute({ view, workflowId });
+    setRoute({ view, workflowId, runId });
   }, []);
 
   // 全屏独立视图：编辑器
@@ -79,6 +83,7 @@ export function WorkflowPage() {
         <div style={{ flex: 1, overflow: "hidden" }}>
           <WorkflowEditor
             workflowId={route.workflowId}
+            runId={route.runId}
             onViewRuns={() => navigateTo("runs")}
           />
         </div>
@@ -166,7 +171,11 @@ export function WorkflowPage() {
             onViewVersions={(id) => navigateTo("versions", id)}
           />
         ) : (
-          <WorkflowRuns />
+          <WorkflowRuns
+            onSelectRun={(runId, workflowId) => {
+              if (workflowId) navigateTo("edit", workflowId, runId);
+            }}
+          />
         )}
       </div>
     </div>

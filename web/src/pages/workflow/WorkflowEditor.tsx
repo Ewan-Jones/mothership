@@ -80,10 +80,11 @@ const PALETTE_ITEMS = [
 
 interface WorkflowEditorProps {
   workflowId?: string;
+  runId?: string;
   onViewRuns?: () => void;
 }
 
-function WorkflowEditorInner({ workflowId, onViewRuns }: WorkflowEditorProps) {
+function WorkflowEditorInner({ workflowId, runId, onViewRuns }: WorkflowEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([createStartNode()]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { fitView, screenToFlowPosition } = useReactFlow();
@@ -146,6 +147,36 @@ function WorkflowEditorInner({ workflowId, onViewRuns }: WorkflowEditorProps) {
       }
     })();
   }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 加载历史运行数据（定点回放）
+  useEffect(() => {
+    if (!runId) return;
+    let abort = false;
+    (async () => {
+      try {
+        setActiveRunId(runId);
+        setRunSnapshot(null);
+        setRunEvents([]);
+        setRunApprovals([]);
+        setSelectedRunNodeId(null);
+        setSelectedNodeOutput(null);
+
+        const [snap, evts] = await Promise.all([
+          workflowEngineApi.getRunStatus(runId),
+          workflowEngineApi.getEvents(runId),
+        ]);
+        if (abort) return;
+        if (snap) {
+          setRunSnapshot(snap);
+          updateNodesFromSnapshot(snap);
+        }
+        if (Array.isArray(evts)) setRunEvents(evts);
+      } catch (err) {
+        console.error("加载运行记录失败:", err);
+      }
+    })();
+    return () => { abort = true; };
+  }, [runId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Selection ──
   const onSelectionChange: OnSelectionChangeFunc = useCallback(({ nodes: selNodes }) => {
@@ -520,7 +551,7 @@ function WorkflowEditorInner({ workflowId, onViewRuns }: WorkflowEditorProps) {
     );
 
     try {
-      const result = await workflowEngineApi.run(y);
+      const result = await workflowEngineApi.run(y, undefined, workflowId);
       setActiveRunId(result.runId);
       setRunSnapshot(null);
       setRunEvents([]);
@@ -586,6 +617,60 @@ function WorkflowEditorInner({ workflowId, onViewRuns }: WorkflowEditorProps) {
       nds.map((n) => ({ ...n, data: { ...n.data, _runStatus: undefined, _exitCode: undefined } })),
     );
   }, [setNodes]);
+
+  // ── Rerun from selected node ──
+  const handleRerunFrom = useCallback(
+    async (fromNodeId: string) => {
+      if (!activeRunId) return;
+      const y = syncYaml();
+      setRunning(true);
+      // 目标节点及下游标记为 RUNNING（等待 API 返回）
+      setNodes((nds) => {
+        // BFS 找下游
+        const downstream = new Set<string>();
+        const adjMap = new Map<string, string[]>();
+        for (const e of edges) {
+          if (e.source === START_NODE_ID) continue;
+          const list = adjMap.get(e.source) ?? [];
+          list.push(e.target);
+          adjMap.set(e.source, list);
+        }
+        const q = [fromNodeId];
+        while (q.length > 0) {
+          const cur = q.shift()!;
+          for (const next of adjMap.get(cur) ?? []) {
+            if (!downstream.has(next)) {
+              downstream.add(next);
+              q.push(next);
+            }
+          }
+        }
+        return nds.map((n) => {
+          if (n.id === START_NODE_ID) return n;
+          const isTarget = n.id === fromNodeId || downstream.has(n.id);
+          if (isTarget) return { ...n, data: { ...n.data, _runStatus: "RUNNING", _exitCode: undefined } };
+          return n;
+        });
+      });
+
+      try {
+        const result = await workflowEngineApi.rerunFrom(activeRunId, y, fromNodeId, workflowId);
+        setActiveRunId(result.runId);
+        setRunSnapshot(null);
+        setRunEvents([]);
+        setRunApprovals([]);
+        setSelectedRunNodeId(null);
+        setSelectedNodeOutput(null);
+        await loadRunData(result.runId);
+      } catch (err) {
+        console.error(err);
+        alert("重跑失败: " + (err as Error).message);
+      } finally {
+        setRunning(false);
+      }
+    },
+    [activeRunId, syncYaml, workflowId, edges, setNodes, loadRunData],
+  );
 
   // ── Update selected node data ──
   const updateNodeData = useCallback(
@@ -1182,7 +1267,45 @@ function WorkflowEditorInner({ workflowId, onViewRuns }: WorkflowEditorProps) {
                 ) : !selectedNodeOutput ? (
                   <div style={{ padding: 20, textAlign: "center", color: "#d1d5db" }}>暂无输出</div>
                 ) : (
-                  <NodeOutputView output={selectedNodeOutput} />
+                  <>
+                    <div
+                      style={{
+                        padding: "6px 10px",
+                        borderBottom: "1px solid #f3f4f6",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 10, color: "#6b7280", fontFamily: "ui-monospace, monospace" }}>
+                        {selectedRunNodeId}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRerunFrom(selectedRunNodeId)}
+                        disabled={running}
+                        title={`从 ${selectedRunNodeId} 开始重跑`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 3,
+                          padding: "2px 8px",
+                          border: "1px solid #3b82f6",
+                          borderRadius: 4,
+                          background: "#eff6ff",
+                          color: "#3b82f6",
+                          fontSize: 10,
+                          fontWeight: 500,
+                          cursor: running ? "not-allowed" : "pointer",
+                          opacity: running ? 0.5 : 1,
+                        }}
+                      >
+                        <RefreshCw size={10} /> 从此重跑
+                      </button>
+                    </div>
+                    <NodeOutputView output={selectedNodeOutput} />
+                  </>
                 )}
               </div>
             )}

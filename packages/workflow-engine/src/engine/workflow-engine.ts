@@ -88,6 +88,9 @@ export interface WorkflowEngine {
 
   /** 从快照恢复运行 */
   recover(runId: string, yaml: string): Promise<DAGRunResult>;
+
+  /** 从指定节点重新运行（保留上游输出，目标节点及下游重新执行） */
+  rerunFrom(prevRunId: string, yaml: string, fromNodeId: string): Promise<DAGRunResult>;
 }
 
 // ---------- 活跃运行记录 ----------
@@ -467,6 +470,112 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     }
   }
 
+  async function rerunFrom(prevRunId: string, yaml: string, fromNodeId: string): Promise<DAGRunResult> {
+    const def = parse(yaml, defaultCwd);
+    const validation = validate(def);
+    if (!validation.valid) {
+      const errors = validation.issues
+        .filter((i) => i.type === 'error')
+        .map((i) => i.message)
+        .join('; ');
+      throw new WorkflowError(
+        `Workflow validation failed: ${errors}`,
+        WorkflowErrorCode.VALIDATION_ERROR,
+        { issues: validation.issues },
+      );
+    }
+
+    // 获取上一次运行的快照
+    const snapshot = await storage.getLatestSnapshot(prevRunId);
+    if (!snapshot) {
+      throw new WorkflowError(
+        `No snapshot found for run ${prevRunId}`,
+        WorkflowErrorCode.RECOVERY_ERROR,
+        { runId: prevRunId },
+      );
+    }
+
+    // BFS 找 fromNodeId 的所有下游节点
+    const reverseAdj = new Map<string, string[]>();
+    for (const n of validation.def.nodes) {
+      for (const dep of n.depends_on ?? []) {
+        const list = reverseAdj.get(dep) ?? [];
+        list.push(n.id);
+        reverseAdj.set(dep, list);
+      }
+    }
+    const downstream = new Set<string>();
+    const queue = [fromNodeId];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      for (const next of reverseAdj.get(cur) ?? []) {
+        if (!downstream.has(next)) {
+          downstream.add(next);
+          queue.push(next);
+        }
+      }
+    }
+
+    // 构建初始状态：上游 COMPLETED（保留输出），fromNodeId 及下游 PENDING
+    const nodeStates = new Map<string, import('../types/execution').NodeStatus>();
+    const nodeOutputs = new Map<string, NodeOutput>();
+
+    for (const node of validation.def.nodes) {
+      const id = node.id;
+      const isDownstream = id === fromNodeId || downstream.has(id);
+
+      if (isDownstream) {
+        nodeStates.set(id, 'PENDING');
+      } else {
+        const prevStatus = snapshot.node_states[id];
+        if (prevStatus?.status === 'COMPLETED') {
+          nodeStates.set(id, 'COMPLETED');
+          const output = await storage.getOutput(prevRunId, id);
+          if (output) nodeOutputs.set(id, output);
+        } else {
+          throw new WorkflowError(
+            `Cannot rerun from '${fromNodeId}': upstream node '${id}' was not COMPLETED (status: ${prevStatus?.status ?? 'unknown'})`,
+            WorkflowErrorCode.VALIDATION_ERROR,
+            { fromNodeId, upstreamNodeId: id },
+          );
+        }
+      }
+    }
+
+    // 生成新 runId，用新调度器执行
+    const newRunId = `run_${nanoid(10)}`;
+    const baseDir = defaultCwd ?? process.cwd();
+    const registry = buildRegistry(newRunId, baseDir);
+    const cancellation = new CancellationManager();
+
+    // Secrets 解析
+    let secrets: Record<string, string> = {};
+    if (validation.def.secrets && validation.def.secrets.length > 0) {
+      secrets = await secretsResolver.resolve(validation.def.secrets);
+    }
+
+    activeRuns.set(newRunId, { cancellation, workflowDef: validation.def });
+
+    try {
+      const context: SchedulerContext = {
+        runId: newRunId,
+        workflowDef: validation.def,
+        storage,
+        params: {},
+        secrets,
+        nodeExecutor: registry,
+        cancellation,
+        initialNodeStates: nodeStates,
+        initialNodeOutputs: nodeOutputs,
+      };
+
+      const scheduler = new DAGScheduler(context);
+      return await scheduler.run();
+    } finally {
+      activeRuns.delete(newRunId);
+    }
+  }
+
   return {
     parse,
     validate,
@@ -479,5 +588,6 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     getEvents,
     getPendingApprovals,
     recover,
+    rerunFrom,
   };
 }
