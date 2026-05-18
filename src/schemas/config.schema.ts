@@ -39,6 +39,11 @@ export const ConfigBodySchema = z.object({
   workspaceId: z.string().optional(),
   content: z.string().optional(),
   description: z.string().optional(),
+  enabled: z.boolean().optional(),
+  path: z.string().optional(),
+  command: z.array(z.string()).optional(),
+  environment: z.record(z.string(), z.string()).optional(),
+  type: z.enum(["local", "remote", "disabled"]).optional(),
 });
 
 // ── Providers ──

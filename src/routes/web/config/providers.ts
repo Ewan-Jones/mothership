@@ -1,6 +1,6 @@
 import Elysia from "elysia";
 import { type AuthContext, authGuardPlugin } from "../../../plugins/auth";
-import { ConfigBodySchema } from "../../../schemas/config.schema";
+import { ConfigBodySchema, type ConfigBody } from "../../../schemas/config.schema";
 import { buildModelData } from "../../../services/config/provider";
 import * as configPg from "../../../services/config-pg";
 import { configError, configSuccess, resolveApiKey, toKeyHint } from "../../../services/config-utils";
@@ -211,7 +211,7 @@ app.post(
     const authCtx = await loadTeamContext(user, request);
     if (!authCtx)
       return error(500, { success: false, error: { code: "NO_TEAM_CONTEXT", message: "Failed to load team context" } });
-    const b = (body as any) ?? {};
+    const b = body as ConfigBody;
     const payload: ProviderBody = { action: b.action ?? "", name: b.name, modelId: b.modelId, data: b.data };
     try {
       switch (payload.action) {
