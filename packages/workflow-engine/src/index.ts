@@ -4,36 +4,38 @@
  * 原生 DAG 工作流执行引擎的类型定义和错误类型。
  */
 
+export type { ValidationIssue, ValidationResult } from "./parser/dag-validator";
+export { validateDAG } from "./parser/dag-validator";
+export { evaluateExpression, parseExpression, resolveTemplate } from "./parser/expression-parser";
+// 解析器
+export { parseWorkflowYaml } from "./parser/yaml-parser";
 // DAG 类型
 export type {
-  ParamDef,
-  RetryConfig,
-  NodeType,
-  BaseNodeDef,
-  ShellNodeDef,
   AgentNodeDef,
   ApiNodeDef,
   AuditNodeDef,
-  SubWorkflowNodeDef,
+  BaseNodeDef,
   LoopBody,
   LoopNodeDef,
   NodeDef,
+  NodeType,
+  ParamDef,
+  RetryConfig,
+  ShellNodeDef,
+  SubWorkflowNodeDef,
   WorkflowDef,
-} from './types/dag';
-
+} from "./types/dag";
+// 错误类型（enum 和 class 用 export）
+export { WorkflowError, WorkflowErrorCode } from "./types/errors";
 // 执行类型
 export type {
-  DAGStatus,
-  NodeStatus,
-  NodeOutput,
-  EventType,
   DAGEvent,
   DAGSnapshot,
+  DAGStatus,
+  EventType,
+  NodeOutput,
+  NodeStatus,
   RunSummary,
-} from './types/execution';
-
+} from "./types/execution";
 // 表达式类型
-export type { ASTNode, EvalContext } from './types/expression';
-
-// 错误类型（enum 和 class 用 export）
-export { WorkflowErrorCode, WorkflowError } from './types/errors';
+export type { ASTNode, EvalContext } from "./types/expression";
