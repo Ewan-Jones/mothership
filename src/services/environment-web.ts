@@ -32,7 +32,7 @@ export async function createWebEnvironment(params: CreateWebEnvironmentParams) {
 
   // Agent 配置校验：可选，提供时需验证存在性
   if (params.agentConfigId) {
-    const agent = await configPg.getAgentConfigById(params.agentConfigId);
+    const agent = await configPg.getAgentConfigById(params.agentConfigId, teamId);
     if (!agent) throw new ValidationError(`AgentConfig '${params.agentConfigId}' 不存在`);
   }
 
@@ -99,7 +99,7 @@ export async function updateWebEnvironment(envId: string, teamId: string, params
   }
   if (params.agentConfigId !== undefined) {
     if (params.agentConfigId) {
-      const agent = await configPg.getAgentConfigById(params.agentConfigId);
+      const agent = await configPg.getAgentConfigById(params.agentConfigId, teamId);
       if (!agent) throw new ValidationError(`AgentConfig '${params.agentConfigId}' 不存在`);
       patch.agentConfigId = params.agentConfigId;
     } else {

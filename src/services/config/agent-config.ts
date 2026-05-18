@@ -42,8 +42,16 @@ export async function getAgentConfig(ctx: AuthContext, name: string) {
   return rows[0] ?? null;
 }
 
-export async function getAgentConfigById(id: string) {
-  const rows = await db.select().from(agentConfig).where(eq(agentConfig.id, id)).limit(1);
+export async function getAgentConfigById(id: string, teamId?: string) {
+  const conditions = [eq(agentConfig.id, id)];
+  if (teamId) {
+    conditions.push(eq(agentConfig.teamId, teamId));
+  }
+  const rows = await db
+    .select()
+    .from(agentConfig)
+    .where(and(...conditions))
+    .limit(1);
   return rows[0] ?? null;
 }
 
