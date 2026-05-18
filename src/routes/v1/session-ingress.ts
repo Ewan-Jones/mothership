@@ -1,14 +1,14 @@
-import { log, error as logError } from "../../logger";
 import Elysia from "elysia";
-import { errorResponse } from "../../plugins/auth";
 import { verifyWorkerJwt } from "../../auth/jwt";
+import { log, error as logError } from "../../logger";
+import { errorResponse } from "../../plugins/auth";
+import { getSession, resolveExistingSessionId } from "../../services/session";
 import {
-  handleWebSocketOpen,
-  handleWebSocketMessage,
   handleWebSocketClose,
+  handleWebSocketMessage,
+  handleWebSocketOpen,
   ingestBridgeMessage,
 } from "../../transport/ws-handler";
-import { getSession, resolveExistingSessionId } from "../../services/session";
 import type { WsConnection } from "../../transport/ws-types";
 
 function adaptWs(ws: any): WsConnection {

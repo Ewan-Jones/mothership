@@ -1,5 +1,5 @@
 // R34: config/mcp-server.ts countToolsByServer Number() 类型转换
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { mcpServer, mcpTool, team, user } from "../db/schema";

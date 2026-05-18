@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 // ── mcp-server updateMcpServer type 验证 + provider/user-config onConflictDoUpdate ──
 

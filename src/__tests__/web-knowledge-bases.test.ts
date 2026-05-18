@@ -1,12 +1,11 @@
-import { beforeEach, afterEach, describe, expect, test } from "bun:test";
-
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { default as Elysia } from "elysia";
 import { db } from "../db";
-import { agentConfig, agentKnowledgeBinding, knowledgeBase, knowledgeResource, user, team } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { agentConfig, agentKnowledgeBinding, knowledgeBase, knowledgeResource, team, user } from "../db/schema";
+import { resetTestAuth, setTestAuth } from "../plugins/auth";
 import webKnowledgeBases from "../routes/web/knowledge-bases";
 import { setKnowledgeProviderForTesting } from "../services/knowledge-base";
-import { setTestAuth, resetTestAuth } from "../plugins/auth";
 import { setTestTeamContext } from "../services/team-context";
 
 // 固定的测试团队 UUID，与 authContext 返回一致

@@ -1,8 +1,8 @@
 import type {
-  UploadManifestEntry,
-  UploadSkillSummary,
-  UploadSkillFileItem,
   SkillUploadConflictStrategy,
+  UploadManifestEntry,
+  UploadSkillFileItem,
+  UploadSkillSummary,
 } from "../types/config";
 
 function normalizeRelativePath(path: string): string {

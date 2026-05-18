@@ -1,9 +1,9 @@
 // ── scheduler executeTask skipped 分支并行 DB 写入验证 ──
-import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { scheduleTask, unscheduleTask, stopScheduler, setScheduleJobImpl } from "../services/scheduler";
+import { scheduleTask, setScheduleJobImpl, stopScheduler, unscheduleTask } from "../services/scheduler";
 import { executeTaskById } from "../services/task";
 
 const mockScheduleJob = mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} }));
@@ -27,16 +27,14 @@ async function ensureTeam() {
   const now = new Date();
   const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
   if (existingUser.length === 0) {
-    await db
-      .insert(user)
-      .values({
-        id: TEST_USER_ID,
-        name: "Sched Skip",
-        email: "sched-skip@rcs.local",
-        emailVerified: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+    await db.insert(user).values({
+      id: TEST_USER_ID,
+      name: "Sched Skip",
+      email: "sched-skip@rcs.local",
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
   const [created] = await db
     .insert(team)

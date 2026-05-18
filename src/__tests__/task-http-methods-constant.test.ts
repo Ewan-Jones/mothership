@@ -1,10 +1,10 @@
 // ── VALID_HTTP_METHODS 常量 + validateTaskInput 集成验证 ──
-import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { createTask, updateTask } from "../services/task";
 import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
+import { createTask, updateTask } from "../services/task";
 
 setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 
@@ -21,16 +21,14 @@ async function ensureTeam() {
   const now = new Date();
   const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
   if (existingUser.length === 0) {
-    await db
-      .insert(user)
-      .values({
-        id: TEST_USER_ID,
-        name: "HTTP Methods",
-        email: "http-methods@rcs.local",
-        emailVerified: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+    await db.insert(user).values({
+      id: TEST_USER_ID,
+      name: "HTTP Methods",
+      email: "http-methods@rcs.local",
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
   const [created] = await db
     .insert(team)

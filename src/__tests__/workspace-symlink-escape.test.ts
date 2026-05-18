@@ -1,7 +1,7 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, realpathSync, writeFileSync, symlinkSync, unlinkSync, rmdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { mkdirSync, realpathSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { tmpdir, homedir } from "node:os";
 
 // ── workspace 路径符号链接逃逸验证 ──
 // R37 修复：ensureWorkspaceDir 通过 realpathSync 解析符号链接后需重新校验

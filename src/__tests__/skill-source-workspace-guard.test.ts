@@ -1,5 +1,5 @@
 // ── listSkillSources 跳过无 workspacePath 的环境 ──
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { _deps, _resetDeps, listSkillSources } from "../services/skill";
 
 const mockListByUserId = mock(async () => []);

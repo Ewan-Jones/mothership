@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 // ── validateTaskInput 空 cron 更新路径验证 ──
 // R36 修复：更新模式下 cron="" 不再静默通过

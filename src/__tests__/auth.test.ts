@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterAll, spyOn } from "bun:test";
+import { afterAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
 
 import { hashApiKey } from "../auth/api-key-service";
 import { generateWorkerJwt, verifyWorkerJwt } from "../auth/jwt";

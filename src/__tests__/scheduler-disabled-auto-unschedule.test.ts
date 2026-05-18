@@ -1,6 +1,6 @@
 // ── scheduler disabled task auto-unschedule 验证 ──
-import { describe, expect, it, mock, beforeEach } from "bun:test";
-import { scheduleTask, unscheduleTask, stopScheduler, setScheduleJobImpl } from "../services/scheduler";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { scheduleTask, setScheduleJobImpl, stopScheduler, unscheduleTask } from "../services/scheduler";
 
 const mockCancel = mock(() => {});
 const mockNextInvocation = mock(() => ({ toJSDate: mock(() => new Date(Date.now() + 60000)) }));

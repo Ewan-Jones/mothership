@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-  validateMcpForm,
-  parseCommandString,
-  commandToString,
-  buildMcpSummary,
   buildMcpPayload,
+  buildMcpSummary,
+  commandToString,
+  parseCommandString,
+  validateMcpForm,
 } from "../pages/McpPage";
 
 describe("validateMcpForm", () => {

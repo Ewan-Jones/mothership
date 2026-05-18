@@ -1,10 +1,10 @@
 // ── clearExecutionLogs 所有权校验 ──
-import { describe, test, expect, mock, afterAll } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { clearExecutionLogs } from "../services/task";
 import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
+import { clearExecutionLogs } from "../services/task";
 
 setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 
@@ -16,18 +16,16 @@ let OTHER_TEAM_ID: string | undefined;
 
 async function ensureTeams() {
   const now = new Date();
-  let existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
+  const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
   if (existingUser.length === 0) {
-    await db
-      .insert(user)
-      .values({
-        id: TEST_USER_ID,
-        name: "Clear Logs",
-        email: "clear-logs@rcs.local",
-        emailVerified: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+    await db.insert(user).values({
+      id: TEST_USER_ID,
+      name: "Clear Logs",
+      email: "clear-logs@rcs.local",
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
 
   const existing1 = await db.select().from(team).where(eq(team.slug, TEST_TEAM_SLUG)).limit(1);

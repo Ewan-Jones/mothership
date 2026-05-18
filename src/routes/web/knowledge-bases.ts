@@ -1,6 +1,13 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
 import {
+  CreateKnowledgeBaseRequestSchema,
+  ImportKnowledgeUrlRequestSchema,
+  KnowledgeBaseInfoSchema,
+  KnowledgeResourceItemSchema,
+  UpdateKnowledgeBaseRequestSchema,
+} from "../../schemas/knowledge.schema";
+import {
   createKnowledgeBaseRecord,
   deleteKnowledgeBase,
   getKnowledgeBaseDetail,
@@ -13,13 +20,6 @@ import {
   listKnowledgeResources,
   uploadKnowledgeResource,
 } from "../../services/knowledge-upload";
-import {
-  KnowledgeBaseInfoSchema,
-  KnowledgeResourceItemSchema,
-  CreateKnowledgeBaseRequestSchema,
-  UpdateKnowledgeBaseRequestSchema,
-  ImportKnowledgeUrlRequestSchema,
-} from "../../schemas/knowledge.schema";
 import { loadTeamContext } from "../../services/team-context";
 
 const app = new Elysia({ name: "web-knowledge-bases", prefix: "/web" }).use(authGuardPlugin).model({

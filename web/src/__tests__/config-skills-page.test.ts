@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-  validateSkillForm,
-  getUploadResultMessage,
-  getUploadConflictData,
   getInvalidUploadSkillNames,
+  getUploadConflictData,
   getUploadItemSummaries,
+  getUploadResultMessage,
+  validateSkillForm,
 } from "../pages/SkillsPage";
 
 describe("validateSkillForm", () => {

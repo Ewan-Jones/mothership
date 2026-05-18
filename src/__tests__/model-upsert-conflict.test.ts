@@ -1,6 +1,6 @@
 // addModel onConflictDoUpdate 幂等 upsert 验证
-import { describe, test, expect, afterAll } from "bun:test";
-import { eq, and } from "drizzle-orm";
+import { afterAll, describe, expect, test } from "bun:test";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { model, provider, team, user } from "../db/schema";
 import { addModel } from "../services/config/model";

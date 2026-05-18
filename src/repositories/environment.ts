@@ -1,7 +1,7 @@
+import { and, eq } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import { db } from "../db";
 import { environment, user } from "../db/schema";
-import { eq, and } from "drizzle-orm";
 
 /** Environment 持久化记录 */
 export interface EnvironmentRecord {

@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
-import { Search, LogOut } from "lucide-react";
+import { LogOut, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useSession, signOut } from "../../lib/auth-client";
+import { signOut, useSession } from "../../lib/auth-client";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */

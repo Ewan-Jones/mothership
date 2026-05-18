@@ -1,4 +1,4 @@
-import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { _deps, _resetDeps, importSkillDirectories, importWorkspaceSkillDirectories } from "../services/skill";
 
 const mockCleanupBackupDir = mock(() => Promise.resolve());

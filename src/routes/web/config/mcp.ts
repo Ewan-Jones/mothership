@@ -1,24 +1,24 @@
 import Elysia from "elysia";
-import { authGuardPlugin, type AuthContext } from "../../../plugins/auth";
-import * as configPg from "../../../services/config-pg";
-import { inspectRemoteMcpServer } from "../../../services/mcp-inspector";
+import { type AuthContext, authGuardPlugin } from "../../../plugins/auth";
 import { ConfigBodySchema } from "../../../schemas/config.schema";
-import {
-  configSuccess,
-  configError,
-  configValidationError,
-  configNotFound,
-  isValidResourceName,
-} from "../../../services/config-utils";
 import {
   countToolsByServer,
   deleteToolsByServer,
-  replaceToolsForServer,
-  listToolsByServer,
   isValidMcpName,
-  validateMcpConfig,
+  listToolsByServer,
+  replaceToolsForServer,
   toServerInfo,
+  validateMcpConfig,
 } from "../../../services/config/mcp-server";
+import * as configPg from "../../../services/config-pg";
+import {
+  configError,
+  configNotFound,
+  configSuccess,
+  configValidationError,
+  isValidResourceName,
+} from "../../../services/config-utils";
+import { inspectRemoteMcpServer } from "../../../services/mcp-inspector";
 import { loadTeamContext } from "../../../services/team-context";
 
 // 内部类型定义（与前端 web/src/types/config.ts 对齐）

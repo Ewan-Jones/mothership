@@ -1,5 +1,5 @@
 // ── updateAgentConfig 返回 boolean（与 deleteAgentConfig 对齐） ──
-import { describe, test, expect, mock, afterAll } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { agentConfig, team, user } from "../db/schema";

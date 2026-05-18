@@ -48,7 +48,7 @@ class InMemoryWorkItemRepo implements IWorkItemRepo {
         return item;
       }
     }
-    return undefined;
+    return;
   }
 
   async update(id: string, patch: Partial<Pick<WorkItemRecord, "state">>): Promise<boolean> {

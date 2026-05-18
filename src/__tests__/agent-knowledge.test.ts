@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { agentKnowledgeBinding, agentConfig, knowledgeBase, user, team } from "../db/schema";
+import { agentConfig, agentKnowledgeBinding, knowledgeBase, team, user } from "../db/schema";
 import {
   countBindingsByKnowledgeBaseIds,
   listAgentKnowledgeBindingsById,

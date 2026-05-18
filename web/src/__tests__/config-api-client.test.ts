@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 // Mock fetch
 const fetchMock = { status: 200, body: {} as unknown };

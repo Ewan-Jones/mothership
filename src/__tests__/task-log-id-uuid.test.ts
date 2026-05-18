@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 // ── generateTaskId / generateLogId UUID 格式验证 ──
 // R38 修复：ID 生成从 task_xxx 改为标准 UUID，兼容 PG uuid 列类型

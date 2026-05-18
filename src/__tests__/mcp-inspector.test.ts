@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import type { McpInspectResult, McpToolItem } from "../services/mcp-inspector";
 
 describe("MCP Inspector - Types and Structure", () => {

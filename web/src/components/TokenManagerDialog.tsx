@@ -1,13 +1,13 @@
-import { useState } from "react";
-import type { TokenEntry } from "../hooks/useTokens";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "../../components/ui/form";
-import { Check, Copy, Eye, EyeOff, Pencil, Plus, Trash2, X } from "lucide-react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, Copy, Eye, EyeOff, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "../../components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "../../components/ui/form";
+import { Input } from "../../components/ui/input";
+import type { TokenEntry } from "../hooks/useTokens";
 
 const addTokenSchema = z.object({
   token: z.string().min(1, "Token is required"),

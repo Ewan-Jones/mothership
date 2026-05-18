@@ -1,5 +1,5 @@
 // createAgentConfig 单循环构建 values/set 测试
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { agentConfig, team, user } from "../db/schema";

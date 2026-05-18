@@ -4,8 +4,9 @@
  * 全局 Skill 和 Workspace Skill 的业务逻辑，
  * 文件系统操作全部委托给 skill-fs.ts。
  */
-import { mkdir } from "node:fs/promises";
+
 import { existsSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { log, error as logError } from "../logger";
@@ -13,20 +14,20 @@ import type { AuthContext } from "../plugins/auth";
 import { environmentRepo as _environmentRepo } from "../repositories";
 import * as _configPg from "./config-pg";
 import {
+  backupSkillDirs as _backupSkillDirs,
+  buildImportedSkillInfos as _buildImportedSkillInfos,
+  cleanupBackupDir as _cleanupBackupDir,
+  cleanupWrittenSkills as _cleanupWrittenSkills,
+  createBackupDir as _createBackupDir,
   createSkillValidationError as _createSkillValidationError,
+  deleteSkillDir as _deleteSkillDir,
   groupUploadFiles as _groupUploadFiles,
   listSkillsFromDir as _listSkillsFromDir,
   readSkillDetailFromMd as _readSkillDetailFromMd,
-  writeSkillMd as _writeSkillMd,
-  deleteSkillDir as _deleteSkillDir,
   resolveImportPlan as _resolveImportPlan,
-  writeImportFiles as _writeImportFiles,
-  buildImportedSkillInfos as _buildImportedSkillInfos,
-  backupSkillDirs as _backupSkillDirs,
-  cleanupWrittenSkills as _cleanupWrittenSkills,
   restoreFromBackup as _restoreFromBackup,
-  createBackupDir as _createBackupDir,
-  cleanupBackupDir as _cleanupBackupDir,
+  writeImportFiles as _writeImportFiles,
+  writeSkillMd as _writeSkillMd,
 } from "./skill-fs";
 
 // ────────────────────────────────────────────
@@ -74,23 +75,24 @@ export function _resetDeps() {
     cleanupBackupDir: _cleanupBackupDir,
   };
 }
+
 import type {
-  SkillInfo,
-  SkillDetail,
-  UploadSkillFile,
   ImportConflictStrategy,
   ImportSkillsConflict,
   ImportSkillsResult,
+  SkillDetail,
+  SkillInfo,
+  UploadSkillFile,
 } from "./skill-fs";
 
 // 重新导出类型，保持外部导入兼容
 export type {
-  SkillInfo,
-  SkillDetail,
-  UploadSkillFile,
   ImportConflictStrategy,
   ImportSkillsConflict,
   ImportSkillsResult,
+  SkillDetail,
+  SkillInfo,
+  UploadSkillFile,
 } from "./skill-fs";
 
 export const OLD_SKILLS_DIR = join(homedir(), ".config", "opencode", "skills");

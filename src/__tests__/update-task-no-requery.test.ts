@@ -1,10 +1,10 @@
 // ── updateTask 使用 repo.update 返回值（消除冗余 getById 查询）──
-import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { updateTask } from "../services/task";
 import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
+import { updateTask } from "../services/task";
 
 setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 

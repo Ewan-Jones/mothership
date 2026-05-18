@@ -1,16 +1,16 @@
-import type { WsConnection } from "./ws-types";
 import { v4 as uuid } from "uuid";
-import { getAcpEventBus } from "./event-bus";
-import type { SessionEvent } from "./event-bus";
-import {
-  handleAcpConnect,
-  handleAcpRegister,
-  handleAcpIdentify,
-  handleAcpDisconnect,
-  touchEnvironmentPoll,
-} from "../services/environment";
 import { config } from "../config";
 import { log, error as logError } from "../logger";
+import {
+  handleAcpConnect,
+  handleAcpDisconnect,
+  handleAcpIdentify,
+  handleAcpRegister,
+  touchEnvironmentPoll,
+} from "../services/environment";
+import type { SessionEvent } from "./event-bus";
+import { getAcpEventBus } from "./event-bus";
+import type { WsConnection } from "./ws-types";
 
 // Per-connection state
 interface AcpConnectionEntry {

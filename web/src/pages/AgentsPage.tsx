@@ -1,22 +1,22 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { unwrapConfigData } from "../api/config-response";
-import { DataTable, type Column } from "@/components/config/DataTable";
-import { FormDialog } from "@/components/config/FormDialog";
-import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { BatchActionBar } from "@/components/config/BatchActionBar";
+import { ConfirmDialog } from "@/components/config/ConfirmDialog";
+import { type Column, DataTable } from "@/components/config/DataTable";
+import { FormDialog } from "@/components/config/FormDialog";
 import { StatusBadge } from "@/components/config/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { client } from "../api/client";
-import type { AgentDetail, AgentInfo } from "../types/config";
-import type { KnowledgeBaseInfo } from "../types/knowledge";
+import { unwrapConfigData } from "../api/config-response";
 import { PermissionTab } from "../components/PermissionTab";
 import { dispatchConfigChange } from "../lib/config-events";
+import type { AgentDetail, AgentInfo } from "../types/config";
+import type { KnowledgeBaseInfo } from "../types/knowledge";
 
 export const DEFAULT_AGENT_MODE = "primary";
 

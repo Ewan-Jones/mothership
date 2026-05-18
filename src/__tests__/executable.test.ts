@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import { isExecutable, resolveExecutable } from "../utils/executable";
+import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { isExecutable, resolveExecutable } from "../utils/executable";
 
 describe("isExecutable", () => {
   test("returns true for an executable file", () => {

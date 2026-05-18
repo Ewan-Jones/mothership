@@ -1,8 +1,8 @@
 import Elysia from "elysia";
-import { authGuardPlugin } from "../../plugins/auth";
-import { registerBridge, reconnectBridge, deregisterBridge } from "../../services/environment";
 import { NotFoundError } from "../../errors";
-import { BridgeRegistrationRequestSchema, type BridgeRegistrationRequest } from "../../schemas/v1-environment.schema";
+import { authGuardPlugin } from "../../plugins/auth";
+import { type BridgeRegistrationRequest, BridgeRegistrationRequestSchema } from "../../schemas/v1-environment.schema";
+import { deregisterBridge, reconnectBridge, registerBridge } from "../../services/environment";
 
 const app = new Elysia({ name: "v1-environments", prefix: "/v1/environments" }).use(authGuardPlugin).model({
   "bridge-registration-request": BridgeRegistrationRequestSchema,

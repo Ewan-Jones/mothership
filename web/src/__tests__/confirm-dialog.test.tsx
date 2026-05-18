@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
-import ReactDOMServer from "react-dom/server";
-import { join } from "path";
+import { describe, expect, test } from "bun:test";
 import * as fs from "fs";
+import { join } from "path";
+import ReactDOMServer from "react-dom/server";
 import { ConfirmDialog } from "../../components/config/ConfirmDialog";
 
 describe("ConfirmDialog", () => {

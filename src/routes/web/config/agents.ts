@@ -1,24 +1,24 @@
 import Elysia from "elysia";
-import { authGuardPlugin, type AuthContext } from "../../../plugins/auth";
-import * as configPg from "../../../services/config-pg";
+import { type AuthContext, authGuardPlugin } from "../../../plugins/auth";
 import {
+  type AgentKnowledgeConfig,
   InvalidKnowledgeBindingError,
   listAgentKnowledgeBindingsById,
   syncAgentKnowledgeBindingsById,
-  type AgentKnowledgeConfig,
 } from "../../../services/agent-knowledge";
 import {
-  validateAgentData,
+  AGENT_SETTABLE_FIELDS,
+  isBuiltInAgent,
   normalizeKnowledgeConfig,
   toolsToPermission,
-  isBuiltInAgent,
-  AGENT_SETTABLE_FIELDS,
+  validateAgentData,
 } from "../../../services/config/agent-config";
+import * as configPg from "../../../services/config-pg";
 import {
-  configSuccess,
   configError,
-  configValidationError,
   configNotFound,
+  configSuccess,
+  configValidationError,
   isValidResourceName,
 } from "../../../services/config-utils";
 import { loadTeamContext } from "../../../services/team-context";
@@ -28,7 +28,7 @@ function pgRowToAgentFields(
   row: typeof configPg extends { listAgentConfigs: (ctx: AuthContext) => Promise<(infer T)[]> } ? T : never,
 ) {
   // tools → permission 兼容转换：PG 中不再有 tools，但保留接口
-  let permission = (row as any).permission ?? null;
+  const permission = (row as any).permission ?? null;
   return {
     name: (row as any).name,
     model: (row as any).model ?? null,

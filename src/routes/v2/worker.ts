@@ -1,11 +1,11 @@
 import Elysia from "elysia";
-import { getSession, updateSessionStatus } from "../../services/session";
-import { automationStatesEqual, getAutomationStateEventPayload } from "../../services/automationState";
-import { authGuardPlugin } from "../../plugins/auth";
-import { eventService } from "../../services/event-service";
-import { sessionWorkerRepo } from "../../repositories";
 import { v4 as uuid } from "uuid";
-import { UpdateWorkerRequestSchema, type UpdateWorkerRequest } from "../../schemas/v2-worker.schema";
+import { authGuardPlugin } from "../../plugins/auth";
+import { sessionWorkerRepo } from "../../repositories";
+import { type UpdateWorkerRequest, UpdateWorkerRequestSchema } from "../../schemas/v2-worker.schema";
+import { automationStatesEqual, getAutomationStateEventPayload } from "../../services/automationState";
+import { eventService } from "../../services/event-service";
+import { getSession, updateSessionStatus } from "../../services/session";
 
 const app = new Elysia({ name: "v1-code-sessions-worker", prefix: "/v1/code/sessions" })
   .use(authGuardPlugin)

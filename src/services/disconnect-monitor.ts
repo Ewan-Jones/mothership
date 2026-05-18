@@ -1,6 +1,6 @@
+import { config } from "../config";
 import { log, error as logError } from "../logger";
 import { environmentRepo } from "../repositories";
-import { config } from "../config";
 
 export async function runDisconnectMonitorSweep(now = Date.now()) {
   const timeoutMs = config.disconnectTimeout * 1000;

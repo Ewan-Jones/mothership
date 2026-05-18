@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-
-import { client } from "../api/client";
-import { DataTable, type Column } from "@/components/config/DataTable";
+import { type Column, DataTable } from "@/components/config/DataTable";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { client } from "../api/client";
 
 type ChannelBinding = {
   id: string;

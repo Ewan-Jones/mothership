@@ -1,10 +1,10 @@
 // 测试 updateTask 仅在调度相关字段变更时重新调度；toggleTask 验证更新结果
-import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { updateTask, toggleTask } from "../services/task";
-import { setScheduleJobImpl, stopScheduler, scheduleTask as registerTask } from "../services/scheduler";
+import { scheduleTask as registerTask, setScheduleJobImpl, stopScheduler } from "../services/scheduler";
+import { toggleTask, updateTask } from "../services/task";
 
 // 跟踪 scheduleJobImpl 和 cancel 调用
 let scheduleCallCount = 0;

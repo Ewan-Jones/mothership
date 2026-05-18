@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { validateWorkspacePath } from "../services/environment";
 
 // 路径校验函数测试

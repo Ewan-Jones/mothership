@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { ArrowLeft, ChevronRight, File, Folder, Loader2, Upload } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "../../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
 import { client, fetchUpload } from "../api/client";
 import type { FileInfo } from "../types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Folder, File, Upload, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
 
 interface FilePickerDialogProps {
   open: boolean;

@@ -1,8 +1,8 @@
 import Elysia from "elysia";
-import { authGuardPlugin, type AuthContext } from "../../../plugins/auth";
-import * as configPg from "../../../services/config-pg";
+import { type AuthContext, authGuardPlugin } from "../../../plugins/auth";
 import { ConfigBodySchema } from "../../../schemas/config.schema";
-import { configSuccess, configError } from "../../../services/config-utils";
+import * as configPg from "../../../services/config-pg";
+import { configError, configSuccess } from "../../../services/config-utils";
 import { loadTeamContext } from "../../../services/team-context";
 
 const app = new Elysia({ name: "web-config-models", prefix: "/web" }).use(authGuardPlugin).model({

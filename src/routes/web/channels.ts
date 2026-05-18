@@ -1,16 +1,16 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
+import { environmentRepo } from "../../repositories";
+import {
+  ChannelBindingSchema,
+  ChannelProviderDescriptorSchema,
+  CreateChannelBindingRequestSchema,
+  HermesStatusSchema,
+} from "../../schemas/channel.schema";
+import { createBinding, deleteBinding, listBindings, updateBinding } from "../../services/channel-binding";
 import { getChannelProvider, listChannelProviders } from "../../services/channel-provider";
 import { getHermesClient } from "../../services/hermes-client";
-import { listBindings, createBinding, deleteBinding, updateBinding } from "../../services/channel-binding";
-import { environmentRepo } from "../../repositories";
 import { loadTeamContext } from "../../services/team-context";
-import {
-  ChannelProviderDescriptorSchema,
-  HermesStatusSchema,
-  ChannelBindingSchema,
-  CreateChannelBindingRequestSchema,
-} from "../../schemas/channel.schema";
 
 const app = new Elysia({ name: "web-channels", prefix: "/web" }).use(authGuardPlugin).model({
   "channel-provider-list": ChannelProviderDescriptorSchema.array(),

@@ -1,7 +1,7 @@
-import { eq, and } from "drizzle-orm";
+import { createHash, randomBytes } from "node:crypto";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { apiKey } from "../db/schema";
-import { createHash, randomBytes } from "node:crypto";
 
 const KEY_PREFIX = "rcs_";
 

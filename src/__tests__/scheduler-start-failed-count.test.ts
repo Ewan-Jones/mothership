@@ -1,9 +1,9 @@
 // ── startScheduler 跟踪失败调度数量 ──
-import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { startScheduler, stopScheduler, setScheduleJobImpl } from "../services/scheduler";
+import { setScheduleJobImpl, startScheduler, stopScheduler } from "../services/scheduler";
 
 const mockScheduleJob = mock(() => ({ nextInvocation: () => null, cancel: mock(() => {}) }));
 
@@ -26,16 +26,14 @@ async function ensureTeam() {
   const now = new Date();
   const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
   if (existingUser.length === 0) {
-    await db
-      .insert(user)
-      .values({
-        id: TEST_USER_ID,
-        name: "Sched Start",
-        email: "sched-start@rcs.local",
-        emailVerified: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+    await db.insert(user).values({
+      id: TEST_USER_ID,
+      name: "Sched Start",
+      email: "sched-start@rcs.local",
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
   const [created] = await db
     .insert(team)

@@ -1,7 +1,7 @@
 import { log, error as logError } from "../logger";
+import { toClientPayload } from "./client-payload";
 import type { SessionEvent } from "./event-bus";
 import { getEventBus } from "./event-bus";
-import { toClientPayload } from "./client-payload";
 
 export interface SSEWriter {
   send(event: SessionEvent): void;

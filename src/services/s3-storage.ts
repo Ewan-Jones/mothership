@@ -6,13 +6,13 @@
  */
 
 import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
-  ListObjectsV2Command,
+  GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { config } from "../config";
@@ -50,7 +50,7 @@ function normalizeKey(key: string): string {
     throw new Error(`Invalid S3 key: null byte detected (${key})`);
   }
   // 去除前导/尾随空白、斜杠、./ 前缀
-  let normalized = key
+  const normalized = key
     .trim()
     .replace(/^\.\/+/, "")
     .replace(/^\/+|\/+$/g, "");

@@ -1,8 +1,8 @@
 import Elysia from "elysia";
-import { authGuardPlugin } from "../../plugins/auth";
 import { config } from "../../config";
+import { authGuardPlugin } from "../../plugins/auth";
+import type { S3DeleteBody, S3PresignPutBody } from "../../schemas/s3-file.schema";
 import * as s3 from "../../services/s3-storage";
-import type { S3PresignPutBody, S3DeleteBody } from "../../schemas/s3-file.schema";
 
 const app = new Elysia({ name: "web-s3-files", prefix: "/web/s3" }).use(authGuardPlugin).onBeforeHandle(({ error }) => {
   if (!config.s3.enabled) {

@@ -3,7 +3,7 @@
  * Checks that native <button> and overflow-y-auto patterns have been replaced
  * with shadcn <Button> and <ScrollArea>.
  */
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 

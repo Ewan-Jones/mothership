@@ -1,10 +1,9 @@
+import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { agentConfig } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
 import type { AuthContext } from "../../plugins/auth";
-
-import { resolveAgentKnowledgePolicy } from "../agent-knowledge";
 import type { AgentKnowledgeConfig, AgentKnowledgePolicy } from "../agent-knowledge";
+import { resolveAgentKnowledgePolicy } from "../agent-knowledge";
 
 // ────────────────────────────────────────────
 // Agent Config 操作

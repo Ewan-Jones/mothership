@@ -3,14 +3,15 @@
  * 跨层调用方（routes、services）应通过此模块访问 EventBus，
  * 而非直接导入 transport/event-bus。
  */
-import {
-  getEventBus,
-  removeEventBus,
-  getAllEventBuses,
-  getAcpEventBus,
-  removeAcpEventBus,
-} from "../transport/event-bus";
+
 import type { EventBus, SessionEvent } from "../transport/event-bus";
+import {
+  getAcpEventBus,
+  getAllEventBuses,
+  getEventBus,
+  removeAcpEventBus,
+  removeEventBus,
+} from "../transport/event-bus";
 
 type Subscriber = (event: SessionEvent) => void;
 

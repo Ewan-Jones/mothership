@@ -8,6 +8,7 @@ type InstanceInfo = {
   status: string;
   error?: string;
 };
+
 import { esc, formatTime } from "../lib/utils";
 
 interface EnvironmentListProps {

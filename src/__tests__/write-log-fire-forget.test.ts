@@ -1,10 +1,10 @@
 // ── writeLogAndReturn fire-and-forget 状态更新验证 ──
-import { describe, test, expect, mock, afterAll } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { executeTaskById } from "../services/task";
 import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
+import { executeTaskById } from "../services/task";
 
 setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 
@@ -21,16 +21,14 @@ async function ensureTeam() {
   const now = new Date();
   const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
   if (existingUser.length === 0) {
-    await db
-      .insert(user)
-      .values({
-        id: TEST_USER_ID,
-        name: "WriteLog FF",
-        email: "write-log-ff@rcs.local",
-        emailVerified: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+    await db.insert(user).values({
+      id: TEST_USER_ID,
+      name: "WriteLog FF",
+      email: "write-log-ff@rcs.local",
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
   const [created] = await db
     .insert(team)

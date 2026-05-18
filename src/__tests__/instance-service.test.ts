@@ -1,8 +1,7 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { RuntimeInstanceSnapshot } from "@mothership/core";
-
-import { _deps, _resetDeps } from "../services/instance";
 import { resetCoreRuntime } from "../services/core-bootstrap";
+import { _deps, _resetDeps } from "../services/instance";
 import { setBuildLaunchSpec } from "../services/launch-spec-builder";
 
 // ────────────────────────────────────────────
@@ -144,15 +143,15 @@ function mockSnapshot(overrides: Partial<RuntimeInstanceSnapshot> & { instanceId
 }
 
 import {
-  spawnInstanceFromEnvironment,
-  listInstances,
-  getInstance,
-  stopInstance,
-  stopAllInstances,
-  findRunningInstanceByEnvironment,
-  listInstancesByEnvironment,
-  getRunningInstancesByEnvironment,
   ensureRunning,
+  findRunningInstanceByEnvironment,
+  getInstance,
+  getRunningInstancesByEnvironment,
+  listInstances,
+  listInstancesByEnvironment,
+  spawnInstanceFromEnvironment,
+  stopAllInstances,
+  stopInstance,
 } from "../services/instance";
 
 /** 注册 envId→userId 映射并执行 spawn */

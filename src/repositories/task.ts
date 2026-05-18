@@ -1,6 +1,6 @@
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog } from "../db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
 
 /** ScheduledTask 行类型 */
 export type ScheduledTaskRow = typeof scheduledTask.$inferSelect;

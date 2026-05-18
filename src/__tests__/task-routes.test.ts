@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { setTestAuth, resetTestAuth } from "../plugins/auth";
-import { setTestTeamContext } from "../services/team-context";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, teamMember, user } from "../db/schema";
+import { resetTestAuth, setTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 const TEAM_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 const TEST_USER_ID = "test_user";

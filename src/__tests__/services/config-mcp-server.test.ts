@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { validateMcpConfig, isValidMcpName, toServerInfo } from "../../services/config/mcp-server";
+import { describe, expect, test } from "bun:test";
+import { isValidMcpName, toServerInfo, validateMcpConfig } from "../../services/config/mcp-server";
 
 describe("validateMcpConfig", () => {
   // local 有效配置

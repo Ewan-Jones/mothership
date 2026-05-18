@@ -1,5 +1,5 @@
 // 测试 timeout 检测使用 instanceof Error 而非 DOMException（兼容 Node.js/Bun）
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 // 纯函数测试：验证错误类型检测逻辑
 // 由于 executeTaskById 依赖 fetch/DB，这里直接测试检测条件的正确性

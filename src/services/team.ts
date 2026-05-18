@@ -1,6 +1,6 @@
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { team, teamMember, session, user } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { session, team, teamMember, user } from "../db/schema";
 import type { AuthContext } from "../plugins/auth";
 
 /** 查询用户加入的所有团队（含角色） */

@@ -1,12 +1,11 @@
-import { describe, test, expect, beforeEach, afterAll } from "bun:test";
-
-import Elysia from "elysia";
-import { db } from "../db";
-import { user as userTable, team as teamTable } from "../db/schema";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { resetAllRepos, environmentRepo } from "../repositories";
-import { authGuardPlugin } from "../plugins/auth";
+import Elysia from "elysia";
 import { generateWorkerJwt } from "../auth/jwt";
+import { db } from "../db";
+import { team as teamTable, user as userTable } from "../db/schema";
+import { authGuardPlugin } from "../plugins/auth";
+import { environmentRepo, resetAllRepos } from "../repositories";
 
 const TEST_USER_ID = "u-mw-test";
 const TEST_TEAM_SLUG = "mw-test-team";

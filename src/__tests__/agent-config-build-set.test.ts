@@ -1,5 +1,5 @@
 // R35: agent-config.ts buildSetFromData 辅助函数（验证字段映射间接行为）
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { AGENT_SETTABLE_FIELDS, validateAgentData } from "../services/config/agent-config";
 
 describe("buildSetFromData 字段映射", () => {

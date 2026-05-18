@@ -1,8 +1,7 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { RuntimeInstanceSnapshot } from "@mothership/core";
-
-import { _deps, _resetDeps } from "../services/instance";
 import { resetCoreRuntime } from "../services/core-bootstrap";
+import { _deps, _resetDeps } from "../services/instance";
 import { setBuildLaunchSpec } from "../services/launch-spec-builder";
 
 const mockListInstances = mock((): RuntimeInstanceSnapshot[] => []);

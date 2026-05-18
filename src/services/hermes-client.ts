@@ -1,10 +1,10 @@
-import { findBindingForMessage } from "./channel-binding";
-import type { ChannelBinding } from "./channel-binding";
-import { findRunningInstanceByEnvironment } from "./instance";
-import { sendToAgentWs } from "../transport/acp-ws-handler";
-import { sendToInstanceRelay } from "../transport/acp-relay-handler";
-import { eventService } from "../services/event-service";
 import { log, error as logError } from "../logger";
+import { eventService } from "../services/event-service";
+import { sendToInstanceRelay } from "../transport/acp-relay-handler";
+import { sendToAgentWs } from "../transport/acp-ws-handler";
+import type { ChannelBinding } from "./channel-binding";
+import { findBindingForMessage } from "./channel-binding";
+import { findRunningInstanceByEnvironment } from "./instance";
 
 // --- Types ---
 
@@ -342,7 +342,7 @@ export class HermesClient {
   }
 
   private scheduleReconnect(): void {
-    const delay = Math.min(2000 * Math.pow(2, this.reconnectAttempts), MAX_RECONNECT_DELAY_MS);
+    const delay = Math.min(2000 * 2 ** this.reconnectAttempts, MAX_RECONNECT_DELAY_MS);
     this.reconnectAttempts++;
     this.status.reconnecting = true;
     this.notifyStatusChange();

@@ -1,10 +1,10 @@
 // ── executeTaskById prefetchedTask 参数 + Content-Type 大小写不敏感 ──
-import { describe, test, expect, mock, afterAll } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { executeTaskById } from "../services/task";
 import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
+import { executeTaskById } from "../services/task";
 
 setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 

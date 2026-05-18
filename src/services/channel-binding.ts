@@ -1,5 +1,5 @@
-import { channelBindingRepo } from "../repositories/channel-binding";
 import type { ChannelBindingRow } from "../repositories/channel-binding";
+import { channelBindingRepo } from "../repositories/channel-binding";
 
 // --- Types ---
 
@@ -69,7 +69,7 @@ export async function updateBinding(
   data: Partial<Pick<ChannelBinding, "platform" | "chatId" | "agentId" | "enabled">>,
 ): Promise<ChannelBinding | undefined> {
   const existing = await channelBindingRepo.getById(id);
-  if (!existing) return undefined;
+  if (!existing) return;
   await channelBindingRepo.update(id, { ...data, updatedAt: new Date() });
   return getBinding(id);
 }
@@ -87,5 +87,5 @@ export async function findBindingForMessage(platform: string, chatId: string): P
   const wildcard = bindings.find((b) => b.chatId === null);
   if (wildcard) return { binding: wildcard, matchType: "wildcard" };
 
-  return undefined;
+  return;
 }

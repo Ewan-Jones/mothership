@@ -1,7 +1,7 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
-import { createWorkerEventStream } from "../../transport/sse-writer";
 import { getSession } from "../../services/session";
+import { createWorkerEventStream } from "../../transport/sse-writer";
 
 const app = new Elysia({ name: "v1-code-sessions-worker-events-stream", prefix: "/v1/code/sessions" }).use(
   authGuardPlugin,

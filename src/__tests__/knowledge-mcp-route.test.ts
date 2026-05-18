@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import Elysia from "elysia";
 import { and, eq, inArray } from "drizzle-orm";
+import Elysia from "elysia";
 import { db } from "../db";
 import {
   agentConfig,
@@ -8,8 +8,8 @@ import {
   environment,
   knowledgeBase,
   knowledgeResource,
-  user,
   team,
+  user,
 } from "../db/schema";
 import knowledgeMcpRoutes from "../routes/mcp/knowledge";
 import { setKnowledgeRuntimeProviderForTesting } from "../services/knowledge-runtime";

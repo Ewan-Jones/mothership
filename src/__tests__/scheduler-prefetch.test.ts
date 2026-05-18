@@ -1,10 +1,10 @@
 // ── scheduler executeTaskById prefetchedTask 验证 ──
-import { describe, test, expect, mock, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
+import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
 import { executeTaskById } from "../services/task";
-import { stopScheduler, setScheduleJobImpl } from "../services/scheduler";
 
 const mockScheduleJob = mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} }));
 
@@ -27,16 +27,14 @@ async function ensureTeam() {
   const now = new Date();
   const existingUser = await db.select().from(user).where(eq(user.id, TEST_USER_ID)).limit(1);
   if (existingUser.length === 0) {
-    await db
-      .insert(user)
-      .values({
-        id: TEST_USER_ID,
-        name: "Sched Prefetch",
-        email: "sched-prefetch@rcs.local",
-        emailVerified: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+    await db.insert(user).values({
+      id: TEST_USER_ID,
+      name: "Sched Prefetch",
+      email: "sched-prefetch@rcs.local",
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
   const [created] = await db
     .insert(team)

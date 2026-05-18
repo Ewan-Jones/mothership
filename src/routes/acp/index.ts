@@ -1,14 +1,14 @@
 import Elysia from "elysia";
+import { v4 as uuid } from "uuid";
 import { validateApiKeyAndGetUser } from "../../auth/api-key-service";
 import { auth } from "../../auth/better-auth";
-import { handleAcpWsOpen, handleAcpWsMessage, handleAcpWsClose } from "../../transport/acp-ws-handler";
-import { handleRelayOpen, handleRelayMessage, handleRelayClose } from "../../transport/acp-relay-handler";
-import { environmentRepo } from "../../repositories";
-import { getEnvironmentBySecret } from "../../services/environment";
 import { log, error as logError } from "../../logger";
 import { authGuardPlugin, lookupUserById } from "../../plugins/auth";
+import { environmentRepo } from "../../repositories";
+import { getEnvironmentBySecret } from "../../services/environment";
+import { handleRelayClose, handleRelayMessage, handleRelayOpen } from "../../transport/acp-relay-handler";
+import { handleAcpWsClose, handleAcpWsMessage, handleAcpWsOpen } from "../../transport/acp-ws-handler";
 import type { WsConnection } from "../../transport/ws-types";
-import { v4 as uuid } from "uuid";
 
 /** Maximum WebSocket message size: 10 MB */
 const MAX_WS_MESSAGE_SIZE = 10 * 1024 * 1024;

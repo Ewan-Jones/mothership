@@ -1,7 +1,7 @@
 // ── scheduler stale job cleanup 验证 ──
 // R36 修复：任务从 DB 删除后 executeTask 调用 unscheduleTask 清理残留 job
-import { describe, test, expect, mock, beforeEach } from "bun:test";
-import { startScheduler, stopScheduler, setScheduleJobImpl } from "../services/scheduler";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { setScheduleJobImpl, startScheduler, stopScheduler } from "../services/scheduler";
 
 const mockScheduleJob = mock((_config: unknown, _handler: () => void) => ({
   cancel: mock(() => {}),

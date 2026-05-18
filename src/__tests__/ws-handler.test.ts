@@ -1,16 +1,16 @@
-import { setConfig, resetConfig } from "../config";
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { resetConfig, setConfig } from "../config";
 
 // Mock config before imports
 
 import { resetAllRepos } from "../repositories";
-import { getEventBus, removeEventBus, getAllEventBuses } from "../transport/event-bus";
+import { getAllEventBuses, getEventBus, removeEventBus } from "../transport/event-bus";
 import {
-  ingestBridgeMessage,
-  handleWebSocketOpen,
-  handleWebSocketMessage,
-  handleWebSocketClose,
   closeAllConnections,
+  handleWebSocketClose,
+  handleWebSocketMessage,
+  handleWebSocketOpen,
+  ingestBridgeMessage,
 } from "../transport/ws-handler";
 
 // Minimal WSContext mock

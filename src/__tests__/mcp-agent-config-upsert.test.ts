@@ -1,10 +1,10 @@
 // createMcpServer / createAgentConfig onConflictDoUpdate 幂等 upsert 验证
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { mcpServer, agentConfig, team, user } from "../db/schema";
-import { createMcpServer } from "../services/config/mcp-server";
+import { agentConfig, mcpServer, team, user } from "../db/schema";
 import { createAgentConfig } from "../services/config/agent-config";
+import { createMcpServer } from "../services/config/mcp-server";
 
 const TEST_USER_ID = "user_mcp_ac_upsert";
 const TEST_TEAM_SLUG = "mcp-ac-upsert-team";

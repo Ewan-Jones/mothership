@@ -1,15 +1,14 @@
-import { afterAll, beforeEach, afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
+import { eq } from "drizzle-orm";
 import Elysia from "elysia";
 import { db } from "../db";
-import { user as userTable, team as teamTable, teamMember } from "../db/schema";
-import { eq } from "drizzle-orm";
-import { resetAllRepos, environmentRepo, sessionRepo } from "../repositories";
+import { teamMember, team as teamTable, user as userTable } from "../db/schema";
+import { resetTestAuth, setTestAuth } from "../plugins/auth";
+import { environmentRepo, resetAllRepos, sessionRepo } from "../repositories";
 import { deleteEnvironment } from "../services/environment";
-import { setTestAuth, resetTestAuth } from "../plugins/auth";
 import { setTestTeamContext } from "../services/team-context";
 
 const TEST_TEAM_ID = "d0000000-0000-0000-0000-000000000005";

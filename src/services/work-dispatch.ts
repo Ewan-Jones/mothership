@@ -1,7 +1,7 @@
+import { generateWorkerJwt } from "../auth/jwt";
+import { config, getBaseUrl } from "../config";
 import { log, error as logError } from "../logger";
 import { environmentRepo, sessionRepo, workItemRepo } from "../repositories";
-import { config, getBaseUrl } from "../config";
-import { generateWorkerJwt } from "../auth/jwt";
 import type { WorkResponse } from "../types/api";
 
 /** Encode work secret as base64 JSON with a worker JWT as session_ingress_token */

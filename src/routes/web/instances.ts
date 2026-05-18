@@ -1,9 +1,9 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
-import { listInstances, stopInstance, spawnInstanceFromEnvironment } from "../../services/instance";
-import type { SpawnedInstance } from "../../services/instance";
-import { getOwnedEnvironment } from "../../services/environment-core";
 import { InstanceInfoSchema, SpawnInstanceFromEnvironmentRequestSchema } from "../../schemas/instance.schema";
+import { getOwnedEnvironment } from "../../services/environment-core";
+import type { SpawnedInstance } from "../../services/instance";
+import { listInstances, spawnInstanceFromEnvironment, stopInstance } from "../../services/instance";
 import { loadTeamContext } from "../../services/team-context";
 
 const app = new Elysia({ name: "web-instances", prefix: "/web" }).use(authGuardPlugin).model({

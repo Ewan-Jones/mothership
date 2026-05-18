@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach } from "bun:test";
-import { EventBus, getEventBus, removeEventBus, getAllEventBuses } from "../transport/event-bus";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { EventBus, getAllEventBuses, getEventBus, removeEventBus } from "../transport/event-bus";
 
 describe("EventBus", () => {
   let bus: EventBus;

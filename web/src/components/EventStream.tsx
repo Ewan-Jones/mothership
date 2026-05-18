@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import type { SessionEvent, EventPayload } from "../types";
-import { esc, truncate, cn, extractEventText, isConversationClearedStatus } from "../lib/utils";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "../../components/ui/input";
+import { cn, esc, extractEventText, isConversationClearedStatus, truncate } from "../lib/utils";
+import type { EventPayload, SessionEvent } from "../types";
 
 // ============================================================
 // Tool Trace State
@@ -827,16 +827,16 @@ function LoadingIndicator({ verb }: { verb: string }) {
 // Event Processing Hook
 // ============================================================
 
-export {
-  type DisplayMessage,
-  type TraceEntry,
-  type UserMessage,
-  type AssistantMessage,
-  type SystemMessage,
-  type PermissionMessage,
-  type AskUserMessage,
-  type PlanMessage,
-  type LoadingMessage,
+export type {
+  AskUserMessage,
+  AssistantMessage,
+  DisplayMessage,
+  LoadingMessage,
+  PermissionMessage,
+  PlanMessage,
+  SystemMessage,
+  TraceEntry,
+  UserMessage,
 };
 
 export function useEventProcessor() {

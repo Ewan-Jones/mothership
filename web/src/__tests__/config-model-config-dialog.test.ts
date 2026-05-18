@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { buildModelOptions } from "@/components/config/ModelConfigDialog";
 import type { ModelEntry } from "../types/config";
 

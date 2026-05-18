@@ -1,12 +1,12 @@
-import { useState, useRef, useEffect } from "react";
-import QRCode from "qrcode";
-import QrScanner from "qr-scanner";
-import { getUuid, setUuid } from "../api/client";
-import { cn } from "../lib/utils";
-import { toast } from "sonner";
 import { Scan } from "lucide-react";
-import { useTheme } from "../lib/theme";
+import QrScanner from "qr-scanner";
+import QRCode from "qrcode";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { getUuid, setUuid } from "../api/client";
+import { useTheme } from "../lib/theme";
+import { cn } from "../lib/utils";
 
 interface IdentityPanelProps {
   open: boolean;

@@ -1,9 +1,8 @@
-import { describe, test, expect, beforeEach } from "bun:test";
-
-import { resetAllRepos, environmentRepo } from "../repositories";
-import { db } from "../db";
-import { user, team } from "../db/schema";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { team, user } from "../db/schema";
+import { environmentRepo, resetAllRepos } from "../repositories";
 
 const TEST_TEAM_ID = "d0000000-0000-0000-0000-000000000004";
 
@@ -21,19 +20,20 @@ async function ensureTeam() {
     });
   }
 }
-import { createSession, getSession, updateSessionStatus, archiveSession } from "../services/session";
+
 import {
-  registerEnvironment,
   deregisterEnvironment,
   getEnvironment,
-  updatePollTime,
   listActiveEnvironments,
-  listActiveEnvironmentsResponse,
   listActiveEnvironmentsByUsername,
+  listActiveEnvironmentsResponse,
   reconnectEnvironment,
+  registerEnvironment,
+  updatePollTime,
 } from "../services/environment";
+import { archiveSession, createSession, getSession, updateSessionStatus } from "../services/session";
 import { normalizePayload, publishSessionEvent } from "../services/transport";
-import { getEventBus, removeEventBus, getAllEventBuses } from "../transport/event-bus";
+import { getAllEventBuses, getEventBus, removeEventBus } from "../transport/event-bus";
 
 async function ensureUser(userId: string) {
   const existing = await db.select().from(user).where(eq(user.id, userId)).limit(1);

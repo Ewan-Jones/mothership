@@ -1,23 +1,23 @@
 import Elysia from "elysia";
-import { authGuardPlugin } from "../../plugins/auth";
-import type { AuthContext } from "../../plugins/auth";
-import {
-  createWebEnvironment,
-  updateWebEnvironment,
-  getOwnedEnvironment,
-  deleteEnvironment,
-  sanitizeResponse,
-  listEnvironmentsWithInstances,
-} from "../../services/environment";
 import { ValidationError as AppValidationError } from "../../errors";
-import { spawnInstanceFromEnvironment, enterEnvironment, listInstancesResponse } from "../../services/instance";
+import type { AuthContext } from "../../plugins/auth";
+import { authGuardPlugin } from "../../plugins/auth";
 import {
+  CreateEnvironmentRequestSchema,
+  EnterEnvironmentRequestSchema,
   EnvironmentInfoSchema,
   EnvironmentListResponseSchema,
-  CreateEnvironmentRequestSchema,
   UpdateEnvironmentRequestSchema,
-  EnterEnvironmentRequestSchema,
 } from "../../schemas/environment.schema";
+import {
+  createWebEnvironment,
+  deleteEnvironment,
+  getOwnedEnvironment,
+  listEnvironmentsWithInstances,
+  sanitizeResponse,
+  updateWebEnvironment,
+} from "../../services/environment";
+import { enterEnvironment, listInstancesResponse, spawnInstanceFromEnvironment } from "../../services/instance";
 import { loadTeamContext } from "../../services/team-context";
 
 async function requireAuthContext(store: any, request: Request, error: any): Promise<AuthContext | Response> {

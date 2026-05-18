@@ -1,20 +1,20 @@
+import type { LucideIcon } from "lucide-react";
 import {
-  Monitor,
-  Bot,
-  Cpu,
-  MessageSquare,
-  Settings,
-  Plug,
-  Clock,
-  Radio,
-  KeyRound,
-  Workflow,
   BookOpen,
+  Bot,
   ChevronsLeft,
   ChevronsRight,
+  Clock,
+  Cpu,
+  KeyRound,
+  MessageSquare,
+  Monitor,
+  Plug,
+  Radio,
+  Settings,
   Users,
+  Workflow,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { TeamSwitcher } from "../TeamSwitcher";
 
 /* ------------------------------------------------------------------ */

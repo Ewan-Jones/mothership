@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import ReactDOMServer from "react-dom/server";
+import { describe, expect, test } from "bun:test";
 import React from "react";
+import ReactDOMServer from "react-dom/server";
 
 describe("ChatInput Attachment Integration", () => {
   test("ChatInput exports with sessionId prop type", async () => {

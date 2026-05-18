@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, mock, afterEach } from "bun:test";
-import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { resetTestAuth, setTestAuth } from "../plugins/auth";
 import { setTestTeamContext } from "../services/team-context";
 
 // 固定的测试团队 UUID

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from "bun:test";
 import { Database } from "bun:sqlite";
-import { scheduledTask, taskExecutionLog, user, team, teamMember } from "../db/schema";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { scheduledTask, taskExecutionLog, team, teamMember, user } from "../db/schema";
 
 function getColumnNames(table: object): string[] {
   return Object.keys(table as Record<string, unknown>);

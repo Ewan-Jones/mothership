@@ -1,5 +1,5 @@
-import { describe, expect, mock, test, beforeEach, afterEach } from "bun:test";
-import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { resetTestAuth, setTestAuth } from "../plugins/auth";
 import { setTestTeamContext } from "../services/team-context";
 
 mock.module("../services/hermes-client", () => ({

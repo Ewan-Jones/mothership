@@ -1,25 +1,25 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Activity,
+  Bot,
+  Clock,
+  Cpu,
+  Layers,
+  type LucideIcon,
+  MessageSquare,
+  Plug,
+  Radio,
+  Server,
+  ShieldCheck,
+  Wrench,
+  Zap,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { client } from "../api/client";
+import { unwrapConfigData } from "../api/config-response";
+import { useConfigChangeListener } from "../lib/config-events";
+import { cn } from "../lib/utils";
 import type { Environment, Session } from "../types";
 import type { AgentInfo } from "../types/config";
-import { useConfigChangeListener } from "../lib/config-events";
-import { unwrapConfigData } from "../api/config-response";
-import {
-  Cpu,
-  Bot,
-  Wrench,
-  Plug,
-  Clock,
-  Activity,
-  MessageSquare,
-  Zap,
-  ShieldCheck,
-  Layers,
-  Server,
-  Radio,
-  type LucideIcon,
-} from "lucide-react";
-import { cn } from "../lib/utils";
 
 /* ========================================================================== *
  *  useStats — 并行拉取所有概览数据
@@ -123,7 +123,7 @@ function useCountUp(target: number, duration = 800, enabled = true) {
       const elapsed = ts - start.current;
       const progress = Math.min(elapsed / duration, 1);
       // easeOutCubic
-      const eased = 1 - Math.pow(1 - progress, 3);
+      const eased = 1 - (1 - progress) ** 3;
       setDisplay(Math.round(eased * target));
       if (progress < 1) raf.current = requestAnimationFrame(animate);
     };

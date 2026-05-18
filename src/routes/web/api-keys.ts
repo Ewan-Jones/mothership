@@ -1,6 +1,6 @@
 import Elysia from "elysia";
+import { createApiKey, deleteApiKey, listApiKeysByUser, updateApiKeyLabel } from "../../auth/api-key-service";
 import { authGuardPlugin } from "../../plugins/auth";
-import { createApiKey, listApiKeysByUser, deleteApiKey, updateApiKeyLabel } from "../../auth/api-key-service";
 import {
   ApiKeyInfoSchema,
   CreateApiKeyRequestSchema,

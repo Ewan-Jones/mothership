@@ -1,6 +1,6 @@
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { channelBinding } from "../db/schema";
-import { eq, and } from "drizzle-orm";
 
 /** ChannelBinding 行类型 */
 export type ChannelBindingRow = typeof channelBinding.$inferSelect;

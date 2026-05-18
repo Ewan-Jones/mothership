@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { ACPMain } from "../../components/ACPMain";
 import { ACPClient, DisconnectRequestedError } from "../acp/client";
 import type { ConnectionState } from "../acp/types";
-import { ACPMain } from "../../components/ACPMain";
-import { toast } from "sonner";
 
 interface ACPDirectViewProps {
   url: string;

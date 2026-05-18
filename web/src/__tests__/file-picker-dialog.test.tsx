@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import ReactDOMServer from "react-dom/server";
+import { describe, expect, test } from "bun:test";
 import React from "react";
+import ReactDOMServer from "react-dom/server";
 
 describe("FilePickerDialog", () => {
   test("exports FilePickerDialog as a function", async () => {

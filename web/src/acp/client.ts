@@ -1,15 +1,15 @@
-export { ACPClient, DisconnectRequestedError } from "acp-link/client";
 export type {
-  ConnectionStateHandler,
-  SessionUpdateHandler,
-  SessionCreatedHandler,
-  PromptCompleteHandler,
-  PermissionRequestHandler,
+  AvailableCommandsChangedHandler,
   BrowserToolCallHandler,
+  ConnectionStateHandler,
   ErrorMessageHandler,
   ModelChangedHandler,
   ModelStateChangedHandler,
-  AvailableCommandsChangedHandler,
+  PermissionRequestHandler,
+  PromptCompleteHandler,
+  SessionCreatedHandler,
   SessionLoadedHandler,
   SessionSwitchingHandler,
+  SessionUpdateHandler,
 } from "acp-link/client";
+export { ACPClient, DisconnectRequestedError } from "acp-link/client";

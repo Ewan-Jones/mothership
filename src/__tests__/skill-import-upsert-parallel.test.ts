@@ -1,5 +1,5 @@
 // importSkillDirectories 导入成功后 upsertSkill 并行化测试
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { _deps, _resetDeps, importSkillDirectories } from "../services/skill";
 import type { UploadSkillFile } from "../services/skill-fs";
 

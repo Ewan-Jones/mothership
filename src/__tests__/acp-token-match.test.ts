@@ -1,14 +1,14 @@
-import { setConfig, resetConfig } from "../config";
-import { describe, test, expect, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { resetConfig, setConfig } from "../config";
 
 setConfig({ apiKeys: ["test-api-key"] });
 
-import { resetAllRepos, environmentRepo } from "../repositories";
-import { deleteEnvironment } from "../services/environment";
-import { db } from "../db";
-import { user, team } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { team, user } from "../db/schema";
+import { environmentRepo, resetAllRepos } from "../repositories";
 import { runDisconnectMonitorSweep } from "../services/disconnect-monitor";
+import { deleteEnvironment } from "../services/environment";
 
 const TEST_TEAM_ID = "d0000000-0000-0000-0000-000000000001";
 

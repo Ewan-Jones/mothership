@@ -1,11 +1,11 @@
 import Elysia from "elysia";
-import { authGuardPlugin, type AuthContext } from "../../../plugins/auth";
-import * as configPg from "../../../services/config-pg";
-import { invalidateAvailableCache } from "./models";
+import { type AuthContext, authGuardPlugin } from "../../../plugins/auth";
 import { ConfigBodySchema } from "../../../schemas/config.schema";
-import { configSuccess, configError, toKeyHint, resolveApiKey } from "../../../services/config-utils";
 import { buildModelData } from "../../../services/config/provider";
+import * as configPg from "../../../services/config-pg";
+import { configError, configSuccess, resolveApiKey, toKeyHint } from "../../../services/config-utils";
 import { loadTeamContext } from "../../../services/team-context";
+import { invalidateAvailableCache } from "./models";
 
 type ProviderBody = { action: string; name?: string; modelId?: string; data?: Record<string, unknown> };
 
@@ -117,7 +117,7 @@ async function handleTest(ctx: AuthContext, name: string) {
   if (!p) return configError("NOT_FOUND", `Provider '${name}' not found`);
 
   const apiKey = resolveApiKey(p.apiKey) ?? "";
-  let baseURL = p.baseUrl ?? "https://api.anthropic.com";
+  const baseURL = p.baseUrl ?? "https://api.anthropic.com";
 
   try {
     const controller = new AbortController();

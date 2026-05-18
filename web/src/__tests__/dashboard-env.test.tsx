@@ -1,13 +1,10 @@
-import { describe, test, expect } from "bun:test";
-
-// Type imports
-import type { Environment, EnvironmentDetail, CreateEnvironmentRequest, UpdateEnvironmentRequest } from "../types";
-
+import { describe, expect, test } from "bun:test";
 // Client imports
 import { client } from "../api/client";
-
 // Component imports
 import { Dashboard } from "../pages/Dashboard";
+// Type imports
+import type { CreateEnvironmentRequest, Environment, EnvironmentDetail, UpdateEnvironmentRequest } from "../types";
 
 describe("Dashboard Environment Management - Exports", () => {
   // 测试类型正确导出

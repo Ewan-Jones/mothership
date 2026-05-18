@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable, type Column } from "@/components/config/DataTable";
+import { ConfirmDialog } from "@/components/config/ConfirmDialog";
+import { type Column, DataTable } from "@/components/config/DataTable";
+import { FormDialog } from "@/components/config/FormDialog";
 import { StatusBadge } from "@/components/config/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FormDialog } from "@/components/config/FormDialog";
-import { ConfirmDialog } from "@/components/config/ConfirmDialog";
+import { Textarea } from "@/components/ui/textarea";
 import { client, fetchUpload } from "../api/client";
 import type {
   KnowledgeBaseDetail,

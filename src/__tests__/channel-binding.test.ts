@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { channelBinding } from "../db/schema";
 
@@ -24,7 +24,7 @@ sqlite.exec(`
 `);
 
 // Re-implement binding functions using test DB (same logic as channel-binding.ts)
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 interface ChannelBinding {
   id: string;
@@ -100,7 +100,7 @@ async function testUpdateBinding(
   data: Partial<Pick<ChannelBinding, "platform" | "chatId" | "agentId" | "enabled">>,
 ): Promise<ChannelBinding | undefined> {
   const existing = testDb.select().from(channelBinding).where(eq(channelBinding.id, id)).get();
-  if (!existing) return undefined;
+  if (!existing) return;
   testDb
     .update(channelBinding)
     .set({ ...data, updatedAt: new Date() })
@@ -122,7 +122,7 @@ async function testFindBindingForMessage(platform: string, chatId: string): Prom
   if (exact) return { binding: exact, matchType: "exact" };
   const wildcard = rows.find((b) => b.chatId === null);
   if (wildcard) return { binding: wildcard, matchType: "wildcard" };
-  return undefined;
+  return;
 }
 
 describe("channel-binding service", () => {

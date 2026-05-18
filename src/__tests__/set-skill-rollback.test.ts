@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { _deps, _resetDeps, setSkill } from "../services/skill";
 
 const mockWriteSkillMd = mock(async () => "/tmp/skills/test-skill/SKILL.md");

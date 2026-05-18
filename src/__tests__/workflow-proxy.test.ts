@@ -1,12 +1,12 @@
-import { describe, expect, mock, test, beforeEach, afterEach } from "bun:test";
-import { setConfig, resetConfig } from "../config";
-import { setTestAuth, resetTestAuth } from "../plugins/auth";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { resetConfig, setConfig } from "../config";
+import { resetTestAuth, setTestAuth } from "../plugins/auth";
 import { setTestTeamContext } from "../services/team-context";
 
 setConfig({ acpxGUrl: "http://localhost:8848" });
 
 import Elysia from "elysia";
-import { workflowStaticApp, workflowApiApp } from "../routes/web/workflow-proxy";
+import { workflowApiApp, workflowStaticApp } from "../routes/web/workflow-proxy";
 
 const originalFetch = globalThis.fetch;
 

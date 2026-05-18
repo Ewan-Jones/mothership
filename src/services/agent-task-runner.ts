@@ -1,9 +1,9 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { environmentRepo } from "../repositories/environment";
-import { getAgentConfigById } from "./config-pg";
 import { resolveExecutable } from "../utils/executable";
+import { getAgentConfigById } from "./config-pg";
 
 const SUMMARY_LIMIT = 2000;
 

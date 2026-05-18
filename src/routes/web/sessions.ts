@@ -1,9 +1,9 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
-import { eventService } from "../../services/event-service";
-import { sessionRepo } from "../../repositories/session";
 import { environmentRepo } from "../../repositories";
+import { sessionRepo } from "../../repositories/session";
 import { SessionHistorySchema } from "../../schemas/session.schema";
+import { eventService } from "../../services/event-service";
 import { loadTeamContext } from "../../services/team-context";
 
 const app = new Elysia({ name: "web-sessions", prefix: "/web" }).use(authGuardPlugin).model({

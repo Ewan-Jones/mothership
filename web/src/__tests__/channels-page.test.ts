@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const webRoot = join(import.meta.dirname, "..");
 

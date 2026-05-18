@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { isAbsolute, resolve } from "node:path";
 import { mkdirSync, realpathSync } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
+import { NotFoundError } from "../errors";
+import type { EnvironmentRecord } from "../repositories";
 import { environmentRepo } from "../repositories";
 import type { EnvironmentResponse } from "../types/api";
-import type { EnvironmentRecord } from "../repositories";
-import { NotFoundError } from "../errors";
 
 const BLOCKED_PATHS = ["/", "/etc", "/usr", "/bin", "/sbin", "/var", "/sys", "/proc", "/dev", "/boot", "/lib", "/root"];
 

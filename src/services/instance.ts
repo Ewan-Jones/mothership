@@ -1,15 +1,15 @@
 import { randomBytes } from "node:crypto";
+import type { RuntimeInstanceSnapshot } from "@mothership/core";
+import { AppError, NotFoundError } from "../errors";
+import { log, error as logError } from "../logger";
+import type { AuthContext } from "../plugins/auth";
+import type { EnvironmentRecord } from "../repositories";
+import { environmentRepo as _environmentRepo } from "../repositories";
+import type { AgentFullConfig } from "./config-pg";
+import { getAgentConfigById as _getAgentConfigById, getAgentFullConfig as _getAgentFullConfig } from "./config-pg";
 import { getCoreRuntime as _getCoreRuntime } from "./core-bootstrap";
 import { buildLaunchSpec as _buildLaunchSpec } from "./launch-spec-builder";
-import { getAgentConfigById as _getAgentConfigById, getAgentFullConfig as _getAgentFullConfig } from "./config-pg";
-import type { AuthContext } from "../plugins/auth";
-import { environmentRepo as _environmentRepo } from "../repositories";
-import type { EnvironmentRecord } from "../repositories";
 import { findOrCreateForEnvironment as _findOrCreateForEnvironment } from "./session";
-import { log, error as logError } from "../logger";
-import { NotFoundError, AppError } from "../errors";
-import type { RuntimeInstanceSnapshot } from "@mothership/core";
-import type { AgentFullConfig } from "./config-pg";
 
 // ────────────────────────────────────────────
 // 可替换依赖（测试时注入 mock）
@@ -222,7 +222,7 @@ export function findRunningInstanceByEnvironment(environmentId: string, userId?:
 }
 
 export function findInstanceBySessionId(_sessionId: string): SpawnedInstance | undefined {
-  return undefined;
+  return;
 }
 
 export function listInstancesByEnvironment(environmentId: string): SpawnedInstance[] {
@@ -261,10 +261,10 @@ export function getInstance(id: string, userId?: string): SpawnedInstance | unde
   if (!snapshot) {
     // core 中不存在实例时清理残留 supplement 避免内存泄漏
     if (sup) supplements.delete(id);
-    return undefined;
+    return;
   }
-  if (!sup) return undefined;
-  if (userId && sup.userId !== userId) return undefined;
+  if (!sup) return;
+  if (userId && sup.userId !== userId) return;
   return toSpawnedInstance(snapshot, sup);
 }
 

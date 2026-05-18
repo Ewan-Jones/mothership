@@ -1,6 +1,6 @@
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { skill } from "../../db/schema";
-import { eq, and, isNull, sql } from "drizzle-orm";
 import type { AuthContext } from "../../plugins/auth";
 
 // ────────────────────────────────────────────

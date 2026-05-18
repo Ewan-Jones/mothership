@@ -1,16 +1,16 @@
-import { describe, test, expect, beforeEach } from "bun:test";
-import { resetAllRepos, environmentRepo } from "../repositories";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { user } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { environmentRepo, resetAllRepos } from "../repositories";
 import {
+  archiveSession,
   createSession,
   getSession,
-  updateSessionStatus,
-  archiveSession,
   resolveExistingSessionId,
+  updateSessionStatus,
 } from "../services/session";
-import { getEventBus, removeEventBus, getAllEventBuses } from "../transport/event-bus";
+import { getAllEventBuses, getEventBus, removeEventBus } from "../transport/event-bus";
 
 async function ensureUser(userId: string) {
   const existing = await db.select().from(user).where(eq(user.id, userId)).limit(1);

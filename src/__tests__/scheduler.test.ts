@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { scheduleTask, startScheduler, stopScheduler, unscheduleTask, setScheduleJobImpl } from "../services/scheduler";
+import { scheduleTask, setScheduleJobImpl, startScheduler, stopScheduler, unscheduleTask } from "../services/scheduler";
 
 const mockCancel = mock(() => {});
 const mockNextInvocation = mock(() => ({ toJSDate: mock(() => new Date(Date.now() + 60000)) }));

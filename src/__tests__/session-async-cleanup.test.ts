@@ -1,13 +1,13 @@
 // ── session.ts async 函数移除冗余 Promise.resolve 验证 ──
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import {
-  getSession,
-  resolveExistingSessionId,
-  createSession,
-  updateSessionStatus,
-  archiveSession,
   _setEventService,
   _setUuid,
+  archiveSession,
+  createSession,
+  getSession,
+  resolveExistingSessionId,
+  updateSessionStatus,
 } from "../services/session";
 
 // 注入 mock eventService

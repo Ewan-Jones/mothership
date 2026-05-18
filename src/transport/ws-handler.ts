@@ -1,10 +1,10 @@
-import type { WsConnection } from "./ws-types";
-import { getEventBus } from "./event-bus";
-import type { SessionEvent } from "./event-bus";
-import { publishSessionEvent } from "../services/transport";
-import { log, error as logError } from "../logger";
-import { toClientPayload } from "./client-payload";
 import { config } from "../config";
+import { log, error as logError } from "../logger";
+import { publishSessionEvent } from "../services/transport";
+import { toClientPayload } from "./client-payload";
+import type { SessionEvent } from "./event-bus";
+import { getEventBus } from "./event-bus";
+import type { WsConnection } from "./ws-types";
 
 // Per-connection cleanup, keyed by sessionId (only one WS per session)
 interface CleanupEntry {

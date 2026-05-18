@@ -1,10 +1,10 @@
 import Elysia from "elysia";
-import { authGuardPlugin } from "../../plugins/auth";
 import { log, error as logError } from "../../logger";
+import { authGuardPlugin } from "../../plugins/auth";
+import { SessionEventPayloadSchema } from "../../schemas/session.schema";
+import { eventService } from "../../services/event-service";
 import { getSession, resolveExistingSessionId, updateSessionStatus } from "../../services/session";
 import { publishSessionEvent } from "../../services/transport";
-import { eventService } from "../../services/event-service";
-import { SessionEventPayloadSchema } from "../../schemas/session.schema";
 
 const app = new Elysia({ name: "web-control", prefix: "/web" }).use(authGuardPlugin).model({
   "session-event-payload": SessionEventPayloadSchema,

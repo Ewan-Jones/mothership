@@ -1,6 +1,6 @@
+import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { userConfig } from "../../db/schema";
-import { eq } from "drizzle-orm";
 import type { AuthContext } from "../../plugins/auth";
 
 // ────────────────────────────────────────────

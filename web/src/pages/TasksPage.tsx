@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { client, fetchUpload } from "../api/client";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
-import { DataTable, type Column } from "@/components/config/DataTable";
+import { type Column, DataTable } from "@/components/config/DataTable";
 import { FormDialog } from "@/components/config/FormDialog";
 import { StatusBadge } from "@/components/config/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { client, fetchUpload } from "../api/client";
 
 interface TaskInfo {
   id: string;

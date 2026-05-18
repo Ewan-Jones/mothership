@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
 import QrScanner from "qr-scanner";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /** QR code data format for scanning */
 export interface QRCodeData {

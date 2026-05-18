@@ -1,17 +1,17 @@
-import { log, error as logError } from "../../logger";
 import Elysia from "elysia";
-import { createSession, getSession, archiveSession, resolveExistingSessionId } from "../../services/session";
-import { createWorkItem } from "../../services/work-dispatch";
+import { log, error as logError } from "../../logger";
 import { authGuardPlugin } from "../../plugins/auth";
-import { publishSessionEvent } from "../../services/transport";
 import {
-  CreateSessionRequestSchema,
-  UpdateSessionRequestSchema,
-  SendEventsRequestSchema,
   type CreateSessionRequest,
-  type UpdateSessionRequest,
+  CreateSessionRequestSchema,
   type SendEventsRequest,
+  SendEventsRequestSchema,
+  type UpdateSessionRequest,
+  UpdateSessionRequestSchema,
 } from "../../schemas/v1-session.schema";
+import { archiveSession, createSession, getSession, resolveExistingSessionId } from "../../services/session";
+import { publishSessionEvent } from "../../services/transport";
+import { createWorkItem } from "../../services/work-dispatch";
 
 const app = new Elysia({ name: "v1-sessions", prefix: "/v1/sessions" }).use(authGuardPlugin).model({
   "create-session-request": CreateSessionRequestSchema,

@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { cn, isClosedSessionStatus } from "../lib/utils";
-import { Input } from "../../components/ui/input";
+import { SendHorizonal, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
-import { Square, SendHorizonal } from "lucide-react";
+import { Input } from "../../components/ui/input";
+import { cn, isClosedSessionStatus } from "../lib/utils";
 
 interface ControlBarProps {
   sessionId: string;

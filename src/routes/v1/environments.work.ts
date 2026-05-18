@@ -1,7 +1,7 @@
 import Elysia from "elysia";
-import { pollWork, ackWork, stopWork, heartbeatWork } from "../../services/work-dispatch";
 import { authGuardPlugin } from "../../plugins/auth";
 import { updatePollTime } from "../../services/environment";
+import { ackWork, heartbeatWork, pollWork, stopWork } from "../../services/work-dispatch";
 
 const app = new Elysia({ name: "v1-environments-work", prefix: "/v1/environments" }).use(authGuardPlugin);
 

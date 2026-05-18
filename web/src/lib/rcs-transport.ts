@@ -1,7 +1,7 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { v4 as uuidv4 } from "uuid";
 import { getUuid } from "../api/client";
-import type { SessionEvent, EventPayload } from "../types";
+import type { EventPayload, SessionEvent } from "../types";
 
 // ============================================================
 // SSE Event Bus — shared between SSE listener and transport
@@ -130,7 +130,7 @@ export class RCSTransport implements ChatTransport<UIMessage> {
     // Collects events until the assistant turn is complete
     return new ReadableStream<UIMessageChunk>({
       start: (controller) => {
-        let textId = `text-${Date.now()}`;
+        const textId = `text-${Date.now()}`;
         let started = false;
 
         const ensureStarted = () => {

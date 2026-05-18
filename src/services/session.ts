@@ -1,5 +1,5 @@
-import { eventService as realEventService } from "../services/event-service";
 import { v4 as uuidReal } from "uuid";
+import { eventService as realEventService } from "../services/event-service";
 
 /**
  * Session 管理已下沉到 Agent 进程（acp-link）。

@@ -1,5 +1,5 @@
 import type { AuthContext } from "../plugins/auth";
-import { getAuthContextByTeamId, ensurePersonalTeam, listMyTeams } from "./team";
+import { ensurePersonalTeam, getAuthContextByTeamId, listMyTeams } from "./team";
 
 // ────────────────────────────────────────────
 // 测试注入：路由级测试通过 setTestTeamContext 绕过 DB 查询

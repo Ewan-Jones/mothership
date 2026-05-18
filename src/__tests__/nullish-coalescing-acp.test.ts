@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import { _deps, _resetDeps } from "../services/environment-acp";
 
@@ -32,7 +32,7 @@ afterEach(() => {
   _resetDeps();
 });
 
-import { registerEnvironment, registerBridge } from "../services/environment-acp";
+import { registerBridge, registerEnvironment } from "../services/environment-acp";
 
 describe("environment-acp nullish coalescing (|| → ??)", () => {
   beforeEach(() => {

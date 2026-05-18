@@ -1,11 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
-import { client } from "../api/client";
+import {
+  ArrowRight,
+  Bot,
+  ChevronDown,
+  LayoutGrid,
+  List,
+  Loader2,
+  Pencil,
+  Plus,
+  Power,
+  RefreshCw,
+  RotateCw,
+  Trash2,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,23 +24,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Bot,
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  Power,
-  ChevronDown,
-  RotateCw,
-  LayoutGrid,
-  List,
-  ArrowRight,
-  RefreshCw,
-} from "lucide-react";
-import { toast } from "sonner";
-import { AgentsPage } from "./AgentsPage";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { client } from "../api/client";
 import type { Environment, EnvironmentInstance } from "../types";
+import { AgentsPage } from "./AgentsPage";
 
 interface EnvironmentsPageProps {
   onNavigateToSession?: (sessionId: string, options?: { cwd?: string }) => void;

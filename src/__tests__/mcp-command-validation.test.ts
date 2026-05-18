@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 // ── mcp-server.ts validateMcpConfig command 校验可读性验证 ──
 // R37 修复：!every(typeof === "string") → some(typeof !== "string")

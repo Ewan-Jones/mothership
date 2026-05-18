@@ -1,8 +1,8 @@
+import { Check, TriangleAlert } from "lucide-react";
 import { useState } from "react";
-import type { Question } from "../types";
-import { esc, cn, truncate } from "../lib/utils";
 import { Input } from "../../components/ui/input";
-import { TriangleAlert, Check } from "lucide-react";
+import { cn, esc, truncate } from "../lib/utils";
+import type { Question } from "../types";
 
 // ============================================================
 // PermissionPromptView — simple approve/reject for tool use

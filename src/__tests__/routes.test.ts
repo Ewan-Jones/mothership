@@ -1,13 +1,12 @@
-import { describe, test, expect, beforeEach, afterAll, mock } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { eq } from "drizzle-orm";
+import Elysia from "elysia";
+import { issueToken } from "../auth/token";
 import { db } from "../db";
 import { user as userTable } from "../db/schema";
-import { eq } from "drizzle-orm";
-
-import Elysia from "elysia";
-import { resetAllRepos, sessionRepo, environmentRepo } from "../repositories";
-import { removeEventBus, getAllEventBuses, getEventBus } from "../transport/event-bus";
-import { issueToken } from "../auth/token";
+import { environmentRepo, resetAllRepos, sessionRepo } from "../repositories";
 import { publishSessionEvent } from "../services/transport";
+import { getAllEventBuses, getEventBus, removeEventBus } from "../transport/event-bus";
 
 async function ensureSystemUser() {
   const existing = await db.select().from(userTable).where(eq(userTable.email, "system@rcs.local")).limit(1);
@@ -31,19 +30,19 @@ await ensureSystemUser();
 // Restore mocks after all tests to prevent pollution
 afterAll(() => mock.restore());
 
-// Import route modules
-import v1Sessions from "../routes/v1/sessions";
 import v1Environments from "../routes/v1/environments";
 import v1EnvironmentsWork from "../routes/v1/environments.work";
 import v1SessionIngress from "../routes/v1/session-ingress";
+// Import route modules
+import v1Sessions from "../routes/v1/sessions";
 import v2CodeSessions from "../routes/v2/code-sessions";
 import v2Worker from "../routes/v2/worker";
-import v2WorkerEventsStream from "../routes/v2/worker-events-stream";
 import v2WorkerEvents from "../routes/v2/worker-events";
+import v2WorkerEventsStream from "../routes/v2/worker-events-stream";
 import webAuth from "../routes/web/auth";
-import webSessions from "../routes/web/sessions";
 import webControl from "../routes/web/control";
 import webEnvironments from "../routes/web/environments";
+import webSessions from "../routes/web/sessions";
 
 function createApp() {
   const app = new Elysia();

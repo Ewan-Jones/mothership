@@ -1,8 +1,8 @@
 // ── getAgentFullConfig 查询并行化验证 ──
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { agentConfig, provider, skill, mcpServer, team, user } from "../db/schema";
+import { agentConfig, mcpServer, provider, skill, team, user } from "../db/schema";
 import { getAgentFullConfig } from "../services/config/aggregate";
 
 const TEST_USER_ID = "user_aggregate_par";

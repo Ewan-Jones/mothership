@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { getUuid, setUuid } from "../api/client";
 
 export function useAuth() {

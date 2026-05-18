@@ -1,14 +1,14 @@
-import { setConfig, resetConfig } from "../config";
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { resetConfig, setConfig } from "../config";
 
 // Mock config with very short timeout for testing
 
-import { resetAllRepos, environmentRepo, sessionRepo } from "../repositories";
-import { db } from "../db";
-import { user, team } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { getEventBus, getAllEventBuses, removeEventBus } from "../transport/event-bus";
+import { db } from "../db";
+import { team, user } from "../db/schema";
+import { environmentRepo, resetAllRepos, sessionRepo } from "../repositories";
 import { runDisconnectMonitorSweep } from "../services/disconnect-monitor";
+import { getAllEventBuses, getEventBus, removeEventBus } from "../transport/event-bus";
 
 const TEST_TEAM_ID = "d0000000-0000-0000-0000-000000000003";
 

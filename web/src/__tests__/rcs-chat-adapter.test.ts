@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { RCSChatAdapter, normalizeRcsToolCall } from "../lib/rcs-chat-adapter";
+import { normalizeRcsToolCall, RCSChatAdapter } from "../lib/rcs-chat-adapter";
 import type { ThreadEntry } from "../lib/types";
 import type { SessionEvent } from "../types";
 

@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import type { ProviderInfo, ModelEntry, ModelConfig, AgentInfo, SkillInfo, ApiResponse } from "../types/config";
+import { describe, expect, test } from "bun:test";
+import type { AgentInfo, ApiResponse, ModelConfig, ModelEntry, ProviderInfo, SkillInfo } from "../types/config";
 
 describe("config types", () => {
   test("ApiResponse success structure", () => {
@@ -22,12 +22,12 @@ describe("config types", () => {
 });
 
 import type {
-  PermissionAction,
-  RuleBasedPermission,
-  PermissionObjectConfig,
-  PermissionConfig,
   AgentDetail,
   ModelConfig,
+  PermissionAction,
+  PermissionConfig,
+  PermissionObjectConfig,
+  RuleBasedPermission,
 } from "../types/config";
 
 // ── PermissionConfig 类型编译验证 ──
@@ -195,7 +195,7 @@ describe("PermissionConfig types", () => {
   });
 });
 
-import type { PermissionObjectConfig, PermissionConfig } from "../types/config";
+import type { PermissionConfig, PermissionObjectConfig } from "../types/config";
 
 // ── PermissionTab 数据流验证 ──
 

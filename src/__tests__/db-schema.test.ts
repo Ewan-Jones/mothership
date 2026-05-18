@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "../db/schema";
-import { eq } from "drizzle-orm";
 
 let sqlite: Database;
 let db: ReturnType<typeof drizzle>;

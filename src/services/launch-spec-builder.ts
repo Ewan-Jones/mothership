@@ -1,8 +1,8 @@
 import type { AgentLaunchSpec, McpServerConfig, ModelConfig } from "@mothership/plugin-sdk";
-import type { AgentFullConfig } from "./config-pg";
 import { getBaseUrl } from "../config";
-import { listAgentKnowledgeBindingsById } from "./agent-knowledge";
 import { log } from "../logger";
+import { listAgentKnowledgeBindingsById } from "./agent-knowledge";
+import type { AgentFullConfig } from "./config-pg";
 
 function inferProtocol(npm?: string | null): "openai" | "anthropic" {
   if (npm?.includes("anthropic")) return "anthropic";

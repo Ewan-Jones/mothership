@@ -1,5 +1,5 @@
 // R34: config/agent-config.ts FIELD_ALIAS 防御映射 + validateAgentData topP 校验
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 const { validateAgentData, AGENT_SETTABLE_FIELDS } = await import("../services/config/agent-config");
 

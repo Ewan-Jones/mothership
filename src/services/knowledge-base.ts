@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { knowledgeBaseRepo, knowledgeResourceRepo, agentKnowledgeBindingRepo } from "../repositories/knowledge-base";
-import type { KnowledgeBaseRow } from "../repositories/knowledge-base";
 import { config } from "../config";
+import type { KnowledgeBaseRow } from "../repositories/knowledge-base";
+import { agentKnowledgeBindingRepo, knowledgeBaseRepo, knowledgeResourceRepo } from "../repositories/knowledge-base";
 import { getKnowledgeProvider, setKnowledgeProviderForTesting } from "./knowledge-provider/registry";
 import type { KnowledgeBaseStatus, KnowledgeResourceStatus } from "./knowledge-provider/types";
 

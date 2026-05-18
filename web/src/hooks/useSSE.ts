@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { connectSSE, disconnectSSE } from "../api/sse";
 import type { SessionEvent } from "../types";
 

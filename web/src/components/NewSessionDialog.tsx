@@ -1,14 +1,14 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import type { Environment, Session } from "../types";
-import { client } from "../api/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "../../components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../../components/ui/form";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { client } from "../api/client";
+import type { Environment, Session } from "../types";
 
 const newSessionSchema = z.object({
   title: z.string(),

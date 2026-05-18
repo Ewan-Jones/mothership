@@ -1,6 +1,6 @@
 import Elysia from "elysia";
 import { errorResponse } from "../../plugins/auth";
-import { resolveExistingSessionId, bindSessionOwner } from "../../services/session";
+import { bindSessionOwner, resolveExistingSessionId } from "../../services/session";
 
 const BindSessionRequestSchema = {
   sessionId: "",

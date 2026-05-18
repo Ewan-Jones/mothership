@@ -1,10 +1,10 @@
-import { describe, test, expect, beforeEach, mock, afterEach } from "bun:test";
-import { setTestAuth, resetTestAuth } from "../plugins/auth";
-import { setTestTeamContext } from "../services/team-context";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { resetTestAuth, setTestAuth } from "../plugins/auth";
+import { setTestTeamContext } from "../services/team-context";
 
 // Create temp directories for skill testing
 const tempDir = await mkdtemp(join(tmpdir(), "skill-route-test-"));
@@ -520,6 +520,7 @@ describe("Skills Config Route", () => {
 
 // Cleanup
 import { afterAll, afterEach } from "bun:test";
+
 afterAll(async () => {
   if (existsSync(tempDir)) await rm(tempDir, { recursive: true, force: true });
 });

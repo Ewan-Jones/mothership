@@ -1,17 +1,17 @@
-import { useState, useCallback, useEffect, useRef, useMemo, type ChangeEvent } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { unwrapConfigData } from "../api/config-response";
-import { DataTable, type Column } from "@/components/config/DataTable";
-import { FormDialog } from "@/components/config/FormDialog";
-import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { BatchActionBar } from "@/components/config/BatchActionBar";
+import { ConfirmDialog } from "@/components/config/ConfirmDialog";
+import { type Column, DataTable } from "@/components/config/DataTable";
+import { FormDialog } from "@/components/config/FormDialog";
 import { StatusBadge } from "@/components/config/StatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { client, fetchUpload } from "../api/client";
+import { unwrapConfigData } from "../api/config-response";
 import { buildSkillUploadFormData, parseSkillUploadFiles, validateUploadBatch } from "../lib/skill-upload";
 import type {
   SkillSourceStatus,
@@ -34,6 +34,7 @@ type SkillSourceInfo = {
   status: SkillSourceStatus;
   skills: SkillInfo[];
 };
+
 import { dispatchConfigChange } from "../lib/config-events";
 
 type CreateMode = "text" | "upload";

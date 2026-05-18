@@ -1,21 +1,21 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { unwrapConfigData } from "../api/config-response";
-import { DataTable, type Column } from "@/components/config/DataTable";
-import { FormDialog } from "@/components/config/FormDialog";
-import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { BatchActionBar } from "@/components/config/BatchActionBar";
-import { StatusBadge } from "@/components/config/StatusBadge";
+import { ConfirmDialog } from "@/components/config/ConfirmDialog";
+import { type Column, DataTable } from "@/components/config/DataTable";
+import { FormDialog } from "@/components/config/FormDialog";
 import { ModelConfigDialog } from "@/components/config/ModelConfigDialog";
+import { StatusBadge } from "@/components/config/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { client } from "../api/client";
-import type { ProviderInfo, ProviderModel, ModelConfig } from "../types/config";
+import { unwrapConfigData } from "../api/config-response";
 import { dispatchConfigChange } from "../lib/config-events";
+import type { ModelConfig, ProviderInfo, ProviderModel } from "../types/config";
 
 const NPM_OPTIONS = [
   { id: "openai-compatible", label: "OpenAI 兼容", npm: "@ai-sdk/openai-compatible" },

@@ -1,17 +1,17 @@
 import Elysia from "elysia";
 import { authGuardPlugin } from "../../plugins/auth";
+import { CreateTaskRequestSchema, TaskInfoSchema, UpdateTaskRequestSchema } from "../../schemas/task.schema";
 import {
-  listTasks,
+  clearExecutionLogs,
   createTask,
-  getTask,
-  updateTask,
   deleteTask,
+  getTask,
+  listExecutionLogs,
+  listTasks,
   toggleTask,
   triggerTask,
-  listExecutionLogs,
-  clearExecutionLogs,
+  updateTask,
 } from "../../services/task";
-import { TaskInfoSchema, CreateTaskRequestSchema, UpdateTaskRequestSchema } from "../../schemas/task.schema";
 import { loadTeamContext } from "../../services/team-context";
 
 const app = new Elysia({ name: "web-tasks", prefix: "/web" }).use(authGuardPlugin).model({

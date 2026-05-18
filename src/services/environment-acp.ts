@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
+import { AppError, NotFoundError } from "../errors";
+import { log } from "../logger";
+import type { EnvironmentRecord } from "../repositories";
 import { environmentRepo as _environmentRepo, sessionRepo as _sessionRepo } from "../repositories";
 import type { RegisterEnvironmentRequest } from "../types/api";
-import type { EnvironmentRecord } from "../repositories";
-import { NotFoundError, AppError } from "../errors";
+import { deleteEnvironment as _deleteEnvironment, toResponse } from "./environment-core";
 import { findOrCreateForEnvironment as _findOrCreateForEnvironment } from "./session";
-import { toResponse, deleteEnvironment as _deleteEnvironment } from "./environment-core";
-import { log } from "../logger";
 
 // ────────────────────────────────────────────
 // 可替换依赖（测试时注入 mock）

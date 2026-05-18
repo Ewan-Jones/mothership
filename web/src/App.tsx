@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { AppShell } from "./components/shell";
-import { ThemeProvider } from "./lib/theme";
-import { useSession } from "./lib/auth-client";
-import { LoginPage } from "./pages/LoginPage";
-import { ApiKeyManager } from "./pages/ApiKeyManager";
 import { TeamProvider } from "./contexts/TeamContext";
+import { useSession } from "./lib/auth-client";
+import { ThemeProvider } from "./lib/theme";
+import { ApiKeyManager } from "./pages/ApiKeyManager";
+import { LoginPage } from "./pages/LoginPage";
 
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const EnvironmentsPage = lazy(() => import("./pages/EnvironmentsPage").then((m) => ({ default: m.EnvironmentsPage })));

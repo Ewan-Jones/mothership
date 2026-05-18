@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
 
 // Mock WebSocket constructor
 let mockWs: {

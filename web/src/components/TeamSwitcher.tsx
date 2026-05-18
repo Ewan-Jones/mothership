@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { ChevronDown, Check, Users } from "lucide-react";
+import { Check, ChevronDown, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTeam } from "../contexts/TeamContext";
 
 /** Sidebar 顶部团队切换器 */

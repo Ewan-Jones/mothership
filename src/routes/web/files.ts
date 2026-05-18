@@ -1,30 +1,30 @@
-import Elysia from "elysia";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
+import Elysia from "elysia";
+import { NotFoundError } from "../../errors";
 import { authGuardPlugin } from "../../plugins/auth";
 import {
-  isUserPath,
-  normalizeUserRoutePath,
-  resolveWorkspacePath,
-  isTextFile,
-  isTextExtension,
-  getMimeType,
-  listDirectory,
-  readFileContent,
-  writeFileContent,
-  deleteFile,
-  createFileStream,
-} from "../../services/workspace-fs";
-import { getOwnedEnvironment } from "../../services/environment-core";
-import { NotFoundError } from "../../errors";
-import {
-  FileListResponseSchema,
   FileContentSchema,
+  FileListResponseSchema,
   FileUploadResponseSchema,
   FileWriteResultSchema,
   WriteFileRequestSchema,
 } from "../../schemas/file.schema";
+import { getOwnedEnvironment } from "../../services/environment-core";
 import { loadTeamContext } from "../../services/team-context";
+import {
+  createFileStream,
+  deleteFile,
+  getMimeType,
+  isTextExtension,
+  isTextFile,
+  isUserPath,
+  listDirectory,
+  normalizeUserRoutePath,
+  readFileContent,
+  resolveWorkspacePath,
+  writeFileContent,
+} from "../../services/workspace-fs";
 
 const app = new Elysia({ name: "web-files", prefix: "/web/environments" }).use(authGuardPlugin).model({
   "file-list-response": FileListResponseSchema,

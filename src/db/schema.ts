@@ -1,15 +1,15 @@
 import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  numeric,
   pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
   uuid,
   varchar,
-  text,
-  boolean,
-  timestamp,
-  jsonb,
-  integer,
-  numeric,
-  index,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // better-auth tables — primary keys stay as text (better-auth generates IDs internally)

@@ -1,4 +1,4 @@
-import { describe, expect, mock, test, beforeEach, afterAll } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
   loadKnowledgeBaseDetailData,
   loadKnowledgeBasesData,

@@ -1,5 +1,5 @@
 // ── updateMcpServer 返回 boolean ──
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { mcpServer, team, user } from "../db/schema";

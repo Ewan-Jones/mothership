@@ -1,19 +1,19 @@
-import { setConfig, resetConfig } from "../config";
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { resetConfig, setConfig } from "../config";
 
 // Mock config before imports
 
-import { resetAllRepos, environmentRepo, sessionRepo, workItemRepo } from "../repositories";
-import { db } from "../db";
-import { user, team } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { db } from "../db";
+import { team, user } from "../db/schema";
+import { environmentRepo, resetAllRepos, sessionRepo, workItemRepo } from "../repositories";
 import {
-  createWorkItem,
-  pollWork,
   ackWork,
-  stopWork,
+  createWorkItem,
   heartbeatWork,
+  pollWork,
   reconnectWorkForEnvironment,
+  stopWork,
 } from "../services/work-dispatch";
 
 const TEST_TEAM_ID = "d0000000-0000-0000-0000-000000000002";

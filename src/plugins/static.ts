@@ -1,8 +1,8 @@
-import Elysia from "elysia";
-import { staticPlugin } from "@elysiajs/static";
-import { dirname, resolve, extname } from "node:path";
 import { existsSync } from "node:fs";
+import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { staticPlugin } from "@elysiajs/static";
+import Elysia from "elysia";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = resolve(__dirname, "../../web/dist");

@@ -1,9 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { useTeam } from "../contexts/TeamContext";
-import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog";
+import { Plus, Shield, ShieldCheck, Trash2, User, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,8 +11,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
-import { Plus, Trash2, UserPlus, Shield, ShieldCheck, User } from "lucide-react";
-import { toast } from "sonner";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import { useTeam } from "../contexts/TeamContext";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */

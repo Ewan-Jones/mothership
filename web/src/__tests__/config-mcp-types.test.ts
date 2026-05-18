@@ -1,11 +1,11 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import type {
   McpLocalConfig,
+  McpOAuthConfig,
   McpRemoteConfig,
   McpServerConfig,
-  McpOAuthConfig,
-  McpServerInfo,
   McpServerDetail,
+  McpServerInfo,
   OpenCodeConfig,
 } from "../types/config";
 

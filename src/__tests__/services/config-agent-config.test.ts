@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-  validateAgentData,
-  normalizeKnowledgeConfig,
-  toolsToPermission,
   AGENT_SETTABLE_FIELDS,
   isBuiltInAgent,
+  normalizeKnowledgeConfig,
+  toolsToPermission,
+  validateAgentData,
 } from "../../services/config/agent-config";
 
 describe("validateAgentData", () => {

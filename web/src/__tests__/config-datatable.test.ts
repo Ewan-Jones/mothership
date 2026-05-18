@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-  filterData,
-  sortData,
-  paginateData,
   buildInitialExpandedState,
   type Column,
+  filterData,
+  paginateData,
+  sortData,
 } from "../../components/config/DataTable";
 
 interface Row {

@@ -1,25 +1,23 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { client } from "../api/client";
-import type { Session } from "../types";
-import { isClosedSessionStatus, cn } from "../lib/utils";
-import { ArrowLeft, Info, Cpu, Hash, Wrench, Clock } from "lucide-react";
-import { RCSChatAdapter } from "../lib/rcs-chat-adapter";
-import type { ThreadEntry, PendingPermission } from "../lib/types";
-import { TaskPanel } from "../components/TaskPanel";
+import { ArrowLeft, Clock, Cpu, Hash, Info, Wrench } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { ACPMain } from "../../components/ACPMain";
 import { ContextPanel } from "../../components/ContextPanel";
-import { PermissionPromptView, AskUserPanelView, PlanPanelView } from "../components/PermissionViews";
-
+import { ChatInput } from "../../components/chat/ChatInput";
 // Unified chat components
 import { ChatView } from "../../components/chat/ChatView";
-import { ChatInput } from "../../components/chat/ChatInput";
 import { TooltipProvider } from "../../components/ui/tooltip";
-
 // ACP chat components
-import { ACPClient, DisconnectRequestedError } from "../acp/client";
-import type { ConnectionState } from "../acp/types";
+import { type ACPClient, DisconnectRequestedError } from "../acp/client";
 import { createRelayClient } from "../acp/relay-client";
-import { ACPMain } from "../../components/ACPMain";
-import { toast } from "sonner";
+import type { ConnectionState } from "../acp/types";
+import { client } from "../api/client";
+import { AskUserPanelView, PermissionPromptView, PlanPanelView } from "../components/PermissionViews";
+import { TaskPanel } from "../components/TaskPanel";
+import { RCSChatAdapter } from "../lib/rcs-chat-adapter";
+import type { PendingPermission, ThreadEntry } from "../lib/types";
+import { cn, isClosedSessionStatus } from "../lib/utils";
+import type { Session } from "../types";
 
 interface SessionDetailProps {
   sessionId: string;

@@ -1,7 +1,6 @@
-import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
-
-import { _deps, _resetDeps } from "../services/instance";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { resetCoreRuntime } from "../services/core-bootstrap";
+import { _deps, _resetDeps } from "../services/instance";
 import { setBuildLaunchSpec } from "../services/launch-spec-builder";
 
 const mockEnvGetById = mock(() => Promise.resolve(undefined as any));

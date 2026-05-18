@@ -1,10 +1,10 @@
 // ── validateTaskInput 泛型签名（不再需要 as CreateTaskInput）──
-import { describe, test, expect, mock, afterAll } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { scheduledTask, taskExecutionLog, team, user } from "../db/schema";
-import { updateTask, createTask } from "../services/task";
 import { setScheduleJobImpl, stopScheduler } from "../services/scheduler";
+import { createTask, updateTask } from "../services/task";
 
 setScheduleJobImpl(mock(() => ({ nextInvocation: () => new Date(), cancel: () => {} })) as any);
 

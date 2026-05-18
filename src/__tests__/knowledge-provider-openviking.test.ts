@@ -1,5 +1,5 @@
-import { setConfig, resetConfig } from "../config";
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { resetConfig, setConfig } from "../config";
 
 setConfig({
   knowledgeApiKey: "test-key",

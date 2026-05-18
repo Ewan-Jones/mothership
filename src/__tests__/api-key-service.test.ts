@@ -1,14 +1,14 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { apiKey, user, team } from "../db/schema";
 import {
   createApiKey,
-  listApiKeysByUser,
   deleteApiKey,
+  listApiKeysByUser,
   updateApiKeyLabel,
   validateApiKeyAndGetUser,
 } from "../auth/api-key-service";
+import { db } from "../db";
+import { apiKey, team, user } from "../db/schema";
 
 const TEST_USER_ID = "user_apikey_test";
 const TEST_USER_EMAIL = "apikey-test@rcs.local";

@@ -1,6 +1,6 @@
 // ── scheduler rescheduleTask 返回 boolean（与 scheduleTask 对齐） ──
-import { describe, test, expect, mock, beforeEach } from "bun:test";
-import { scheduleTask, rescheduleTask, unscheduleTask, stopScheduler, setScheduleJobImpl } from "../services/scheduler";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { rescheduleTask, scheduleTask, setScheduleJobImpl, stopScheduler, unscheduleTask } from "../services/scheduler";
 
 const mockScheduleJob = mock((_config: unknown, _handler: () => void) => ({
   cancel: mock(() => {}),

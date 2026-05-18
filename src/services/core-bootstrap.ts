@@ -1,6 +1,6 @@
-import { createCoreRuntime, type CoreRuntimeFacade } from "@mothership/core";
-import type { EngineRuntime } from "@mothership/plugin-sdk";
+import { type CoreRuntimeFacade, createCoreRuntime } from "@mothership/core";
 import { createEnginePlugin, type OpencodeRuntime } from "@mothership/opencode";
+import type { EngineRuntime } from "@mothership/plugin-sdk";
 
 let facade: CoreRuntimeFacade | null = null;
 

@@ -1,16 +1,16 @@
 import type { SetStateAction } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { client, getUuid } from "../api/client";
-import type { SessionEvent, EventPayload } from "../types";
+import type { EventPayload, SessionEvent } from "../types";
 import type {
+  AssistantMessageEntry,
+  PendingPermission,
   ThreadEntry,
   ToolCallData,
+  ToolCallEntry,
   ToolCallStatus,
   UserMessageEntry,
-  AssistantMessageEntry,
-  ToolCallEntry,
   UserMessageImage,
-  PendingPermission,
 } from "./types";
 
 // SSE Event Bus — 复用自 rcs-transport.ts，仅保留连接管理

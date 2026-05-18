@@ -1,5 +1,5 @@
 // R35: model.ts buildModelValues 辅助函数（values/set 共享字段映射）
-import { describe, test, expect, afterAll } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { model, provider, team, user } from "../db/schema";

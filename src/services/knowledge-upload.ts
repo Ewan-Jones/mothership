@@ -1,10 +1,8 @@
+import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { randomBytes, randomUUID } from "node:crypto";
-import { knowledgeBaseRepo, knowledgeResourceRepo } from "../repositories/knowledge-base";
 import type { KnowledgeResourceRow } from "../repositories/knowledge-base";
-import { getKnowledgeProvider } from "./knowledge-provider/registry";
-import type { KnowledgeProvider, KnowledgeResourceStatus } from "./knowledge-provider/types";
+import { knowledgeBaseRepo, knowledgeResourceRepo } from "../repositories/knowledge-base";
 import {
   buildKnowledgeBaseRemoteId,
   listKnowledgeBaseResources,
@@ -12,6 +10,8 @@ import {
   touchKnowledgeBaseUpdatedAt,
   upsertKnowledgeBaseStatusFromResources,
 } from "./knowledge-base";
+import { getKnowledgeProvider } from "./knowledge-provider/registry";
+import type { KnowledgeProvider, KnowledgeResourceStatus } from "./knowledge-provider/types";
 
 const KNOWLEDGE_UPLOAD_ROOT = join(process.cwd(), "data/knowledge-upload");
 

@@ -1,18 +1,18 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { unwrapConfigData } from "../api/config-response";
-import { DataTable, type Column } from "@/components/config/DataTable";
-import { FormDialog } from "@/components/config/FormDialog";
-import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { BatchActionBar } from "@/components/config/BatchActionBar";
+import { ConfirmDialog } from "@/components/config/ConfirmDialog";
+import { type Column, DataTable } from "@/components/config/DataTable";
+import { FormDialog } from "@/components/config/FormDialog";
 import { StatusBadge } from "@/components/config/StatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Skeleton } from "@/components/ui/skeleton";
 import { client } from "../api/client";
-import type { McpServerInfo, McpServerConfig, McpLocalConfig, McpRemoteConfig, McpToolInfo } from "../types/config";
+import { unwrapConfigData } from "../api/config-response";
+import type { McpLocalConfig, McpRemoteConfig, McpServerConfig, McpServerInfo, McpToolInfo } from "../types/config";
 
 /** 键值对列表项类型 */
 export type KeyValueEntry = { key: string; value: string };
