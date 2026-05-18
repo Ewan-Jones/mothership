@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -37,6 +37,8 @@ import {
   CheckCircle,
   AlertTriangle,
   List,
+  Save,
+  Rocket,
 } from "lucide-react";
 import { nodeTypes } from "./nodes";
 import { autoLayout } from "./layout";
@@ -51,6 +53,7 @@ import {
   type WfMeta,
 } from "./yaml-utils";
 import { workflowEngineApi } from "../../api/workflow-engine";
+import { workflowDefApi } from "../../api/workflow-defs";
 import "./workflow.css";
 
 const PALETTE_ITEMS = [
@@ -89,6 +92,33 @@ function WorkflowEditorInner({ workflowId, onViewRuns, onRunStarted }: WorkflowE
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingConnectSource = useRef<string | null>(null);
   const didConnect = useRef(false);
+
+  // 保存/发布状态
+  const [lastSavedYaml, setLastSavedYaml] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [publishing, setPublishing] = useState(false);
+
+  // 加载已保存的工作流草稿
+  useEffect(() => {
+    if (!workflowId) return;
+    (async () => {
+      try {
+        const wf = await workflowDefApi.get(workflowId);
+        if (wf.draftYaml) {
+          const { nodes: newNodes, edges: newEdges, meta: newMeta } = yamlToFlow(wf.draftYaml);
+          setNodes(newNodes);
+          setEdges(newEdges);
+          setMeta(newMeta);
+          setLastSavedYaml(wf.draftYaml);
+          setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50);
+        }
+        if (wf.name) setMeta((m) => ({ ...m, name: wf.name }));
+        if (wf.description) setMeta((m) => ({ ...m, description: wf.description }));
+      } catch (err) {
+        console.error("加载工作流失败:", err);
+      }
+    })();
+  }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Selection ──
   const onSelectionChange: OnSelectionChangeFunc = useCallback(({ nodes: selNodes }) => {
@@ -287,6 +317,63 @@ function WorkflowEditorInner({ workflowId, onViewRuns, onRunStarted }: WorkflowE
     [setNodes, setEdges, fitView],
   );
 
+  // ── Save Draft ──
+  const handleSaveDraft = useCallback(async () => {
+    if (!workflowId) return;
+    const y = syncYaml();
+    setSaveStatus("saving");
+    try {
+      await workflowDefApi.save(workflowId, y);
+      setLastSavedYaml(y);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch (err) {
+      console.error(err);
+      alert("保存失败: " + (err as Error).message);
+      setSaveStatus("idle");
+    }
+  }, [syncYaml, workflowId]);
+
+  // ── Publish ──
+  const handlePublish = useCallback(async () => {
+    if (!workflowId) return;
+    const y = syncYaml();
+    setSaveStatus("saving");
+    try {
+      await workflowDefApi.save(workflowId, y);
+      setLastSavedYaml(y);
+      setSaveStatus("idle");
+    } catch (err) {
+      console.error(err);
+      alert("保存失败: " + (err as Error).message);
+      setSaveStatus("idle");
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      const result = await workflowDefApi.publish(workflowId);
+      alert(`已发布为 v${result.version}`);
+    } catch (err) {
+      console.error(err);
+      alert("发布失败: " + (err as Error).message);
+    } finally {
+      setPublishing(false);
+    }
+  }, [syncYaml, workflowId]);
+
+  // ── Cmd+S shortcut ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        handleSaveDraft();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSaveDraft]);
+
   // ── Dry Run ──
   const handleDryRun = useCallback(async () => {
     const y = syncYaml();
@@ -303,11 +390,21 @@ function WorkflowEditorInner({ workflowId, onViewRuns, onRunStarted }: WorkflowE
     }
   }, [syncYaml]);
 
-  // ── Run workflow ──
+  // ── Run workflow（自动保存再执行） ──
   const handleRun = useCallback(async () => {
     const y = syncYaml();
     setRunning(true);
     setDryRunResult(null);
+
+    // 自动保存草稿
+    if (workflowId) {
+      try {
+        await workflowDefApi.save(workflowId, y);
+      } catch (err) {
+        console.error("自动保存失败:", err);
+      }
+    }
+
     try {
       const result = await workflowEngineApi.run(y);
       if (onRunStarted) {
@@ -321,7 +418,7 @@ function WorkflowEditorInner({ workflowId, onViewRuns, onRunStarted }: WorkflowE
     } finally {
       setRunning(false);
     }
-  }, [syncYaml, onRunStarted]);
+  }, [syncYaml, workflowId, onRunStarted]);
 
   // ── Update selected node data ──
   const updateNodeData = useCallback(
@@ -480,6 +577,30 @@ function WorkflowEditorInner({ workflowId, onViewRuns, onRunStarted }: WorkflowE
               <button type="button" className="wf-toolbar-btn" onClick={handleAutoLayout} title="自动排列">
                 <LayoutGrid size={15} />
               </button>
+              {workflowId && (
+                <>
+                  <div className="wf-toolbar-divider" />
+                  <button
+                    type="button"
+                    className="wf-toolbar-btn"
+                    onClick={handleSaveDraft}
+                    disabled={saveStatus === "saving"}
+                    title="保存草稿 (Cmd+S)"
+                  >
+                    <Save size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="wf-toolbar-btn"
+                    onClick={handlePublish}
+                    disabled={publishing}
+                    title="发布版本"
+                    style={{ color: "#22c55e" }}
+                  >
+                    <Rocket size={15} />
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 className={`wf-toolbar-btn ${yamlOpen ? "active" : ""}`}
@@ -536,6 +657,26 @@ function WorkflowEditorInner({ workflowId, onViewRuns, onRunStarted }: WorkflowE
             </div>
           </Panel>
         </ReactFlow>
+
+        {/* 保存状态指示器 */}
+        {saveStatus === "saving" && (
+          <div style={{
+            position: "absolute", top: 52, left: "50%", transform: "translateX(-50%)",
+            background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8,
+            padding: "6px 12px", fontSize: 11, color: "#1d4ed8", zIndex: 10,
+          }}>
+            保存中...
+          </div>
+        )}
+        {saveStatus === "saved" && (
+          <div style={{
+            position: "absolute", top: 52, left: "50%", transform: "translateX(-50%)",
+            background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8,
+            padding: "6px 12px", fontSize: 11, color: "#166534", zIndex: 10,
+          }}>
+            已保存
+          </div>
+        )}
 
         {/* DryRun 结果提示 */}
         {dryRunResult && (
