@@ -39,3 +39,6 @@ export type {
 } from "./types/execution";
 // 表达式类型
 export type { ASTNode, EvalContext } from "./types/expression";
+// 存储接口 + 内存实现
+export type { StorageAdapter } from "./storage/storage-adapter";
+export { createInMemoryStorage } from "./storage/in-memory-storage";
