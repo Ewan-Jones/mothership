@@ -99,21 +99,23 @@ export const verification = pgTable("verification", {
 });
 
 // Custom tables — primary keys use uuid with PG auto-generation
-export const apiKey = pgTable("api_key", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  teamId: uuid("team_id")
-    .notNull()
-    .references(() => team.id, { onDelete: "cascade" }),
-  key: varchar("key").notNull().unique(),
-  label: varchar("label").notNull().default(""),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-}, (t) => [
-  index("idx_api_key_team_id").on(t.teamId),
-]);
+export const apiKey = pgTable(
+  "api_key",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => team.id, { onDelete: "cascade" }),
+    key: varchar("key").notNull().unique(),
+    label: varchar("label").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  },
+  (t) => [index("idx_api_key_team_id").on(t.teamId)],
+);
 
 // MCP Tool 缓存表
 export const mcpTool = pgTable("mcp_tool", {
@@ -126,24 +128,26 @@ export const mcpTool = pgTable("mcp_tool", {
 });
 
 // Share Link 分享链接表
-export const shareLink = pgTable("share_link", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  teamId: uuid("team_id")
-    .notNull()
-    .references(() => team.id, { onDelete: "cascade" }),
-  sessionId: varchar("session_id").notNull(),
-  environmentId: varchar("environment_id").notNull(),
-  token: varchar("token").notNull().unique(),
-  mode: varchar("mode", { length: 20 }).notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-  createdBy: varchar("created_by").notNull(),
-  accessCount: integer("access_count").notNull().default(0),
-  lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [
-  index("idx_share_link_team_id").on(t.teamId),
-]);
+export const shareLink = pgTable(
+  "share_link",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => team.id, { onDelete: "cascade" }),
+    sessionId: varchar("session_id").notNull(),
+    environmentId: varchar("environment_id").notNull(),
+    token: varchar("token").notNull().unique(),
+    mode: varchar("mode", { length: 20 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdBy: varchar("created_by").notNull(),
+    accessCount: integer("access_count").notNull().default(0),
+    lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_share_link_team_id").on(t.teamId)],
+);
 
 // Share Event Snapshot 分享事件快照表
 export const shareEventSnapshot = pgTable("share_event_snapshot", {

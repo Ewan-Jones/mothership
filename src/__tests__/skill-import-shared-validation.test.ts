@@ -13,7 +13,11 @@ beforeEach(() => {
     disableSkill: mock(async () => true),
   } as any;
   _deps.skillFs = {
-    createSkillValidationError: (msg: string) => { const e = new Error(msg) as any; e.code = "TEST"; return e; },
+    createSkillValidationError: (msg: string) => {
+      const e = new Error(msg) as any;
+      e.code = "TEST";
+      return e;
+    },
     groupUploadFiles: mockGroupUploadFiles,
     listSkillsFromDir: mock(async () => []),
     readSkillDetailFromMd: mock(async () => null),

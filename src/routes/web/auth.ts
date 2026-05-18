@@ -3,9 +3,7 @@ import { authGuardPlugin, errorResponse } from "../../plugins/auth";
 import { bindSessionOwner, resolveExistingSessionId } from "../../services/session";
 import { loadTeamContext } from "../../services/team-context";
 
-const app = new Elysia({ name: "web-auth", prefix: "/web" })
-  .use(authGuardPlugin)
-  .decorate({ error: errorResponse });
+const app = new Elysia({ name: "web-auth", prefix: "/web" }).use(authGuardPlugin).decorate({ error: errorResponse });
 
 /** POST /web/bind — Bind a session to a user (requires session auth) */
 app.post(

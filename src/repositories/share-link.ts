@@ -36,7 +36,14 @@ export interface IShareLinkRepo {
 }
 
 class PgShareLinkRepo implements IShareLinkRepo {
-  async create(teamId: string, sessionId: string, environmentId: string, mode: string, expiresAt: Date | null, createdBy: string) {
+  async create(
+    teamId: string,
+    sessionId: string,
+    environmentId: string,
+    mode: string,
+    expiresAt: Date | null,
+    createdBy: string,
+  ) {
     const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
     const now = new Date();
     const [row] = await db
@@ -95,9 +102,7 @@ class PgShareLinkRepo implements IShareLinkRepo {
   }
 
   async delete(teamId: string, id: string): Promise<boolean> {
-    const result = await db
-      .delete(shareLink)
-      .where(and(eq(shareLink.teamId, teamId), eq(shareLink.id, id)));
+    const result = await db.delete(shareLink).where(and(eq(shareLink.teamId, teamId), eq(shareLink.id, id)));
     return (result as any).count > 0;
   }
 

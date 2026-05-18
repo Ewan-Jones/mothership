@@ -46,13 +46,13 @@
 
 **目标**：Session 由 Agent 进程（acp-link）管理，RCS 不存储、不管理。前端通过 ACP 通道直接与 Agent 进程交互获取 Session 信息（session/list、session/load 等），RCS 只做消息透传。
 
-**影响**：
-- `db/schema.ts`：`agent_session` 表废弃（或降级为轻量缓存）
-- `repositories/session.ts`：移除或大幅简化
-- `services/session.ts`：移除大部分逻辑
-- `routes/web/sessions.ts`：移除，或改为 ACP 透传代理
-- `services/instance.ts`：不再需要创建/查找 Session
-- `transport/acp-relay-handler.ts`：relay 的 sessionId 参数意义变化，变为前端与 Agent 协商的标识
+**影响**（已完成）：
+- `db/schema.ts`：`agent_session` 表已废弃
+- `repositories/session.ts`：已移除
+- `services/session.ts`：已移除大部分逻辑
+- `routes/web/sessions.ts`：改为 ACP 透传代理
+- `services/instance.ts`：不再创建/查找 Session
+- `transport/acp-relay-handler.ts`：relay 的 sessionId 参数为前端与 Agent 协商的标识
 - 前端：Session 列表从 ACP 协议获取（session/list），不再调 RCS API
 - 领域图：Session 从 RCS 领域模型中移除，标记为"acp-link 内部概念"
 
@@ -62,7 +62,7 @@
 
 ## 改动 4：Instance spawn 决策权统一到 Environment
 
-**状态**：✅ 已确认，待实施
+**状态**：✅ 已实施
 
 **现状**：Instance spawn 由三种触发者各自直接调用：
 - 用户手动：前端 → `POST /instances/from-environment` → `spawnInstanceFromEnvironment()`

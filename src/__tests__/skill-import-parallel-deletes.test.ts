@@ -14,7 +14,11 @@ beforeEach(() => {
     listSkills: mock(async () => []),
   } as any;
   _deps.skillFs = {
-    createSkillValidationError: (msg: string) => { const e = new Error(msg) as any; e.code = "TEST"; return e; },
+    createSkillValidationError: (msg: string) => {
+      const e = new Error(msg) as any;
+      e.code = "TEST";
+      return e;
+    },
     groupUploadFiles: (files: { skillName: string; relativePath: string; content: string }[]) => {
       const map = new Map<string, { skillName: string; relativePath: string; content: string }[]>();
       for (const f of files) {
@@ -28,10 +32,11 @@ beforeEach(() => {
     readSkillDetailFromMd: mock(async () => null),
     writeSkillMd: mock(async (_dir: string, _name: string) => "/path/SKILL.md"),
     deleteSkillDir: mock(async () => {}),
-    resolveImportPlan: (grouped: Map<string, unknown>, _conflicts: unknown[], strategy: string | undefined) => ({
-      pendingEntries: Array.from(grouped.entries()),
-      skipped: [],
-    }) as any,
+    resolveImportPlan: (grouped: Map<string, unknown>, _conflicts: unknown[], strategy: string | undefined) =>
+      ({
+        pendingEntries: Array.from(grouped.entries()),
+        skipped: [],
+      }) as any,
     writeImportFiles: mock(async (_dir: string, entries: [string, unknown][]) => {
       return entries.map(([name]) => name);
     }),
