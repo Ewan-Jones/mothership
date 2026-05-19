@@ -37,7 +37,7 @@ export function TeamSwitcher() {
       {open && (
         <div
           className={[
-            "absolute top-full left-0 mt-1 min-w-[200px]",
+            "absolute bottom-full left-0 mb-1 min-w-[200px]",
             "bg-surface-1 border border-border-subtle rounded-lg shadow-lg",
             "py-1 z-50",
           ].join(" ")}

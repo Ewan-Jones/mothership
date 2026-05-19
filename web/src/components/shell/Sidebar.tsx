@@ -48,7 +48,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "控制台",
     items: [
       { id: "dashboard", label: "概览", icon: Monitor },
-      { id: "teams", label: "团队", icon: Users },
       { id: "workflow", label: "智能体编排", icon: Workflow },
       { id: "environments", label: "智能体", icon: Bot },
       { id: "models", label: "模型", icon: Cpu },
@@ -118,13 +117,6 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
         >
           XAgent
         </span>
-
-        {/* Team switcher */}
-        {!collapsed && (
-          <div className="ml-1 flex-1 min-w-0">
-            <TeamSwitcher />
-          </div>
-        )}
 
         {/* Toggle button */}
         <button
@@ -215,6 +207,59 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
           </div>
         ))}
       </nav>
+
+      {/* ---- Bottom: Team section ---- */}
+      <div
+        className={[
+          "border-t border-border-subtle",
+          collapsed ? "px-0 py-2" : "px-2 py-2",
+        ].join(" ")}
+      >
+        {/* TeamSwitcher — current team display + dropdown */}
+        {!collapsed && (
+          <div className="px-1 mb-1.5">
+            <TeamSwitcher />
+          </div>
+        )}
+
+        {/* Teams page nav button */}
+        <button
+          type="button"
+          onClick={() => onNavigate("teams")}
+          title={collapsed ? "团队" : undefined}
+          className={[
+            "relative flex items-center w-full",
+            "text-[13px] font-medium cursor-pointer",
+            "transition-all duration-150",
+            "whitespace-nowrap overflow-hidden select-none",
+            collapsed
+              ? "justify-center gap-0 px-0 py-2 mx-0 rounded-lg"
+              : "gap-2.5 px-3 py-2 rounded-[var(--radius)]",
+            currentPage === "teams"
+              ? "bg-brand-subtle text-brand-light"
+              : "text-text-secondary hover:bg-surface-hover hover:text-text-primary",
+          ].join(" ")}
+        >
+          {currentPage === "teams" && (
+            <span
+              className={[
+                "absolute top-1 bottom-1 w-[3px] rounded-r-[3px]",
+                "bg-brand",
+                collapsed ? "left-0" : "-left-2",
+              ].join(" ")}
+            />
+          )}
+          <Users className="w-[18px] h-[18px] flex-shrink-0" />
+          <span
+            className={[
+              "overflow-hidden transition-opacity duration-200",
+              collapsed ? "opacity-0 w-0" : "opacity-100",
+            ].join(" ")}
+          >
+            团队
+          </span>
+        </button>
+      </div>
     </aside>
   );
 }
