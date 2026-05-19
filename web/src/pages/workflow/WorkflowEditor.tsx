@@ -488,17 +488,21 @@ function WorkflowEditorInner({ workflowId, runId, onViewRuns }: WorkflowEditorPr
     [updateNodesFromSnapshot],
   );
 
-  // 轮询运行中的工作流
+  // 轮询运行中的工作流（setTimeout 链式，防止请求重叠导致数据闪烁）
   useEffect(() => {
     if (!activeRunId || !runSnapshot) return;
     const status = runSnapshot.dag_status;
-    if (["SUCCESS", "FAILED", "CANCELLED", "ERROR"].includes(status)) {
-      if (pollRef.current) clearInterval(pollRef.current);
-      return;
-    }
-    pollRef.current = setInterval(() => loadRunData(activeRunId), 2000);
+    if (["SUCCESS", "FAILED", "CANCELLED", "ERROR"].includes(status)) return;
+    let cancelled = false;
+    const poll = async () => {
+      if (cancelled) return;
+      await loadRunData(activeRunId);
+      if (!cancelled) pollRef.current = setTimeout(poll, 2000);
+    };
+    pollRef.current = setTimeout(poll, 2000);
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      cancelled = true;
+      if (pollRef.current) clearTimeout(pollRef.current);
     };
   }, [activeRunId, runSnapshot, loadRunData]);
 
