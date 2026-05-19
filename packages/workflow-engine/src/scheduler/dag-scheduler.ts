@@ -264,9 +264,8 @@ export class DAGScheduler {
       return;
     }
 
-    // 设置 RUNNING
+    // 设置 RUNNING（执行器内部会发射 node.started 事件）
     this.nodeStates.set(nodeId, 'RUNNING');
-    await this.emitEvent('node.started', nodeId);
 
     try {
       // 解析 ${{ }} 表达式
@@ -282,24 +281,14 @@ export class DAGScheduler {
         storage: this.ctx.storage,
       };
 
-      // 执行节点
+      // 执行节点（执行器内部发射 node.started / node.completed 事件）
       const output = await this.ctx.nodeExecutor.execute(node, execCtx);
 
-      // 成功 → COMPLETED（构造事件对象，由 atomicComplete 原子写入，避免重复）
+      // 成功 → COMPLETED + 快照（不再发射额外的 node.completed 事件）
       this.nodeStates.set(nodeId, 'COMPLETED');
       this.nodeOutputs.set(nodeId, output);
-
-      const completedEvent: DAGEvent = {
-        event_id: `evt_${nanoid(10)}`,
-        run_id: this.ctx.runId,
-        timestamp: new Date().toISOString(),
-        type: 'node.completed',
-        node_id: nodeId,
-        node_type: this.nodeMap.get(nodeId)?.type,
-        metadata: { exit_code: output.exit_code },
-      };
-      this.lastEventId = completedEvent.event_id;
-      await this.atomicComplete(nodeId, output, completedEvent);
+      this.lastEventId = `evt_${nanoid(10)}`;
+      await this.saveSnapshotAfterNode(nodeId, output);
     } catch (error) {
       // 处理 SUSPENDED
       if (error instanceof SuspendedError) {
@@ -318,11 +307,8 @@ export class DAGScheduler {
         return;
       }
 
-      // 节点失败
+      // 节点失败（执行器内部已发射 node.failed 事件，此处不再重复）
       this.nodeStates.set(nodeId, 'FAILED');
-      await this.emitEvent('node.failed', nodeId, {
-        error: error instanceof Error ? error.message : String(error),
-      });
 
       // BFS 错误传播：标记下游为 SKIPPED
       await this.propagateFailure(nodeId);
@@ -541,12 +527,13 @@ export class DAGScheduler {
     await this.ctx.storage.createSnapshot(snapshot);
   }
 
-  /** 原子写入节点完成结果 */
-  private async atomicComplete(
+  /** 节点完成后写入输出 + 快照（不发射事件，事件由执行器负责） */
+  private async saveSnapshotAfterNode(
     nodeId: string,
     output: NodeOutput,
-    event: DAGEvent,
   ): Promise<void> {
+    await this.ctx.storage.setOutput(this.ctx.runId, nodeId, output);
+
     const nodeStates: DAGSnapshot['node_states'] = {};
     for (const [id, s] of this.nodeStates) {
       nodeStates[id] = { status: s };
@@ -555,12 +542,12 @@ export class DAGScheduler {
     const snapshot: DAGSnapshot = {
       snapshot_id: `snap_${nanoid(10)}`,
       run_id: this.ctx.runId,
-      last_event_id: event.event_id,
+      last_event_id: this.lastEventId,
       timestamp: new Date().toISOString(),
       node_states: nodeStates,
       dag_status: 'RUNNING',
     };
 
-    await this.ctx.storage.atomicNodeComplete({ output, snapshot, event });
+    await this.ctx.storage.createSnapshot(snapshot);
   }
 }

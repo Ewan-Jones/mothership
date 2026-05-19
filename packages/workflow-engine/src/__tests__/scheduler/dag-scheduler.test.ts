@@ -70,6 +70,16 @@ class MockNodeExecutor implements NodeExecutor {
     this.executionOrder.push(node.id);
     this.startTimes.set(node.id, Date.now());
 
+    // 发射 node.started 事件（模拟真实执行器行为）
+    await ctx.storage.appendEvent({
+      event_id: `evt_mock_${node.id}_start`,
+      run_id: ctx.runId,
+      node_id: node.id,
+      node_type: node.type,
+      timestamp: new Date().toISOString(),
+      type: 'node.started',
+    });
+
     // 检查取消
     if (ctx.signal.aborted) {
       const err = new DOMException('Aborted', 'AbortError');
@@ -96,13 +106,36 @@ class MockNodeExecutor implements NodeExecutor {
 
     // 检查预设错误
     const presetError = this.errors.get(node.id);
-    if (presetError) throw presetError;
+    if (presetError) {
+      // 发射 node.failed 事件
+      await ctx.storage.appendEvent({
+        event_id: `evt_mock_${node.id}_fail`,
+        run_id: ctx.runId,
+        node_id: node.id,
+        node_type: node.type,
+        timestamp: new Date().toISOString(),
+        type: 'node.failed',
+        metadata: { error: presetError.message },
+      });
+      throw presetError;
+    }
 
     // 返回预设输出
     const output = this.outputs.get(node.id) ?? {
       stdout: `output of ${node.id}`,
       exit_code: 0,
     };
+
+    // 发射 node.completed 事件
+    await ctx.storage.appendEvent({
+      event_id: `evt_mock_${node.id}_done`,
+      run_id: ctx.runId,
+      node_id: node.id,
+      node_type: node.type,
+      timestamp: new Date().toISOString(),
+      type: 'node.completed',
+      metadata: { exit_code: output.exit_code },
+    });
 
     this.endTimes.set(node.id, Date.now());
     return output;
