@@ -303,3 +303,43 @@ nodes:
 `);
   expect(def._startNodeId).toBe("a");
 });
+
+// agent 节点解析 model/temperature/steps 可选字段
+test('agent 节点解析 model/temperature/steps 可选字段', () => {
+  const yaml = `
+schema_version: "1"
+name: test
+nodes:
+  - id: step1
+    type: agent
+    prompt: "hello"
+    agent: general
+    model: claude-sonnet-4-6
+    temperature: 0.3
+    steps: 15
+`;
+  const def = parseWorkflowYaml(yaml);
+  const node = def.nodes[0] as import('../../types/dag').AgentNodeDef;
+  expect(node.agent).toBe('general');
+  expect(node.model).toBe('claude-sonnet-4-6');
+  expect(node.temperature).toBe(0.3);
+  expect(node.steps).toBe(15);
+});
+
+// agent 节点省略可选字段时为 undefined
+test('agent 节点省略可选字段时为 undefined', () => {
+  const yaml = `
+schema_version: "1"
+name: test
+nodes:
+  - id: step1
+    type: agent
+    prompt: "hello"
+`;
+  const def = parseWorkflowYaml(yaml);
+  const node = def.nodes[0] as import('../../types/dag').AgentNodeDef;
+  expect(node.agent).toBeUndefined();
+  expect(node.model).toBeUndefined();
+  expect(node.temperature).toBeUndefined();
+  expect(node.steps).toBeUndefined();
+});

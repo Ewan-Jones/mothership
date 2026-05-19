@@ -147,6 +147,9 @@ function parseNode(raw: unknown, index: number): NodeDef {
         prompt: n.prompt as string,
         agent: typeof n.agent === "string" ? n.agent : undefined,
         skill: typeof n.skill === "string" ? n.skill : undefined,
+        model: typeof n.model === "string" ? n.model : undefined,
+        temperature: typeof n.temperature === "number" ? n.temperature : undefined,
+        steps: typeof n.steps === "number" ? n.steps : undefined,
       };
     }
     case "api": {
