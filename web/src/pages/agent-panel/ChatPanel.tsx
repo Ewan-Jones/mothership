@@ -10,10 +10,11 @@ interface ChatPanelProps {
   agentId: string | null;
   sessionId?: string | null;
   initialCwd?: string;
+  hideSidebar?: boolean;
   onClientChange?: (client: ACPClient | null) => void;
 }
 
-export function ChatPanel({ agentId, sessionId, initialCwd, onClientChange }: ChatPanelProps) {
+export function ChatPanel({ agentId, sessionId, initialCwd, hideSidebar, onClientChange }: ChatPanelProps) {
   const [client, setClient] = useState<ACPClient | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +90,7 @@ export function ChatPanel({ agentId, sessionId, initialCwd, onClientChange }: Ch
   if (client && connectionState === "connected") {
     return (
       <TooltipProvider>
-        <ACPMain client={client} agentId={agentId} initialCwd={initialCwd} rcsSessionId={sessionId ?? undefined} />
+        <ACPMain client={client} agentId={agentId} initialCwd={initialCwd} hideSidebar={hideSidebar} rcsSessionId={sessionId ?? undefined} />
       </TooltipProvider>
     );
   }

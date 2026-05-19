@@ -47,6 +47,7 @@ import {
   Check,
   ChevronRight,
   Inbox,
+  MessageSquare,
 } from "lucide-react";
 import { nodeTypes } from "./nodes";
 import { autoLayout } from "./layout";
@@ -60,6 +61,8 @@ import {
   START_NODE_ID,
   type WfMeta,
 } from "./yaml-utils";
+import { ChatPanel } from "../agent-panel/ChatPanel";
+import { ensureMetaAgent } from "../../api/meta-agent";
 import {
   workflowEngineApi,
   type DAGSnapshot,
@@ -116,6 +119,22 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
   const [runRightTab, setRunRightTab] = useState<"events" | "output">("events");
   const [sidePanelMode, setSidePanelMode] = useState<"runs" | "versions" | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Meta Agent Chat ──
+  const [chatOpen, setChatOpen] = useState(() => {
+    const saved = localStorage.getItem("wf-editor:chat-open");
+    return saved === "true";
+  });
+  const [metaAgentId, setMetaAgentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem("wf-editor:chat-open", String(chatOpen));
+    if (chatOpen && !metaAgentId) {
+      ensureMetaAgent()
+        .then((res) => setMetaAgentId(res.environmentId))
+        .catch((err) => console.error("启动 Meta Agent 失败:", err));
+    }
+  }, [chatOpen]);
 
   // ── Agent 配置联动 ──
   const [agentList, setAgentList] = useState<Array<{ name: string; model: string | null; description: string | null }>>([]);
@@ -958,6 +977,14 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
                 {readOnly ? <Eye size={15} /> : <Edit3 size={15} />}
               </button>
               <div className="wf-toolbar-divider" />
+              <button
+                type="button"
+                className={`wf-toolbar-btn ${chatOpen ? "active" : ""}`}
+                onClick={() => setChatOpen(!chatOpen)}
+                data-tooltip="打开 / 关闭 Meta Agent Chat 助手"
+              >
+                <MessageSquare size={15} />
+              </button>
               <button
                 type="button"
                 className="wf-toolbar-btn"
@@ -1811,6 +1838,55 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
           )}
         </aside>
       )}
+
+      {/* Meta Agent Chat 侧边栏 */}
+      {chatOpen && (
+        <div style={{ width: 400, minWidth: 400, display: "flex", flexDirection: "column", background: "#fff", borderLeft: "1px solid #e5e7eb" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid #e5e7eb" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+              <Bot size={14} />
+              Meta Agent
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              {workflowId && (
+                <button
+                  type="button"
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4, color: "#6b7280", display: "flex", alignItems: "center" }}
+                  onClick={async () => {
+                    try {
+                      const wf = await workflowDefApi.get(workflowId);
+                      if (wf.draftYaml) {
+                        const { nodes: newNodes, edges: newEdges, meta: newMeta } = yamlToFlow(wf.draftYaml);
+                        setNodes(newNodes);
+                        setEdges(newEdges);
+                        setMeta(newMeta);
+                        setLastSavedYaml(wf.draftYaml);
+                        setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50);
+                      }
+                    } catch (err) {
+                      console.error("刷新工作流失败:", err);
+                    }
+                  }}
+                  title="刷新工作流画布"
+                >
+                  <RefreshCw size={13} />
+                </button>
+              )}
+              <button
+                type="button"
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4, color: "#6b7280", display: "flex", alignItems: "center" }}
+                onClick={() => setChatOpen(false)}
+                title="收起 Chat 面板"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <ChatPanel agentId={metaAgentId} hideSidebar />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2365,6 +2441,7 @@ function NodeOutputView({ output }: { output: NodeOutput }) {
           </pre>
         </div>
       )}
+
     </div>
   );
 }

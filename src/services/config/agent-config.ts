@@ -110,7 +110,7 @@ export { AGENT_SETTABLE_FIELDS };
 
 type PermissionAction = "ask" | "allow" | "deny";
 
-const BUILT_IN_AGENTS = new Set(["build", "plan", "general", "explore", "title", "summary", "compaction"]);
+const BUILT_IN_AGENTS = new Set(["build", "plan", "general", "explore", "title", "summary", "compaction", "meta"]);
 
 function isValidMode(mode: string): boolean {
   return ["primary", "subagent", "all"].includes(mode);

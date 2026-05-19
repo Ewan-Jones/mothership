@@ -35,6 +35,7 @@ import webS3Files from "./routes/web/s3-files";
 import webSessions from "./routes/web/sessions";
 import webTasks from "./routes/web/tasks";
 import webTeams from "./routes/web/teams";
+import webMetaAgent from "./routes/web/meta-agent";
 import webWorkflowDefs from "./routes/web/workflow-defs";
 import webWorkflowEngine from "./routes/web/workflow-engine";
 import { workflowStaticApp } from "./routes/web/workflow-proxy";
@@ -183,6 +184,8 @@ const app = new Elysia()
   .use(webWorkflowEngine)
   // Workflow definition API
   .use(webWorkflowDefs)
+  // Meta Agent API
+  .use(webMetaAgent)
   // MCP routes
   .use(knowledgeMcpRoutes)
   // ACP protocol routes

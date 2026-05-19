@@ -65,6 +65,7 @@ interface ChatInterfaceProps {
   cwd?: string;
   cwdReady?: boolean;
   readonly?: boolean;
+  hideContextPanel?: boolean;
   rcsSessionId?: string;
   onSessionCreated?: (sessionId: string) => void;
 }
@@ -159,7 +160,7 @@ export interface ChatInterfaceHandle {
   newSession: () => void;
 }
 
-export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(function ChatInterface({ client, agentId, cwd, cwdReady = true, readonly, rcsSessionId, onSessionCreated }, ref) {
+export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(function ChatInterface({ client, agentId, cwd, cwdReady = true, readonly, hideContextPanel, rcsSessionId, onSessionCreated }, ref) {
   // Flat list of entries (like Zed's entries: Vec<AgentThreadEntry>)
   const [entries, setEntries] = useState<ThreadEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -885,7 +886,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       </div>
 
       {/* Context Panel */}
-      {!readonly && (
+      {!readonly && !hideContextPanel && (
         <ContextPanel
           entries={entries}
           agentName={agentId}

@@ -22,10 +22,10 @@ afterEach(async () => {
 });
 
 describe("workflow-fs", () => {
-  // buildStoragePath 拼接正确路径
+  // buildStoragePath 拼接正确路径（不再包含 teamId 层级）
   test("buildStoragePath returns correct path", () => {
     const path = buildStoragePath(testRoot, "team-1", "wf-abc");
-    expect(path).toBe(join(testRoot, "team-1", "wf-abc"));
+    expect(path).toBe(join(testRoot, "wf-abc"));
   });
 
   // ensureWorkflowDir 创建目录

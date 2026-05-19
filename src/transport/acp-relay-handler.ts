@@ -270,6 +270,11 @@ export async function handleRelayMessage(
       log("[ACP-Relay] Skipping frontend connect in instance mode (relay handle auto-connects)");
       return;
     }
+    // Frontend heartbeat ping: respond locally (the relay handle would swallow the pong)
+    if (parsed.type === "ping") {
+      sendToRelayWs(ws, { type: "pong" });
+      return;
+    }
     log(`[ACP-Relay] Forwarding outbound to acp-server: type=${parsed.type}`);
     try {
       await entry.relayHandle.send(parsed as any);
@@ -321,25 +326,29 @@ export function handleRelayClose(ws: WsConnection, relayWsId: string, code?: num
   relayConnections.delete(relayWsId);
 
   // 如果这是最后一个使用此 instanceId 的 relay 连接，关闭 core relay handle 避免僵尸 WS
-  // shutdown 期间跳过：closeAllRelayConnections 已经关闭了 relayHandle，
-  // 此处如果再 connectInstanceRelay 会创建新的 WS 连接，导致关闭时出现幽灵 relay
+  // shutdown 期间跳过：closeAllRelayConnections 已经关闭了 relayHandle
   if (instanceId && !isShuttingDown) {
     const hasOtherRelay = [...relayConnections.values()].some((e) => e.instanceId === instanceId);
     if (!hasOtherRelay) {
-      // 通过 facade 关闭 relay：先获取 relay handle 再 close
-      // 但 facade 没有暴露 getRelayHandle，所以直接从 entry 取
-      // entry 已删除，但 relay handle 仍在 core store 里
-      const facade = getCoreRuntime();
-      const snapshot = facade.getInstance(instanceId);
-      if (snapshot?.relayConnected) {
-        // 使用 connectInstanceRelay 获取已有 handle 然后 close
-        facade
-          .connectInstanceRelay({ instanceId })
-          .then((handle) => {
-            handle.close();
-            log(`[ACP-Relay] Closed core relay handle for instance ${instanceId} (last relay disconnected)`);
-          })
-          .catch(() => {});
+      // 直接从 entry 关闭已有的 relay handle，避免 connectInstanceRelay 新建连接再关闭
+      if (entry.relayHandle) {
+        try {
+          entry.relayHandle.close();
+          log(`[ACP-Relay] Closed core relay handle for instance ${instanceId} (last relay disconnected)`);
+        } catch {}
+      } else if (entry.instanceId) {
+        // relay handle 尚未就绪（connectInstanceRelay 还在 pending），通过 facade 关闭
+        const facade = getCoreRuntime();
+        const snapshot = facade.getInstance(instanceId);
+        if (snapshot?.relayConnected) {
+          facade
+            .connectInstanceRelay({ instanceId })
+            .then((handle) => {
+              handle.close();
+              log(`[ACP-Relay] Closed core relay handle for instance ${instanceId} (last relay disconnected)`);
+            })
+            .catch(() => {});
+        }
       }
     }
   }

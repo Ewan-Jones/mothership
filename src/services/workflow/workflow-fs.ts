@@ -1,21 +1,20 @@
 /**
  * Workflow 文件系统操作。
  *
- * 所有工作流 YAML 文件存储在 ~/.agents/workflows/<teamId>/<workflowId>/ 下。
- * 目录名使用 workflowId（非 name），保证重命名不影响路径。
+ * 所有工作流 YAML 文件存储在 <cwd>/.agents/workflows/<workflowId>/ 下。
+ * 按项目目录隔离，不需要 teamId 层级。
  */
 
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { join } from "node:path";
 
 /** 工作流文件存储根目录 */
-export const WORKFLOW_BASE_DIR = join(homedir(), ".agents", "workflows");
+export const WORKFLOW_BASE_DIR = join(process.cwd(), ".agents", "workflows");
 
 /** 拼接工作流目录绝对路径 */
-export function buildStoragePath(baseDir: string, teamId: string, workflowId: string): string {
-  return join(baseDir, teamId, workflowId);
+export function buildStoragePath(baseDir: string, _teamId: string, workflowId: string): string {
+  return join(baseDir, workflowId);
 }
 
 /** 确保工作流目录存在 */
@@ -42,11 +41,10 @@ export async function readYamlFile(dir: string, fileName: string): Promise<strin
  */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function listRecoverable(baseDir: string, teamId: string, excludeIds: Set<string>): Promise<string[]> {
-  const teamDir = join(baseDir, teamId);
-  if (!existsSync(teamDir)) return [];
+export async function listRecoverable(baseDir: string, _teamId: string, excludeIds: Set<string>): Promise<string[]> {
+  if (!existsSync(baseDir)) return [];
 
-  const entries = await readdir(teamDir, { withFileTypes: true });
+  const entries = await readdir(baseDir, { withFileTypes: true });
   const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
   return dirs.filter((id) => UUID_RE.test(id) && !excludeIds.has(id));

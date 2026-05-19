@@ -6,13 +6,14 @@ import { cn } from "../src/lib/utils";
 import { MessageSquare, Plus, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { client } from "../src/api/client";
+import { client as apiClient } from "../src/api/client";
 
 interface ACPMainProps {
   client: ACPClient;
   agentId?: string;
   initialCwd?: string;
   readonly?: boolean;
+  hideSidebar?: boolean;
   rcsSessionId?: string;
 }
 
@@ -20,7 +21,7 @@ interface ACPMainProps {
  * Main container — Anthropic sidebar + chat layout.
  * Sidebar: sectioned by recency, orange active state, warm raised bg.
  */
-export function ACPMain({ client, agentId, initialCwd, readonly, rcsSessionId }: ACPMainProps) {
+export function ACPMain({ client, agentId, initialCwd, readonly, hideSidebar, rcsSessionId }: ACPMainProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [cwd, setCwd] = useState<string | undefined>(initialCwd?.replace(/\/+$/, ""));
   const [cwdReady, setCwdReady] = useState(!agentId || !!initialCwd);
@@ -44,7 +45,7 @@ export function ACPMain({ client, agentId, initialCwd, readonly, rcsSessionId }:
     }
 
     setCwdReady(false);
-    client.web.environments({ id: agentId }).get()
+    apiClient.web.environments({ id: agentId }).get()
       .then(({ data, error }) => {
         if (error) throw new Error(error.message ?? "加载环境失败");
         const env = data as { workspace_path: string };
@@ -168,7 +169,7 @@ export function ACPMain({ client, agentId, initialCwd, readonly, rcsSessionId }:
   return (
     <div className="flex h-full w-full">
       {/* 侧边栏 — Anthropic warm sidebar, hidden on mobile / hidden in readonly share mode */}
-      {!readonly && <div
+      {!readonly && !hideSidebar && <div
         className={cn(
           "hidden md:flex flex-col border-r border-border/60 bg-surface-1/50 transition-all duration-200 flex-shrink-0",
           sidebarCollapsed ? "w-12" : "w-64",
@@ -222,7 +223,20 @@ export function ACPMain({ client, agentId, initialCwd, readonly, rcsSessionId }:
 
       {/* 聊天区域 */}
       <div className="flex-1 flex flex-col min-w-0">
-        <ChatInterface ref={chatRef} client={client} agentId={agentId} cwd={cwd} cwdReady={cwdReady} readonly={readonly} rcsSessionId={rcsSessionId} onSessionCreated={(sessionId) => setInitialActiveSessionId(sessionId)} />
+        {hideSidebar && (
+          <div className="flex items-center justify-end px-2 py-1 border-b border-border/40">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => chatRef.current?.newSession()}
+              className="h-7 w-7 text-text-muted hover:text-brand hover:bg-brand/10"
+              title="新会话"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <ChatInterface ref={chatRef} client={client} agentId={agentId} cwd={cwd} cwdReady={cwdReady} readonly={readonly} hideContextPanel={hideSidebar} rcsSessionId={rcsSessionId} onSessionCreated={(sessionId) => setInitialActiveSessionId(sessionId)} />
       </div>
     </div>
   );
