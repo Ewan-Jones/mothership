@@ -14,11 +14,13 @@ import {
   Clock,
   Eye,
   ArrowRight,
+  Code,
 } from "lucide-react";
 
 const NODE_COLORS: Record<string, { main: string; light: string; headerText: string }> = {
   start: { main: "#6366f1", light: "#eef2ff", headerText: "#fff" },
   shell: { main: "#3b82f6", light: "#eff6ff", headerText: "#fff" },
+  python: { main: "#0ea5e9", light: "#f0f9ff", headerText: "#fff" },
   agent: { main: "#22c55e", light: "#f0fdf4", headerText: "#fff" },
   api: { main: "#8b5cf6", light: "#f5f3ff", headerText: "#fff" },
   audit: { main: "#f59e0b", light: "#fffbeb", headerText: "#fff" },
@@ -29,6 +31,7 @@ const NODE_COLORS: Record<string, { main: string; light: string; headerText: str
 const NODE_ICONS: Record<string, React.ReactNode> = {
   start: <Play size={12} />,
   shell: <Terminal size={12} />,
+  python: <Code size={12} />,
   agent: <Bot size={12} />,
   api: <Globe size={12} />,
   audit: <ShieldCheck size={12} />,
@@ -39,6 +42,7 @@ const NODE_ICONS: Record<string, React.ReactNode> = {
 const NODE_LABELS: Record<string, string> = {
   start: "开始",
   shell: "Shell",
+  python: "Python",
   agent: "Agent",
   api: "API",
   audit: "审批",
@@ -78,6 +82,8 @@ function getPreview(type: string, data: Record<string, unknown>): string {
   switch (type) {
     case "shell":
       return String(data.command || "");
+    case "python":
+      return String(data.code || "");
     case "agent":
       return String(data.prompt || "");
     case "api":
@@ -261,6 +267,7 @@ export function WorkflowNode({ data, id, selected, type }: NodeProps) {
 export const nodeTypes = {
   start: WorkflowNode,
   shell: WorkflowNode,
+  python: WorkflowNode,
   agent: WorkflowNode,
   api: WorkflowNode,
   audit: WorkflowNode,

@@ -15,7 +15,7 @@ export interface RetryConfig {
 }
 
 /** 节点类型 */
-export type NodeType = 'shell' | 'agent' | 'api' | 'audit' | 'workflow' | 'loop';
+export type NodeType = 'shell' | 'python' | 'agent' | 'api' | 'audit' | 'workflow' | 'loop';
 
 /** 基础节点定义 */
 export interface BaseNodeDef {
@@ -32,6 +32,14 @@ export interface BaseNodeDef {
 export interface ShellNodeDef extends BaseNodeDef {
   type: 'shell';
   command: string | string[];
+  cwd?: string;
+}
+
+/** Python 节点 — 执行 Python 脚本 */
+export interface PythonNodeDef extends BaseNodeDef {
+  type: 'python';
+  code: string;
+  requirements?: string[];
   cwd?: string;
 }
 
@@ -90,6 +98,7 @@ export interface LoopNodeDef extends BaseNodeDef {
 /** 节点定义判别联合 */
 export type NodeDef =
   | ShellNodeDef
+  | PythonNodeDef
   | AgentNodeDef
   | ApiNodeDef
   | AuditNodeDef

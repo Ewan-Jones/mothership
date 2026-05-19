@@ -357,6 +357,12 @@ export class DAGScheduler {
         resolved.display_data = node.display_data;
         break;
       }
+      case 'python': {
+        resolved.code = resolveTemplate(node.code, evalContext);
+        if (node.requirements) resolved.requirements = node.requirements;
+        if (node.cwd) resolved.cwd = resolveTemplate(node.cwd, evalContext);
+        break;
+      }
       case 'workflow': {
         resolved.ref = resolveTemplate(node.ref, evalContext);
         if (node.params) {

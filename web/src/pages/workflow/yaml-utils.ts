@@ -158,6 +158,7 @@ let nodeCounter = 0;
 
 const TYPE_PREFIXES: Record<string, string> = {
   shell: "shell",
+  python: "python",
   agent: "agent",
   api: "api",
   audit: "audit",

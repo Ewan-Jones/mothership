@@ -9,7 +9,7 @@ import { parse as yamlParse } from "yaml";
 import type { NodeDef, NodeType, WorkflowDef } from "../types/dag";
 import { WorkflowError, WorkflowErrorCode } from "../types/errors";
 
-const VALID_NODE_TYPES: NodeType[] = ["shell", "agent", "api", "audit", "workflow", "loop"];
+const VALID_NODE_TYPES: NodeType[] = ["shell", "python", "agent", "api", "audit", "workflow", "loop"];
 
 /**
  * 将 YAML 源码解析为 WorkflowDef
@@ -131,6 +131,21 @@ function parseNode(raw: unknown, index: number): NodeDef {
         ...base,
         type: "shell",
         command: n.command as string | string[],
+        cwd: typeof n.cwd === "string" ? n.cwd : undefined,
+      };
+    }
+    case "python": {
+      if (!("code" in n)) {
+        throw new WorkflowError(
+          `nodes[${index}] (${n.id}): python node requires 'code'`,
+          WorkflowErrorCode.INVALID_YAML,
+        );
+      }
+      return {
+        ...base,
+        type: "python",
+        code: n.code as string,
+        requirements: Array.isArray(n.requirements) ? (n.requirements as string[]) : undefined,
         cwd: typeof n.cwd === "string" ? n.cwd : undefined,
       };
     }

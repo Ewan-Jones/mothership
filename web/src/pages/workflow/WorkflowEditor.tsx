@@ -74,11 +74,12 @@ import "./workflow.css";
 
 const PALETTE_ITEMS = [
   { type: "shell", label: "Shell", icon: Terminal, color: "#3b82f6" },
+  { type: "python", label: "Python", icon: Code, color: "#0ea5e9" },
   { type: "agent", label: "Agent", icon: Bot, color: "#22c55e" },
   { type: "api", label: "API", icon: Globe, color: "#8b5cf6" },
   { type: "audit", label: "审批", icon: ShieldCheck, color: "#f59e0b" },
-  { type: "workflow", label: "子流程", icon: GitBranch, color: "#ec4899" },
-  { type: "loop", label: "循环", icon: RefreshCw, color: "#06b6d4" },
+  // { type: "workflow", label: "子流程", icon: GitBranch, color: "#ec4899" },
+  // { type: "loop", label: "循环", icon: RefreshCw, color: "#06b6d4" },
 ] as const;
 
 interface WorkflowEditorProps {
@@ -1122,6 +1123,45 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
                         onChange={(e) => updateNodeData({ command: e.target.value })}
                         placeholder='echo "Hello ${{ params.name }}"'
                         rows={3}
+                        readOnly={readOnly}
+                      />
+                    </div>
+                    <div className="wf-prop-field">
+                      <label>环境变量</label>
+                      <textarea
+                        value={String(sd?.env ?? "")}
+                        onChange={(e) => updateNodeData({ env: e.target.value })}
+                        placeholder="KEY=value（每行一个）"
+                        rows={2}
+                        readOnly={readOnly}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {nodeType === "python" && (
+                  <>
+                    <div className="wf-prop-field">
+                      <label>Python 代码 (code)</label>
+                      <textarea
+                        value={String(sd?.code ?? "")}
+                        onChange={(e) => updateNodeData({ code: e.target.value })}
+                        placeholder={'import json\nprint(json.dumps({"result": "hello"}))'}
+                        rows={6}
+                        readOnly={readOnly}
+                      />
+                    </div>
+                    <div className="wf-prop-field">
+                      <label>依赖包 (requirements)</label>
+                      <textarea
+                        value={Array.isArray(sd?.requirements) ? (sd.requirements as string[]).join("\n") : String(sd?.requirements ?? "")}
+                        onChange={(e) => updateNodeData({
+                          requirements: e.target.value
+                            ? e.target.value.split("\n").map((s: string) => s.trim()).filter(Boolean)
+                            : undefined,
+                        })}
+                        placeholder={"requests\nnumpy（每行一个）"}
+                        rows={2}
                         readOnly={readOnly}
                       />
                     </div>

@@ -21,6 +21,7 @@ import { CancellationManager } from '../scheduler/cancellation';
 import { recoverRun } from '../recovery/snapshot-recovery';
 import { NodeExecutorRegistry } from '../executor/node-executor';
 import { ProcessExecutor } from '../executor/process-executor';
+import { PythonExecutor } from '../executor/python-executor';
 import { ApiExecutor } from '../executor/api-executor';
 import { AgentExecutor } from '../executor/agent-executor';
 import { AuditExecutor, verifyApprovalToken } from '../executor/awaitable-executor';
@@ -123,6 +124,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
   function buildRegistry(runId: string, baseDir: string): NodeExecutorRegistry {
     const registry = new NodeExecutorRegistry();
     registry.register('shell', new ProcessExecutor());
+    registry.register('python', new PythonExecutor());
     registry.register('api', new ApiExecutor());
     if (transport) {
       registry.register('agent', new AgentExecutor(transport, {
@@ -164,6 +166,16 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     // 2. 生成 runId
     const runId = `run_${nanoid(10)}`;
 
+    // 2.5 用 YAML params 定义的 default 值填充未传入的参数
+    const resolvedParams = { ...params };
+    if (validation.def.params) {
+      for (const [key, schema] of Object.entries(validation.def.params)) {
+        if (!(key in resolvedParams) && schema.default !== undefined) {
+          resolvedParams[key] = schema.default;
+        }
+      }
+    }
+
     // 3. Secrets 解析
     let secrets: Record<string, string> = {};
     if (def.secrets && def.secrets.length > 0) {
@@ -180,7 +192,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       runId,
       workflowDef: validation.def,
       storage,
-      params,
+      params: resolvedParams,
       secrets,
       nodeExecutor: registry,
       cancellation,
