@@ -41,6 +41,12 @@ export interface AgentNodeDef extends BaseNodeDef {
   prompt: string;
   agent?: string;
   skill?: string;
+  /** 节点级模型覆盖（覆盖 agent config 的 model） */
+  model?: string;
+  /** 节点级温度覆盖 */
+  temperature?: number;
+  /** 节点级最大步数覆盖 */
+  steps?: number;
   retry?: RetryConfig;
 }
 
