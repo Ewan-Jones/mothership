@@ -101,6 +101,8 @@ export interface WorkflowEngine {
 interface ActiveRun {
   cancellation: CancellationManager;
   workflowDef: WorkflowDef;
+  params: Record<string, unknown>;
+  secrets: Record<string, string>;
 }
 
 // ---------- createWorkflowEngine ----------
@@ -199,7 +201,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     };
 
     // 6. 存储活跃运行
-    activeRuns.set(runId, { cancellation, workflowDef: validation.def });
+    activeRuns.set(runId, { cancellation, workflowDef: validation.def, params: resolvedParams, secrets });
 
     let result: DAGRunResult | undefined;
     try {
@@ -331,8 +333,8 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       runId,
       workflowDef: activeRun.workflowDef,
       storage,
-      params: {},
-      secrets: {},
+      params: activeRun.params,
+      secrets: activeRun.secrets,
       nodeExecutor: registry,
       cancellation: activeRun.cancellation,
       initialNodeStates: nodeStates,
@@ -475,7 +477,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     const cancellation = new CancellationManager();
 
     // 存储为活跃运行
-    activeRuns.set(runId, { cancellation, workflowDef: validation.def });
+    activeRuns.set(runId, { cancellation, workflowDef: validation.def, params: {}, secrets });
 
     let result: DAGRunResult | undefined;
     try {
@@ -583,7 +585,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       secrets = await secretsResolver.resolve(validation.def.secrets);
     }
 
-    activeRuns.set(newRunId, { cancellation, workflowDef: validation.def });
+    activeRuns.set(newRunId, { cancellation, workflowDef: validation.def, params: {}, secrets });
 
     let result: DAGRunResult | undefined;
     try {
