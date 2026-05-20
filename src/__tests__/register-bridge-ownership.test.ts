@@ -1,7 +1,5 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { AppError } from "../errors";
-
-import { _deps, _resetDeps } from "../services/environment-acp";
 
 const mockEnvRepoGetById = mock(async (): Promise<any> => null);
 const mockEnvRepoCreate = mock(async (d: any) => ({
@@ -13,23 +11,26 @@ const mockEnvRepoCreate = mock(async (d: any) => ({
 const mockEnvRepoUpdate = mock(async () => {});
 const mockSessionRepoList = mock(async () => []);
 
-beforeEach(() => {
-  _deps.environmentRepo = {
+mock.module("../repositories", () => ({
+  environmentRepo: {
     getById: mockEnvRepoGetById,
     create: mockEnvRepoCreate,
     update: mockEnvRepoUpdate,
-  } as any;
-  _deps.sessionRepo = {
+  },
+  sessionRepo: {
     listByEnvironment: mockSessionRepoList,
     create: mock(async (d: any) => ({ id: "ses_new", ...d })),
-  } as any;
-  _deps.findOrCreateForEnvironment = mock(async () => ({ id: "ses_new" }));
-  _deps.deleteEnvironment = mock(async () => {}) as any;
-});
+  },
+}));
 
-afterEach(() => {
-  _resetDeps();
-});
+mock.module("./session", () => ({
+  findOrCreateForEnvironment: mock(async () => ({ id: "ses_new" })),
+}));
+
+mock.module("./environment-core", () => ({
+  deleteEnvironment: mock(async () => {}),
+  toResponse: mock((r: any) => r),
+}));
 
 import { registerBridge } from "../services/environment-acp";
 

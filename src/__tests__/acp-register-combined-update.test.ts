@@ -1,21 +1,22 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-
-import { _deps, _resetDeps } from "../services/environment-acp";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 const updateMock = mock(async (_id: string, _patch: Record<string, unknown>) => true);
 
-beforeEach(() => {
-  _deps.environmentRepo = {
+mock.module("../repositories", () => ({
+  environmentRepo: {
     update: updateMock,
-  } as any;
-  _deps.sessionRepo = {} as any;
-  _deps.findOrCreateForEnvironment = mock(async () => ({ id: "ses_1" }));
-  _deps.deleteEnvironment = mock(async () => {}) as any;
-});
+  },
+  sessionRepo: {},
+}));
 
-afterEach(() => {
-  _resetDeps();
-});
+mock.module("./session", () => ({
+  findOrCreateForEnvironment: mock(async () => ({ id: "ses_1" })),
+}));
+
+mock.module("./environment-core", () => ({
+  deleteEnvironment: mock(async () => {}),
+  toResponse: mock((r: any) => r),
+}));
 
 import { handleAcpRegister } from "../services/environment-acp";
 
