@@ -100,6 +100,7 @@ export interface BuildLaunchSpecInput {
   modelRef?: string | null;
   fullConfig: AgentFullConfig;
   environmentSecret: string;
+  extraEnv?: Record<string, string>;
 }
 
 /** 可替换的 buildLaunchSpec 实现（测试时注入 mock） */
@@ -149,6 +150,7 @@ export async function buildLaunchSpec(input: BuildLaunchSpecInput): Promise<Agen
 
   return {
     workspace: workspacePath,
+    ...(input.extraEnv ? { env: input.extraEnv } : {}),
     agent,
     model,
     skills: [],
