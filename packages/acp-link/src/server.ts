@@ -20,6 +20,7 @@ export interface ServerConfig {
   command: string
   args: string[]
   cwd: string
+  env?: Record<string, string>
 }
 
 export interface AcpServerHandle {
@@ -240,6 +241,7 @@ export function decodeClientWsMessage(data: unknown): ProxyMessage {
 
 export function createAcpServer(config: ServerConfig): AcpServerHandle {
   const { port, host, command, args, cwd } = config
+  const extraEnv = config.env ?? {}
 
   // Per-instance state — no module-level globals
   const clients = new Map<ServerWebSocket, ClientState>()
@@ -357,7 +359,7 @@ export function createAcpServer(config: ServerConfig): AcpServerHandle {
       const agentProcess = spawn(command, args, {
         cwd,
         stdio: ['pipe', 'pipe', 'inherit'],
-        env: process.env,
+        env: { ...process.env, ...extraEnv },
       })
 
       state.process = agentProcess

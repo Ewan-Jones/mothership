@@ -52,11 +52,8 @@ export class AcpLinkProcessManager {
             host: DEFAULT_HOST,
             command: opencodeExecutable,
             args: ["acp"],
-            // command: "peri",
-            // args: ["acp"],
-            // command: "sh",
-            // args: ["/Users/konghayao/code/ai/perihelion/dev-acp.sh"],
             cwd: input.workspace,
+            env: input.env,
         });
 
         const entry: ProcessEntry = {
