@@ -15,6 +15,7 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { OrgSwitcher } from "../OrgSwitcher";
 
 /* ------------------------------------------------------------------ */
@@ -24,14 +25,13 @@ import { OrgSwitcher } from "../OrgSwitcher";
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
-  currentPage: string;
-  onNavigate: (page: string) => void;
 }
 
 interface NavEntry {
   id: string;
   label: string;
   icon: LucideIcon;
+  to?: string;
 }
 
 interface NavGroup {
@@ -47,31 +47,57 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "控制台",
     items: [
-      { id: "dashboard", label: "概览", icon: Monitor },
-      { id: "workflow", label: "智能体编排", icon: Workflow },
-      { id: "environments", label: "智能体", icon: Bot },
-      { id: "models", label: "模型", icon: Cpu },
+      { id: "dashboard", label: "概览", icon: Monitor, to: "/" },
+      { id: "workflow", label: "智能体编排", icon: Workflow, to: "/workflow" },
+      { id: "environments", label: "智能体", icon: Bot, to: "/environments" },
+      { id: "models", label: "模型", icon: Cpu, to: "/models" },
       { id: "session", label: "会话", icon: MessageSquare },
     ],
   },
   {
     label: "配置",
     items: [
-      { id: "skills", label: "技能", icon: Settings },
-      { id: "knowledge-bases", label: "知识库", icon: BookOpen },
-      { id: "mcp", label: "MCP", icon: Plug },
-      { id: "tasks", label: "定时任务", icon: Clock },
-      { id: "channels", label: "消息渠道", icon: Radio },
-      { id: "apikeys", label: "API Key", icon: KeyRound },
+      { id: "skills", label: "技能", icon: Settings, to: "/skills" },
+      { id: "knowledge-bases", label: "知识库", icon: BookOpen, to: "/knowledge-bases" },
+      { id: "mcp", label: "MCP", icon: Plug, to: "/mcp" },
+      { id: "tasks", label: "定时任务", icon: Clock, to: "/tasks" },
+      { id: "channels", label: "消息渠道", icon: Radio, to: "/channels" },
+      { id: "apikeys", label: "API Key", icon: KeyRound, to: "/apikeys" },
     ],
   },
 ];
+
+const CONFIG_PAGES = [
+  "models",
+  "agents",
+  "skills",
+  "knowledge-bases",
+  "mcp",
+  "tasks",
+  "channels",
+  "workflow",
+  "environments",
+  "organizations",
+  "apikeys",
+  "login",
+  "agent",
+];
+
+function getActiveNavId(pathname: string): string {
+  const segment = pathname.replace(/^\//, "").split("/")[0];
+  if (!segment) return "dashboard";
+  if (CONFIG_PAGES.includes(segment)) return segment;
+  return "session";
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const currentPage = getActiveNavId(pathname);
+
   return (
     <aside
       className={[
@@ -93,7 +119,6 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
           "bg-gradient-to-b from-surface-1 to-surface-0",
         ].join(" ")}
       >
-        {/* Icon */}
         <div
           className={[
             "w-7 h-7 rounded-lg flex-shrink-0",
@@ -106,7 +131,6 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
           X
         </div>
 
-        {/* Text */}
         <span
           className={[
             "text-sm font-bold tracking-[0.02em] text-text-bright",
@@ -118,7 +142,6 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
           XAgent
         </span>
 
-        {/* Toggle button */}
         <button
           type="button"
           onClick={onToggle}
@@ -140,7 +163,6 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
       <nav className="flex-1 py-2 overflow-y-auto overflow-x-hidden">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            {/* Section label */}
             <div
               className={[
                 "text-[11px] font-semibold uppercase tracking-[0.06em]",
@@ -153,34 +175,12 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
               {collapsed ? <span className="block w-4 h-px bg-border-default mx-auto mt-1" /> : group.label}
             </div>
 
-            {/* Items */}
             {group.items.map((item) => {
               const isActive = item.id === currentPage;
-
               const Icon = item.icon;
 
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onNavigate(item.id)}
-                  title={collapsed ? item.label : undefined}
-                  className={[
-                    "relative flex items-center w-full",
-                    "text-[13px] font-medium cursor-pointer",
-                    "transition-all duration-150",
-                    "whitespace-nowrap overflow-hidden select-none",
-                    // default
-                    "text-text-secondary",
-                    // spacing – collapsed vs expanded
-                    collapsed
-                      ? "justify-center gap-0 px-0 py-2 mx-1.5 rounded-lg"
-                      : "gap-2.5 px-3 py-2 mx-2 rounded-[var(--radius)]",
-                    // active
-                    isActive ? "bg-brand-subtle text-brand-light" : "hover:bg-surface-hover hover:text-text-primary",
-                  ].join(" ")}
-                >
-                  {/* Active indicator bar */}
+              const content = (
+                <>
                   {isActive && (
                     <span
                       className={[
@@ -190,9 +190,7 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
                       ].join(" ")}
                     />
                   )}
-
                   <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-
                   <span
                     className={[
                       "overflow-hidden transition-opacity duration-200",
@@ -201,6 +199,30 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
                   >
                     {item.label}
                   </span>
+                </>
+              );
+
+              const className = [
+                "relative flex items-center w-full",
+                "text-[13px] font-medium cursor-pointer",
+                "transition-all duration-150",
+                "whitespace-nowrap overflow-hidden select-none",
+                "text-text-secondary",
+                collapsed
+                  ? "justify-center gap-0 px-0 py-2 mx-1.5 rounded-lg"
+                  : "gap-2.5 px-3 py-2 mx-2 rounded-[var(--radius)]",
+                isActive
+                  ? "bg-brand-subtle text-brand-light"
+                  : "hover:bg-surface-hover hover:text-text-primary",
+              ].join(" ");
+
+              return item.to ? (
+                <Link key={item.id} to={item.to} className={className} title={collapsed ? item.label : undefined}>
+                  {content}
+                </Link>
+              ) : (
+                <button key={item.id} type="button" className={className} title={collapsed ? item.label : undefined}>
+                  {content}
                 </button>
               );
             })}
@@ -210,17 +232,14 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
 
       {/* ---- Bottom: Team section ---- */}
       <div className={["border-t border-border-subtle", collapsed ? "px-0 py-2" : "px-2 py-2"].join(" ")}>
-        {/* OrgSwitcher — current org display + dropdown */}
         {!collapsed && (
           <div className="px-1 mb-1.5">
             <OrgSwitcher />
           </div>
         )}
 
-        {/* Organizations page nav button */}
-        <button
-          type="button"
-          onClick={() => onNavigate("organizations")}
+        <Link
+          to="/organizations"
           title={collapsed ? "组织" : undefined}
           className={[
             "relative flex items-center w-full",
@@ -251,7 +270,7 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
           >
             组织
           </span>
-        </button>
+        </Link>
       </div>
     </aside>
   );

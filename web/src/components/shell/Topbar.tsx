@@ -1,42 +1,44 @@
 import { LogOut, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { signOut, useSession } from "../../lib/auth-client";
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-interface TopbarProps {
-  currentPage: string;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Page ID -> breadcrumb label mapping                                */
+/*  Page path -> breadcrumb label mapping                              */
 /* ------------------------------------------------------------------ */
 
 const PAGE_LABELS: Record<string, string> = {
-  dashboard: "概览",
-  environments: "智能体",
-  session: "会话",
-  models: "模型",
-  agents: "Agent",
-  skills: "技能",
-  mcp: "MCP",
-  tasks: "定时任务",
-  channels: "消息渠道",
-  apikeys: "API Key",
+  "/": "概览",
+  "/environments": "智能体",
+  "/models": "模型",
+  "/agents": "Agent",
+  "/skills": "技能",
+  "/knowledge-bases": "知识库",
+  "/mcp": "MCP",
+  "/tasks": "定时任务",
+  "/channels": "消息渠道",
+  "/apikeys": "API Key",
+  "/workflow": "智能体编排",
+  "/organizations": "组织",
 };
+
+function getPageLabel(pathname: string): string {
+  const segment = pathname.replace(/^\//, "").split("/")[0];
+  if (!segment) return PAGE_LABELS["/"] ?? "概览";
+  return PAGE_LABELS["/" + segment] ?? segment;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function Topbar({ currentPage }: TopbarProps) {
+export function Topbar() {
   const { data: session } = useSession();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pageLabel = getPageLabel(pathname);
   const userEmail = session?.user?.email ?? "";
   const avatarLetter = userEmail.charAt(0).toUpperCase() || "U";
-  const pageLabel = PAGE_LABELS[currentPage] ?? currentPage;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -65,19 +67,15 @@ export function Topbar({ currentPage }: TopbarProps) {
         "px-6 flex-shrink-0",
       ].join(" ")}
     >
-      {/* ---- Left: Breadcrumb ---- */}
       <div className="flex items-center gap-1.5 text-[13px]">
         <span className="text-text-dim">Dashboard</span>
         <span className="text-text-dim opacity-50">/</span>
         <span className="font-semibold text-text-bright font-[var(--font-display)]">{pageLabel}</span>
       </div>
 
-      {/* ---- Spacer ---- */}
       <div className="flex-1" />
 
-      {/* ---- Right: Search + Theme + Avatar ---- */}
       <div className="flex items-center gap-3">
-        {/* Search box (visual placeholder — not yet functional) */}
         <button
           type="button"
           title="全局搜索功能开发中"
@@ -103,10 +101,8 @@ export function Topbar({ currentPage }: TopbarProps) {
           </kbd>
         </button>
 
-        {/* Theme toggle */}
         <ThemeToggle />
 
-        {/* User avatar + dropdown */}
         <div className="relative">
           <button
             type="button"
@@ -136,12 +132,10 @@ export function Topbar({ currentPage }: TopbarProps) {
                 "z-50",
               ].join(" ")}
             >
-              {/* User info */}
               <div className="px-3 py-2 border-b border-border-subtle">
                 <p className="text-[13px] font-medium text-text-bright truncate">{userEmail}</p>
               </div>
 
-              {/* Logout */}
               <button
                 type="button"
                 onClick={handleLogout}

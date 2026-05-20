@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -31,11 +32,17 @@ import { client } from "../api/client";
 import type { Environment, EnvironmentInstance } from "../types";
 import { AgentsPage } from "./AgentsPage";
 
-interface EnvironmentsPageProps {
-  onNavigateToSession?: (sessionId: string, options?: { cwd?: string }) => void;
-}
-
-export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps) {
+export function EnvironmentsPage() {
+  const navigate = useNavigate();
+  const navigateToSession = useCallback(
+    (sessionId: string, options?: { cwd?: string; agentId?: string }) => {
+      const search: Record<string, string> = {};
+      if (options?.cwd) search.cwd = options.cwd;
+      if (options?.agentId) search.agentId = options.agentId;
+      void navigate({ to: "/$sessionId", params: { sessionId }, search });
+    },
+    [navigate],
+  );
   const [envs, setEnvs] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -186,14 +193,13 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
 
   const handleEnterAgent = useCallback(
     async (env: Environment) => {
-      if (!onNavigateToSession) return;
       setEnteringEnvId(env.id);
       try {
         const { data, error: err } = await client.web.environments({ id: env.id }).enter.post({});
         if (err) throw new Error(err.message ?? "进入失败");
         const result = data as { session_id: string; environment_id: string } | null;
         await new Promise((r) => setTimeout(r, 500));
-        onNavigateToSession(result?.session_id ?? "", {
+        navigateToSession(result?.session_id ?? "", {
           cwd: env.workspace_path,
           agentId: result?.environment_id ?? env.id,
         });
@@ -204,12 +210,11 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
         setEnteringEnvId(null);
       }
     },
-    [onNavigateToSession],
+    [navigateToSession],
   );
 
   const handleEnterInstance = useCallback(
     async (env: Environment, instanceNumber: number) => {
-      if (!onNavigateToSession) return;
       setEnteringEnvId(env.id);
       try {
         const { data, error: err } = await client.web.environments({ id: env.id }).enter.post({
@@ -218,7 +223,7 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
         if (err) throw new Error(err.message ?? "进入失败");
         const result = data as { session_id: string; environment_id: string } | null;
         await new Promise((r) => setTimeout(r, 500));
-        onNavigateToSession(result?.session_id ?? "", {
+        navigateToSession(result?.session_id ?? "", {
           cwd: env.workspace_path,
           agentId: result?.environment_id ?? env.id,
         });
@@ -229,19 +234,18 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
         setEnteringEnvId(null);
       }
     },
-    [onNavigateToSession],
+    [navigateToSession],
   );
 
   const handleSpawnNewInstance = useCallback(
     async (env: Environment) => {
-      if (!onNavigateToSession) return;
       setEnteringEnvId(env.id);
       try {
         const { data, error: err } = await client.web.instances.post({ environmentId: env.id });
         if (err) throw new Error(err.message ?? "创建实例失败");
         const spawnResult = data as { session_id?: string; environment_id?: string } | null;
         await new Promise((r) => setTimeout(r, 500));
-        onNavigateToSession(spawnResult?.session_id ?? "", {
+        navigateToSession(spawnResult?.session_id ?? "", {
           cwd: env.workspace_path,
           agentId: spawnResult?.environment_id ?? env.id,
         });
@@ -253,7 +257,7 @@ export function EnvironmentsPage({ onNavigateToSession }: EnvironmentsPageProps)
         setEnteringEnvId(null);
       }
     },
-    [onNavigateToSession, loadEnvs],
+    [navigateToSession, loadEnvs],
   );
 
   const confirmStopInstance = useCallback(async () => {

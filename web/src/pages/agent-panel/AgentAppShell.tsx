@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { AgentSidebar } from "./AgentSidebar";
 import { ChatPanel } from "./ChatPanel";
@@ -6,16 +7,15 @@ import { ArtifactsPanel } from "./ArtifactsPanel";
 import "./agent-panel.css";
 
 interface AgentAppShellProps {
-  /** 初始选中的 agentId（从 URL 解析） */
-  initialAgentId?: string | null;
-  /** 初始 sessionId */
-  initialSessionId?: string | null;
+  agentId: string;
+  sessionId?: string;
 }
 
-export function AgentAppShell({ initialAgentId, initialSessionId }: AgentAppShellProps) {
+export function AgentAppShell({ agentId, sessionId }: AgentAppShellProps) {
+  const navigate = useNavigate();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(initialAgentId ?? null);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(initialSessionId ?? null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(agentId);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId ?? null);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem("agent-panel:sidebar-collapsed");
@@ -29,7 +29,6 @@ export function AgentAppShell({ initialAgentId, initialSessionId }: AgentAppShel
 
   const [chatEntries, setChatEntries] = useState<unknown[]>([]);
 
-  // 响应式：窄屏自动折叠
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 768px)");
     const handler = (e: MediaQueryListEvent) => {
@@ -42,7 +41,6 @@ export function AgentAppShell({ initialAgentId, initialSessionId }: AgentAppShel
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // 持久化折叠状态
   useEffect(() => {
     localStorage.setItem("agent-panel:sidebar-collapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
@@ -51,32 +49,35 @@ export function AgentAppShell({ initialAgentId, initialSessionId }: AgentAppShel
     localStorage.setItem("agent-panel:artifacts-collapsed", String(artifactsCollapsed));
   }, [artifactsCollapsed]);
 
-  // 选中实例 → 更新 URL
-  const handleSelectInstance = useCallback((instanceId: string, envId: string, sessionId: string | null) => {
-    setSelectedInstanceId(instanceId);
-    setSelectedAgentId(envId);
-    setCurrentSessionId(sessionId);
-    if (sessionId) {
-      window.history.pushState(null, "", `/ctrl/agent/${envId}/${sessionId}`);
-    } else {
-      window.history.pushState(null, "", `/ctrl/agent/${envId}`);
-    }
-  }, []);
+  const handleSelectInstance = useCallback(
+    (instanceId: string, envId: string, newSessionId: string | null) => {
+      setSelectedInstanceId(instanceId);
+      setSelectedAgentId(envId);
+      setCurrentSessionId(newSessionId);
+      if (newSessionId) {
+        void navigate({ to: "/agent/$agentId/$sessionId", params: { agentId: envId, sessionId: newSessionId } });
+      } else {
+        void navigate({ to: "/agent/$agentId", params: { agentId: envId } });
+      }
+    },
+    [navigate],
+  );
 
-  // 配置导航跳转（回到旧布局）
-  const handleNavigate = useCallback((pageId: string) => {
-    if (pageId === "dashboard") {
-      window.location.href = "/ctrl/";
-    } else if (pageId === "apikeys") {
-      window.location.href = "/ctrl/";
-    } else {
-      window.location.href = `/ctrl/${pageId}`;
-    }
-  }, []);
+  const handleNavigate = useCallback(
+    (pageId: string) => {
+      if (pageId === "dashboard") {
+        void navigate({ to: "/" });
+      } else if (pageId === "apikeys") {
+        void navigate({ to: "/apikeys" });
+      } else {
+        void navigate({ to: `/${pageId}` });
+      }
+    },
+    [navigate],
+  );
 
   return (
     <div className="agent-panel-layout">
-      {/* 左侧边栏 */}
       <AgentSidebar
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -84,20 +85,14 @@ export function AgentAppShell({ initialAgentId, initialSessionId }: AgentAppShel
         onSelectInstance={handleSelectInstance}
         onNavigate={handleNavigate}
       />
-
-      {/* 中间聊天区域 */}
       <div className="agent-chat-area">
         <ChatPanel agentId={selectedAgentId} sessionId={currentSessionId} />
       </div>
-
-      {/* 右侧 Artifacts 面板 */}
       <ArtifactsPanel
         collapsed={artifactsCollapsed}
         onToggleCollapse={() => setArtifactsCollapsed(!artifactsCollapsed)}
         entries={chatEntries}
       />
-
-      {/* Artifacts 折叠时的展开按钮 */}
       {artifactsCollapsed && (
         <button
           type="button"

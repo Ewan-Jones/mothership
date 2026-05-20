@@ -1,13 +1,11 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
 import { encryptPassword } from "../lib/password-crypto";
 
-interface LoginPageProps {
-  onLogin: () => void;
-}
-
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage() {
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [signupAllowed, setSignupAllowed] = useState(true);
   const [email, setEmail] = useState("");
@@ -51,7 +49,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           return;
         }
       }
-      onLogin();
+      await navigate({ to: "/" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "未知错误");
     } finally {

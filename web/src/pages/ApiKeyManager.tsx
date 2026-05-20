@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { client } from "../api/client";
 
@@ -10,11 +11,8 @@ interface ApiKeyInfo {
   lastUsedAt: number | null;
 }
 
-interface ApiKeyManagerProps {
-  onBack: () => void;
-}
-
-export function ApiKeyManager({ onBack }: ApiKeyManagerProps) {
+export function ApiKeyManager() {
+  const navigate = useNavigate();
   const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [newLabel, setNewLabel] = useState("");
@@ -87,7 +85,7 @@ export function ApiKeyManager({ onBack }: ApiKeyManagerProps) {
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-3xl px-6 py-6">
         <div className="mb-6 flex items-center gap-3">
-          <button onClick={onBack} className="text-text-muted hover:text-text-primary text-sm">
+          <button onClick={() => void navigate({ to: "/" })} className="text-text-muted hover:text-text-primary text-sm">
             &larr; 返回
           </button>
           <h1 className="text-lg font-semibold text-text-primary">API Key</h1>
