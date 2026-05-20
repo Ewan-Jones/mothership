@@ -1,48 +1,8 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 
-import { hashApiKey } from "../auth/api-key-service";
 import { generateWorkerJwt, verifyWorkerJwt } from "../auth/jwt";
 import { issueToken, resolveToken } from "../auth/token";
 import { resetAllRepos } from "../repositories";
-
-// ---------- api-key ----------
-
-describe("hashApiKey", () => {
-  test("produces consistent SHA-256 hex", () => {
-    const hash = hashApiKey("my-key");
-    expect(hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(hashApiKey("my-key")).toBe(hash);
-  });
-
-  test("different keys produce different hashes", () => {
-    expect(hashApiKey("key-a")).not.toBe(hashApiKey("key-b"));
-  });
-});
-
-// ---------- API Key hash storage ----------
-
-describe("API Key hash storage", () => {
-  test("hashApiKey 输出格式与 validate 查询一致", () => {
-    const fullKey = `rcs_${"a".repeat(48)}`;
-    const hash = hashApiKey(fullKey);
-    expect(hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(hashApiKey(fullKey)).toBe(hash);
-  });
-
-  test("key_prefix 格式正确", () => {
-    const fullKey = "rcs_abcdef1234567890abcdef1234567890abcdef12345678";
-    const prefix = `${fullKey.slice(0, 8)}...${fullKey.slice(-4)}`;
-    expect(prefix).toBe("rcs_abcd...5678");
-    expect(prefix.length).toBeLessThanOrEqual(20);
-  });
-
-  test("hash 不包含原始 key", () => {
-    const key = "rcs_super_secret_key_12345";
-    const hashResult = hashApiKey(key);
-    expect(hashResult).not.toContain("rcs_");
-    expect(hashResult).not.toContain("secret");
-  });
-});
 
 // ---------- jwt ----------
 

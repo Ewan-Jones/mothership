@@ -1,22 +1,16 @@
 import { describe, expect, mock, test } from "bun:test";
 
 mock.module("../db", () => ({ db: {} }));
-mock.module("../auth/better-auth", () => ({}));
-mock.module("../auth/api-key-service", () => ({
-  createApiKey: mock(() =>
-    Promise.resolve({
-      record: {
-        id: "key-1",
-        label: "Meta Agent",
-        keyPrefix: "rcs_1234",
-        createdAt: 1000,
-        lastUsedAt: null,
-        expiresAt: 4600,
-      },
-      fullKey: "rcs_test_meta_api_key_1234567890",
-    }),
-  ),
-  hashApiKey: mock((key: string) => `hash_${key}`),
+mock.module("../auth/better-auth", () => ({
+  auth: {
+    api: {
+      createApiKey: mock(() =>
+        Promise.resolve({
+          key: "rcs_test_meta_api_key_1234567890",
+        }),
+      ),
+    },
+  },
 }));
 mock.module("../services/environment-web", () => ({
   createWebEnvironment: mock(() => Promise.resolve({ id: "env-meta-1" })),
@@ -41,7 +35,7 @@ mock.module("../services/instance", () => ({
   ),
 }));
 mock.module("../services/config/agent-config", () => ({
-  getAgentConfig: mock(() => Promise.resolve(null)),
+  getAgentConfig: mock(() => Promise.resolve({ id: "ac-1" })),
   createAgentConfig: mock(() => Promise.resolve({ id: "ac-1" })),
 }));
 mock.module("../services/config/skill", () => ({
@@ -53,12 +47,13 @@ mock.module("../services/config/skill-meta-content", () => ({
   writeMetaSkillFile: mock(() => Promise.resolve()),
 }));
 
+// ensureMetaEnvironment 使用 better-auth createApiKey
 describe("Meta Agent API Key 注入", () => {
   test("ensureMetaEnvironment 应创建 API key 并传入 extraEnv", async () => {
     const { ensureMetaEnvironment } = await import("../services/meta-agent");
 
     const ctx = {
-      teamId: "team-1",
+      organizationId: "org-1",
       userId: "user-1",
       role: "owner" as const,
     };
@@ -68,7 +63,7 @@ describe("Meta Agent API Key 注入", () => {
     expect(result.environmentId).toBeDefined();
 
     const { spawnInstanceFromEnvironment } = await import("../services/instance");
-    const spawnCall = spawnInstanceFromEnvironment.mock.calls.at(-1);
+    const spawnCall = (spawnInstanceFromEnvironment as any).mock.calls.at(-1);
     expect(spawnCall).toBeDefined();
     const extraEnv = spawnCall![3];
     expect(extraEnv).toBeDefined();

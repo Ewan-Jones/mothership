@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, it } from "bun:test";
-import { scheduledTask, taskExecutionLog, team, teamMember, user } from "../db/schema";
+import { scheduledTask, taskExecutionLog } from "../db/schema";
 
 function getColumnNames(table: object): string[] {
   return Object.keys(table as Record<string, unknown>);
@@ -18,20 +18,10 @@ function createBaseTables(db: Database) {
       updated_at INTEGER NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS team (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      description TEXT,
-      created_by TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS scheduled_task (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
-      team_id TEXT NOT NULL REFERENCES team(id) ON DELETE CASCADE,
+      organization_id TEXT NOT NULL,
       name TEXT NOT NULL,
       description TEXT,
       cron TEXT NOT NULL,
@@ -69,8 +59,7 @@ describe("Task Schema", () => {
   it("should export scheduledTask with HTTP cron task columns", () => {
     expect(scheduledTask).toBeTruthy();
     const columns = getColumnNames(scheduledTask);
-    expect(columns).toContain("id");
-    expect(columns).toContain("teamId");
+    expect(columns).toContain("organizationId");
     expect(columns).toContain("url");
     expect(columns).toContain("method");
     expect(columns).toContain("headers");
@@ -106,7 +95,7 @@ describe("Task Schema", () => {
       expect(colNames).toEqual([
         "id",
         "user_id",
-        "team_id",
+        "organization_id",
         "name",
         "description",
         "cron",
@@ -146,9 +135,8 @@ describe("Task Schema", () => {
 
     it("should cascade delete scheduled_task when user is deleted", () => {
       db.run("INSERT INTO user VALUES ('user1', 'test', 'test@test.com', 0, NULL, 1, 1)");
-      db.run("INSERT INTO team VALUES ('team1', 'Test Team', 'test-team', NULL, 'user1', 1, 1)");
       db.run(
-        "INSERT INTO scheduled_task VALUES ('task1', 'user1', 'team1', 'test task', NULL, '* * * * *', NULL, 1, 'https://example.com/hook', 'POST', NULL, NULL, NULL, NULL, NULL, 1, 1)",
+        "INSERT INTO scheduled_task VALUES ('task1', 'user1', 'org1', 'test task', NULL, '* * * * *', NULL, 1, 'https://example.com/hook', 'POST', NULL, NULL, NULL, NULL, NULL, 1, 1)",
       );
 
       const before = db.query("SELECT count(*) as cnt FROM scheduled_task").get() as { cnt: number };
@@ -162,9 +150,8 @@ describe("Task Schema", () => {
 
     it("should cascade delete task_execution_log when scheduled_task is deleted", () => {
       db.run("INSERT INTO user VALUES ('user1', 'test', 'test@test.com', 0, NULL, 1, 1)");
-      db.run("INSERT INTO team VALUES ('team1', 'Test Team', 'test-team', NULL, 'user1', 1, 1)");
       db.run(
-        "INSERT INTO scheduled_task VALUES ('task1', 'user1', 'team1', 'test task', NULL, '* * * * *', NULL, 1, 'https://example.com/hook', 'POST', NULL, NULL, NULL, NULL, NULL, 1, 1)",
+        "INSERT INTO scheduled_task VALUES ('task1', 'user1', 'org1', 'test task', NULL, '* * * * *', NULL, 1, 'https://example.com/hook', 'POST', NULL, NULL, NULL, NULL, NULL, 1, 1)",
       );
       db.run(
         "INSERT INTO task_execution_log VALUES ('log1', 'task1', 'success', NULL, 125, 'cron', '/tmp/workspace/.scheduled-runs/task1/run1', 'run1', 'echo ok', NULL, 'ok', 1)",
