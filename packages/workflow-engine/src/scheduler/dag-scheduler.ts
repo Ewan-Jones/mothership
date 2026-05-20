@@ -15,6 +15,7 @@ import type { NodeDef, WorkflowDef } from '../types/dag';
 import type { DAGEvent, DAGSnapshot, DAGStatus, NodeOutput, NodeStatus, RunSummary } from '../types/execution';
 import type { StorageAdapter } from '../storage/storage-adapter';
 import { resolveTemplate } from '../parser/expression-parser';
+import { resolveInputs } from '../parser/inputs-resolver';
 import type { EvalContext } from '../types/expression';
 import { WorkflowError, WorkflowErrorCode } from '../types/errors';
 import { CancellationManager } from './cancellation';
@@ -324,13 +325,11 @@ export class DAGScheduler {
     // 解析各节点类型特有的字段
     switch (node.type) {
       case 'shell': {
-        if (typeof node.command === 'string') {
-          resolved.command = resolveTemplate(node.command, evalContext);
-        } else {
-          resolved.command = node.command.map((c) => resolveTemplate(c, evalContext));
-        }
-        if (node.cwd) {
-          resolved.cwd = resolveTemplate(node.cwd, evalContext);
+        // Shell 节点：command 不做模板解析，通过 inputs 注入环境变量
+        resolved.command = node.command;
+        if (node.cwd) resolved.cwd = node.cwd;
+        if (node.inputs) {
+          resolved.inputs = resolveInputs(node.inputs, evalContext);
         }
         break;
       }
@@ -358,9 +357,13 @@ export class DAGScheduler {
         break;
       }
       case 'python': {
-        resolved.code = resolveTemplate(node.code, evalContext);
+        // Python 节点：code 不做模板解析，通过 inputs 注入变量
+        resolved.code = node.code;
         if (node.requirements) resolved.requirements = node.requirements;
-        if (node.cwd) resolved.cwd = resolveTemplate(node.cwd, evalContext);
+        if (node.cwd) resolved.cwd = node.cwd;
+        if (node.inputs) {
+          resolved.inputs = resolveInputs(node.inputs, evalContext);
+        }
         break;
       }
       case 'workflow': {
@@ -387,9 +390,13 @@ export class DAGScheduler {
       resolved.condition = resolveTemplate(node.condition, evalContext);
     }
     if (node.env) {
-      resolved.env = Object.fromEntries(
-        Object.entries(node.env).map(([k, v]) => [k, resolveTemplate(v, evalContext)]),
-      );
+      if (node.type === 'shell' || node.type === 'python') {
+        resolved.env = node.env;
+      } else {
+        resolved.env = Object.fromEntries(
+          Object.entries(node.env).map(([k, v]) => [k, resolveTemplate(v, evalContext)]),
+        );
+      }
     }
 
     return resolved;
