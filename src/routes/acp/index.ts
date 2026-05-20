@@ -5,7 +5,7 @@ import { log, error as logError } from "../../logger";
 import { authGuardPlugin, lookupUserById } from "../../plugins/auth";
 import { environmentRepo } from "../../repositories";
 import { getEnvironmentBySecret } from "../../services/environment";
-import { handleRelayClose, handleRelayMessage, handleRelayOpen } from "../../transport/acp-relay-handler";
+import { handleRelayClose, handleRelayMessage, handleRelayOpen } from "../../transport/relay";
 import { handleAcpWsClose, handleAcpWsMessage, handleAcpWsOpen } from "../../transport/acp-ws-handler";
 import type { WsConnection } from "../../transport/ws-types";
 
@@ -70,9 +70,8 @@ const app = new Elysia({ name: "acp", prefix: "/acp" })
   /** GET /acp/agents — List current user's team ACP agents */
   .get(
     "/agents",
-    async ({ store, request }) => {
-      const { loadOrgContext } = await import("../../services/org-context");
-      const authCtx = await loadOrgContext(store.user!, request);
+    async ({ store }) => {
+      const authCtx = store.authContext;
       const orgId = authCtx?.organizationId ?? store.user!.id;
       const teamEnvs = await environmentRepo.listByOrganizationId(orgId);
       const acpEnvs = teamEnvs.filter((e) => e.workerType === "acp");

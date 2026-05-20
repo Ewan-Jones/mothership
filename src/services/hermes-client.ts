@@ -1,6 +1,6 @@
 import { log, error as logError } from "../logger";
 import { eventService } from "../services/event-service";
-import { sendToInstanceRelay } from "../transport/acp-relay-handler";
+import { sendToInstanceRelay } from "../transport/relay";
 import { sendToAgentWs } from "../transport/acp-ws-handler";
 import type { ChannelBinding } from "./channel-binding";
 import { findBindingForMessage } from "./channel-binding";

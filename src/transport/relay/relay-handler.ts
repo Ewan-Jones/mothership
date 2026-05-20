@@ -1,64 +1,15 @@
-import type { EngineRelayHandle } from "@mothership/plugin-sdk";
-import { log, error as logError } from "../logger";
-import { getCoreRuntime } from "../services/core-bootstrap";
-import { findInstanceBySessionId, findRunningInstanceByEnvironment } from "../services/instance";
-import { findAcpConnectionByAgentId, sendToAgentWs } from "./acp-ws-handler";
-import type { SessionEvent } from "./event-bus";
-import { getAcpEventBus } from "./event-bus";
-import type { WsConnection } from "./ws-types";
+import { log, error as logError } from "../../logger";
+import { getCoreRuntime } from "../../services/core-bootstrap";
+import { findInstanceBySessionId, findRunningInstanceByEnvironment } from "../../services/instance";
+import { findAcpConnectionByAgentId, sendToAgentWs } from "../acp-ws-handler";
+import type { WsConnection } from "../ws-types";
+import { RelayConnectionManager, sendToRelayWs } from "./connection-manager";
+import type { RelayConnectionEntry } from "./connection-manager";
+import { flushOutboundBuffer, publishToEventBus } from "./message-router";
 
-// Per-relay connection state
-interface RelayConnectionEntry {
-  agentId: string;
-  userId: string;
-  unsub: (() => void) | null;
-  keepalive: ReturnType<typeof setInterval> | null;
-  ws: WsConnection;
-  openTime: number;
-  // Instance mode: core relay handle
-  instanceId: string | null;
-  relayHandle: EngineRelayHandle | null;
-  relayUnsub: (() => void) | null;
-  // Buffer for outbound messages arriving before relay handle is ready
-  outboundBuffer: Record<string, unknown>[];
-}
-
-const relayConnections = new Map<string, RelayConnectionEntry>();
-let isShuttingDown = false;
+const manager = new RelayConnectionManager();
 
 const RELAY_KEEPALIVE_INTERVAL_MS = 20_000;
-
-/** Send a JSON message to relay WS */
-function sendToRelayWs(ws: WsConnection, msg: object): void {
-  if (ws.readyState !== 1) return;
-  try {
-    const payload = JSON.stringify(msg);
-    ws.send(payload);
-    log(`[ACP-Relay] Sent to frontend: type=${(msg as any).type} bytes=${payload.length}`);
-  } catch (err) {
-    logError("[ACP-Relay] send error:", err);
-  }
-}
-
-/** Publish relay messages to the ACP EventBus for SSE subscribers. */
-function publishToEventBus(agentId: string, message: Record<string, unknown>): void {
-  const bus = getAcpEventBus(agentId);
-  let eventType = typeof message.type === "string" ? message.type : "";
-  if (!eventType) {
-    const msg = message.message as Record<string, unknown> | undefined;
-    if (msg && typeof msg.role === "string") {
-      eventType = msg.role;
-    }
-  }
-  if (!eventType) eventType = "acp_message";
-  bus.publish({
-    id: crypto.randomUUID(),
-    sessionId: agentId,
-    type: eventType,
-    payload: message,
-    direction: "inbound",
-  });
-}
 
 /** Called from onOpen — finds target agent and bridges connection */
 export function handleRelayOpen(
@@ -103,9 +54,8 @@ function openInstanceRelay(
   userId: string,
   instanceId: string,
 ): void {
-  // Relay keepalive to frontend — only runs while relay is alive
   const relayKeepalive = setInterval(() => {
-    const entry = relayConnections.get(relayWsId);
+    const entry = manager.get(relayWsId);
     if (!entry || entry.ws.readyState !== 1) {
       clearInterval(relayKeepalive);
       return;
@@ -125,9 +75,8 @@ function openInstanceRelay(
     relayUnsub: null,
     outboundBuffer: [],
   };
-  relayConnections.set(relayWsId, entry);
+  manager.add(relayWsId, entry);
 
-  // Asynchronously connect via core's relay
   const facade = getCoreRuntime();
   facade
     .connectInstanceRelay({
@@ -135,7 +84,6 @@ function openInstanceRelay(
       sessionId: relayWsId,
     })
     .then((handle) => {
-      // Check if relay WS is still open
       if (ws.readyState !== 1) {
         handle.close();
         return;
@@ -143,24 +91,8 @@ function openInstanceRelay(
 
       entry.relayHandle = handle;
 
-      // Flush buffered outbound messages (e.g. frontend's "connect" sent before relay was ready)
-      if (entry.outboundBuffer.length > 0) {
-        const buffered = entry.outboundBuffer.splice(0);
-        log(`[ACP-Relay] Flushing ${buffered.length} buffered outbound messages for instance ${instanceId}`);
-        for (const msg of buffered) {
-          if (msg.type === "connect") {
-            // Relay handle already sent connect; skip
-            log("[ACP-Relay] Skipping buffered connect (relay handle auto-connects)");
-            continue;
-          }
-          try {
-            handle.send(msg as any);
-          } catch {
-            // relay closed during flush — stop
-            break;
-          }
-        }
-      }
+      // Flush buffered outbound messages
+      flushOutboundBuffer(entry.outboundBuffer, handle);
 
       // Subscribe to inbound messages from engine
       if ("onMessage" in handle && typeof (handle as any).onMessage === "function") {
@@ -183,7 +115,6 @@ function openInstanceRelay(
         );
       }
 
-      // 不再主动发 status，由 acp-link 的 connect 响应自然推送给前端
       log(`[ACP-Relay] Core relay connected for instance ${instanceId}`);
     })
     .catch((err) => {
@@ -200,7 +131,7 @@ function openInstanceRelay(
 /** EventBus mode: for direct acp-link WS connections */
 function openEventBusRelay(ws: WsConnection, relayWsId: string, agentId: string, userId: string): void {
   const keepalive = setInterval(() => {
-    const entry = relayConnections.get(relayWsId);
+    const entry = manager.get(relayWsId);
     if (!entry || entry.ws.readyState !== 1) {
       clearInterval(keepalive);
       return;
@@ -208,8 +139,9 @@ function openEventBusRelay(ws: WsConnection, relayWsId: string, agentId: string,
     sendToRelayWs(entry.ws, { type: "keep_alive" });
   }, RELAY_KEEPALIVE_INTERVAL_MS);
 
+  const { getAcpEventBus } = require("../event-bus");
   const bus = getAcpEventBus(agentId);
-  const unsub = bus.subscribe((event: SessionEvent) => {
+  const unsub = bus.subscribe((event: any) => {
     if (ws.readyState !== 1) return;
     if (event.direction !== "inbound") return;
     if (event.type === "agent_disconnect") {
@@ -219,7 +151,7 @@ function openEventBusRelay(ws: WsConnection, relayWsId: string, agentId: string,
     sendToRelayWs(ws, event.payload as object);
   });
 
-  relayConnections.set(relayWsId, {
+  manager.add(relayWsId, {
     agentId,
     userId,
     unsub,
@@ -235,18 +167,15 @@ function openEventBusRelay(ws: WsConnection, relayWsId: string, agentId: string,
   log(`[ACP-Relay] EventBus relay established: relayWsId=${relayWsId} → agentId=${agentId}`);
 }
 
-/** Called from onMessage — forwards frontend messages.
- *  Accepts either a pre-parsed object (from Elysia WS) or a raw JSON string.
- */
+/** Called from onMessage — forwards frontend messages. */
 export async function handleRelayMessage(
   ws: WsConnection,
   relayWsId: string,
   data: string | Record<string, unknown>,
 ): Promise<void> {
-  const entry = relayConnections.get(relayWsId);
+  const entry = manager.get(relayWsId);
   if (!entry) return;
 
-  // Normalize input to parsed object(s)
   let parsed: Record<string, unknown>;
   if (typeof data === "string") {
     try {
@@ -266,11 +195,9 @@ export async function handleRelayMessage(
   // Instance mode: forward messages via core relay handle
   if (entry.relayHandle) {
     if (parsed.type === "connect") {
-      // Relay handle already sent connect; acp-link will emit status via onMessage
       log("[ACP-Relay] Skipping frontend connect in instance mode (relay handle auto-connects)");
       return;
     }
-    // Frontend heartbeat ping: respond locally (the relay handle would swallow the pong)
     if (parsed.type === "ping") {
       sendToRelayWs(ws, { type: "pong" });
       return;
@@ -302,7 +229,7 @@ export async function handleRelayMessage(
 
 /** Called from onClose — cleans up relay connection */
 export function handleRelayClose(ws: WsConnection, relayWsId: string, code?: number, reason?: string): void {
-  const entry = relayConnections.get(relayWsId);
+  const entry = manager.get(relayWsId);
   if (!entry) return;
 
   const duration = Math.round((Date.now() - entry.openTime) / 1000);
@@ -311,33 +238,17 @@ export function handleRelayClose(ws: WsConnection, relayWsId: string, code?: num
   );
 
   const instanceId = entry.instanceId;
+  manager.remove(relayWsId);
 
-  // Unsubscribe from message forwarding
-  if (entry.relayUnsub) {
-    entry.relayUnsub();
-  }
-  if (entry.unsub) {
-    entry.unsub();
-  }
-  if (entry.keepalive) {
-    clearInterval(entry.keepalive);
-  }
-
-  relayConnections.delete(relayWsId);
-
-  // 如果这是最后一个使用此 instanceId 的 relay 连接，关闭 core relay handle 避免僵尸 WS
-  // shutdown 期间跳过：closeAllRelayConnections 已经关闭了 relayHandle
-  if (instanceId && !isShuttingDown) {
-    const hasOtherRelay = [...relayConnections.values()].some((e) => e.instanceId === instanceId);
-    if (!hasOtherRelay) {
-      // 直接从 entry 关闭已有的 relay handle，避免 connectInstanceRelay 新建连接再关闭
+  // 如果这是最后一个使用此 instanceId 的 relay 连接，关闭 core relay handle
+  if (instanceId && !manager.isShuttingDown) {
+    if (!manager.hasOtherRelayForInstance(instanceId)) {
       if (entry.relayHandle) {
         try {
           entry.relayHandle.close();
           log(`[ACP-Relay] Closed core relay handle for instance ${instanceId} (last relay disconnected)`);
         } catch {}
-      } else if (entry.instanceId) {
-        // relay handle 尚未就绪（connectInstanceRelay 还在 pending），通过 facade 关闭
+      } else if (instanceId) {
         const facade = getCoreRuntime();
         const snapshot = facade.getInstance(instanceId);
         if (snapshot?.relayConnected) {
@@ -356,13 +267,12 @@ export function handleRelayClose(ws: WsConnection, relayWsId: string, code?: num
 
 /** Close all relay connections (for graceful shutdown) */
 export function closeAllRelayConnections(): void {
-  if (relayConnections.size === 0) return;
+  if (manager.size === 0) return;
 
-  isShuttingDown = true;
-  log(`[ACP-Relay] Closing ${relayConnections.size} relay connection(s)...`);
-  for (const [relayWsId, entry] of relayConnections) {
+  manager.isShuttingDown = true;
+  log(`[ACP-Relay] Closing ${manager.size} relay connection(s)...`);
+  for (const [, entry] of manager.entries()) {
     try {
-      // Close core relay handles on shutdown
       if (entry.relayHandle) {
         entry.relayHandle.close();
       }
@@ -378,13 +288,13 @@ export function closeAllRelayConnections(): void {
       // ignore errors during shutdown
     }
   }
-  relayConnections.clear();
+  manager.clear();
   log("[ACP-Relay] All connections closed");
 }
 
 /** Close the relay handle for a specific instance (called when instance is stopped) */
 export function closeInstanceRelay(instanceId: string): void {
-  for (const [, entry] of relayConnections) {
+  for (const [, entry] of manager.entries()) {
     if (entry.instanceId === instanceId && entry.relayHandle) {
       try {
         entry.relayHandle.close();
@@ -401,7 +311,7 @@ export function closeInstanceRelay(instanceId: string): void {
 
 /** Send data to a spawned instance via core relay handle. Returns true if sent. */
 export function sendToInstanceRelay(instanceId: string, data: string): boolean {
-  for (const [, entry] of relayConnections) {
+  for (const [, entry] of manager.entries()) {
     if (entry.instanceId === instanceId && entry.relayHandle && entry.relayHandle.state === "open") {
       try {
         const parsed = JSON.parse(data);

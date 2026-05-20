@@ -43,7 +43,7 @@ import { getHermesClient, initHermesClient } from "./services/hermes-client";
 import { findRunningInstanceByEnvironment, spawnInstanceFromEnvironment, stopAllInstances } from "./services/instance";
 import { startScheduler, stopScheduler } from "./services/scheduler";
 import { migrateSkillsDir } from "./services/skill";
-import { closeAllRelayConnections } from "./transport/acp-relay-handler";
+import { closeAllRelayConnections } from "./transport/relay";
 import { closeAllAcpConnections } from "./transport/acp-ws-handler";
 
 await initDb();
