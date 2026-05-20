@@ -29,7 +29,8 @@ app.post(
           auth.api.getFullOrganization({ query: { organizationId: b.organizationId }, headers: request.headers }),
           auth.api.listMembers({ query: { organizationId: b.organizationId }, headers: request.headers }),
         ]);
-        return { success: true, data: { ...org, members: Array.isArray(members) ? members : [] } };
+        const memberList: any[] = Array.isArray(members) ? members : (members?.members ?? []);
+        return { success: true, data: { ...org, members: memberList } };
       }
       case "get-full": {
         const authCtx = store.authContext;
@@ -39,16 +40,17 @@ app.post(
           auth.api.getFullOrganization({ query: { organizationId: orgId }, headers: request.headers }),
           auth.api.listMembers({ query: { organizationId: orgId }, headers: request.headers }),
         ]);
-        return { success: true, data: { ...org, members: Array.isArray(members) ? members : [] } };
+        const memberList: any[] = Array.isArray(members) ? members : (members?.members ?? []);
+        return { success: true, data: { ...org, members: memberList } };
       }
       case "create": {
         if (!b.name || !b.slug)
           return error(400, { success: false, error: { code: "VALIDATION_ERROR", message: "name and slug required" } });
         try {
-          const org = await api.createOrganization(
-            { name: b.name, slug: b.slug, metadata: b.description ?? null },
-            { headers: request.headers },
-          );
+          const org = await api.createOrganization({
+            body: { name: b.name, slug: b.slug, metadata: b.description ?? null },
+            headers: request.headers,
+          });
           return { success: true, data: org };
         } catch (err: any) {
           const msg = err.message || "";
@@ -64,10 +66,10 @@ app.post(
             success: false,
             error: { code: "VALIDATION_ERROR", message: "organizationId and data required" },
           });
-        const org = await api.updateOrganization(
-          { data: b.data, organizationId: b.organizationId },
-          { headers: request.headers },
-        );
+        const org = await api.updateOrganization({
+          body: { data: b.data, organizationId: b.organizationId },
+          headers: request.headers,
+        });
         return { success: true, data: org };
       }
       case "delete": {
@@ -76,7 +78,7 @@ app.post(
             success: false,
             error: { code: "VALIDATION_ERROR", message: "organizationId required" },
           });
-        await api.deleteOrganization({ organizationId: b.organizationId }, { headers: request.headers });
+        await api.deleteOrganization({ body: { organizationId: b.organizationId }, headers: request.headers });
         return { success: true, data: { deleted: true } };
       }
       case "set-active": {
@@ -85,7 +87,7 @@ app.post(
             success: false,
             error: { code: "VALIDATION_ERROR", message: "organizationId required" },
           });
-        await api.setActiveOrganization({ organizationId: b.organizationId }, { headers: request.headers });
+        await api.setActiveOrganization({ body: { organizationId: b.organizationId }, headers: request.headers });
         return { success: true };
       }
       case "list-members": {
@@ -98,7 +100,8 @@ app.post(
           query: { organizationId: b.organizationId },
           headers: request.headers,
         });
-        return { success: true, data: Array.isArray(members) ? members : [] };
+        const memberData: any[] = Array.isArray(members) ? members : (members?.members ?? []);
+        return { success: true, data: memberData };
       }
       case "add-member": {
         if (!b.organizationId || !b.email || !b.role)
@@ -106,10 +109,10 @@ app.post(
             success: false,
             error: { code: "VALIDATION_ERROR", message: "organizationId, email, role required" },
           });
-        const invitation = await api.createInvitation(
-          { email: b.email, role: b.role, organizationId: b.organizationId },
-          { headers: request.headers },
-        );
+        const invitation = await api.createInvitation({
+          body: { email: b.email, role: b.role, organizationId: b.organizationId },
+          headers: request.headers,
+        });
         return { success: true, data: invitation };
       }
       case "remove-member": {
@@ -118,7 +121,7 @@ app.post(
             success: false,
             error: { code: "VALIDATION_ERROR", message: "organizationId, userId required" },
           });
-        await api.removeMember({ organizationId: b.organizationId, userId: b.userId }, { headers: request.headers });
+        await api.removeMember({ body: { organizationId: b.organizationId, userId: b.userId }, headers: request.headers });
         return { success: true };
       }
       case "update-role": {
@@ -127,10 +130,10 @@ app.post(
             success: false,
             error: { code: "VALIDATION_ERROR", message: "organizationId, userId, role required" },
           });
-        await api.updateMemberRole(
-          { organizationId: b.organizationId, userId: b.userId, role: b.role },
-          { headers: request.headers },
-        );
+        await api.updateMemberRole({
+          body: { organizationId: b.organizationId, userId: b.userId, role: b.role },
+          headers: request.headers,
+        });
         return { success: true };
       }
       default:
@@ -160,20 +163,20 @@ app.post(
       case "create": {
         if (!b.name)
           return error(400, { success: false, error: { code: "VALIDATION_ERROR", message: "name required" } });
-        const result = await api.createApiKey(
-          { name: b.name, prefix: "rcs_", expiresAt: b.expiresAt ?? null, metadata: b.metadata ?? null },
-          { headers: request.headers },
-        );
+        const result = await api.createApiKey({
+          body: { name: b.name, prefix: "rcs_", expiresIn: b.expiresAt ? Math.ceil((new Date(b.expiresAt).getTime() - Date.now()) / 1000) : null, metadata: b.metadata ?? null },
+          headers: request.headers,
+        });
         return { success: true, data: result };
       }
       case "delete": {
         if (!b.id) return error(400, { success: false, error: { code: "VALIDATION_ERROR", message: "id required" } });
-        await api.deleteApiKey({ id: b.id }, { headers: request.headers });
+        await api.deleteApiKey({ body: { id: b.id }, headers: request.headers });
         return { success: true, data: { deleted: true } };
       }
       case "update": {
         if (!b.id) return error(400, { success: false, error: { code: "VALIDATION_ERROR", message: "id required" } });
-        await api.updateApiKey({ id: b.id, name: b.name }, { headers: request.headers });
+        await api.updateApiKey({ body: { id: b.id, name: b.name }, headers: request.headers });
         return { success: true };
       }
       default:

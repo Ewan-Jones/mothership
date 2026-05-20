@@ -25,6 +25,7 @@ export const auth = betterAuth({
     }),
     apiKey({
       defaultPrefix: "rcs_",
+      enableMetadata: true,
     }),
   ],
 });

@@ -58,7 +58,7 @@ describe("Meta Agent API Key 注入", () => {
       role: "owner" as const,
     };
 
-    const result = await ensureMetaEnvironment(ctx);
+    const result = await ensureMetaEnvironment(ctx, new Request("http://localhost"));
     expect(result).toBeDefined();
     expect(result.environmentId).toBeDefined();
 

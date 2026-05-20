@@ -61,21 +61,23 @@ async function ensureMetaConfig(ctx: AuthContext): Promise<string> {
 }
 
 /** 为 meta agent 创建 API key（1 小时过期） */
-async function createMetaApiKey(ctx: AuthContext): Promise<string> {
-  const expiresAt = new Date(Date.now() + META_KEY_EXPIRY_MS);
+async function createMetaApiKey(ctx: AuthContext, headers: Headers): Promise<string> {
   const result: any = await (auth.api as any).createApiKey({
-    name: META_KEY_LABEL,
-    prefix: "rcs_",
-    expiresAt,
-    metadata: { organizationId: ctx.organizationId, role: ctx.role },
+    body: {
+      name: META_KEY_LABEL,
+      prefix: "rcs_",
+      expiresIn: null,
+      metadata: { organizationId: ctx.organizationId, role: ctx.role },
+    },
+    headers,
   });
   return result?.key ?? result?.fullKey ?? "";
 }
 
 /** 查找或创建 meta environment + spawn 实例 */
-export async function ensureMetaEnvironment(ctx: AuthContext): Promise<EnsureMetaResult> {
+export async function ensureMetaEnvironment(ctx: AuthContext, request: Request): Promise<EnsureMetaResult> {
   const agentConfigId = await ensureMetaConfig(ctx);
-  const apiKey = await createMetaApiKey(ctx);
+  const apiKey = await createMetaApiKey(ctx, request.headers);
   const extraEnv: Record<string, string> = { USER_META_API_KEY: apiKey };
 
   const existing = await findMetaEnvironment(ctx);

@@ -35,11 +35,11 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
 
     const activeOrgId = extractActiveOrgId(request);
     if (activeOrgId) {
-      const members = await api.listMembers({
+      const memberRes = await api.listMembers({
         query: { organizationId: activeOrgId },
         headers: request.headers,
       });
-      const memberList = Array.isArray(members) ? members : [];
+      const memberList: any[] = Array.isArray(memberRes) ? memberRes : (memberRes?.members ?? []);
       const me = memberList.find((m: any) => m.userId === user.id);
       if (me) {
         return {
@@ -52,14 +52,14 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
 
     // fallback: 列出用户的组织，取第一个
     const orgs = await api.listOrganizations({ headers: request.headers });
-    const orgList = Array.isArray(orgs) ? orgs : [];
+    const orgList: any[] = Array.isArray(orgs) ? orgs : [];
     if (orgList.length > 0) {
       const org = orgList[0];
-      const members = await api.listMembers({
+      const memberRes = await api.listMembers({
         query: { organizationId: org.id },
         headers: request.headers,
       });
-      const memberList = Array.isArray(members) ? members : [];
+      const memberList: any[] = Array.isArray(memberRes) ? memberRes : (memberRes?.members ?? []);
       const me = memberList.find((m: any) => m.userId === user.id);
       if (me) {
         return {
@@ -71,10 +71,10 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
     }
 
     // 无组织 → 自动创建个人组织
-    const personalOrg = await api.createOrganization(
-      { name: "Personal", slug: `personal-${user.id.slice(0, 8)}` },
-      { headers: request.headers },
-    );
+    const personalOrg = await api.createOrganization({
+      body: { name: "Personal", slug: `personal-${user.id.slice(0, 8)}` },
+      headers: request.headers,
+    });
     if (personalOrg) {
       return {
         organizationId: personalOrg.id,

@@ -21,7 +21,7 @@ app.post(
     }
 
     try {
-      const result = await ensureMetaEnvironment(authCtx);
+      const result = await ensureMetaEnvironment(authCtx, request);
       return { success: true, data: result };
     } catch (err: unknown) {
       console.error("[meta-agent] ensure failed:", err);
