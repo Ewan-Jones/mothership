@@ -9,7 +9,7 @@
 export interface WorkflowDefItem {
   id: string;
   userId: string;
-  teamId: string;
+  organizationId: string;
   name: string;
   description: string | null;
   latestVersion: number | null;

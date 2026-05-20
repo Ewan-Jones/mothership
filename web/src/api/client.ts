@@ -9,10 +9,10 @@ export const client = treaty<App>(typeof globalThis.window !== "undefined" ? glo
 
 export function createSessionEventSource(sessionId: string): EventSource {
   const uuid = getUuid();
-  const activeTeamId = localStorage.getItem("active_team_id");
+  const activeOrgId = localStorage.getItem("active_org_id");
   const params = new URLSearchParams();
   if (uuid) params.set("uuid", uuid);
-  if (activeTeamId) params.set("activeTeamId", activeTeamId);
+  if (activeOrgId) params.set("activeOrganizationId", activeOrgId);
   const query = params.toString();
   const url = query ? `/web/sessions/${sessionId}/events?${query}` : `/web/sessions/${sessionId}/events`;
   return new EventSource(url, { withCredentials: true });

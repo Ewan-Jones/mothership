@@ -1,10 +1,10 @@
 import { Check, ChevronDown, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useTeam } from "../contexts/TeamContext";
+import { useOrg } from "../contexts/OrgContext";
 
-/** Sidebar 顶部团队切换器 */
-export function TeamSwitcher() {
-  const { team, teams, switchTeam } = useTeam();
+/** Sidebar 顶部组织切换器 */
+export function OrgSwitcher() {
+  const { org, orgs, switchOrg } = useOrg();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -16,7 +16,7 @@ export function TeamSwitcher() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  if (!team) return null;
+  if (!org) return null;
 
   return (
     <div ref={ref} className="relative">
@@ -30,7 +30,7 @@ export function TeamSwitcher() {
         ].join(" ")}
       >
         <Users className="w-4 h-4 text-text-dim" />
-        <span className="max-w-[120px] truncate">{team.name}</span>
+        <span className="max-w-[120px] truncate">{org.name}</span>
         <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
       </button>
 
@@ -42,23 +42,23 @@ export function TeamSwitcher() {
             "py-1 z-50",
           ].join(" ")}
         >
-          {teams.map((t) => (
+          {orgs.map((o) => (
             <button
-              key={t.id}
+              key={o.id}
               type="button"
               onClick={() => {
-                switchTeam(t.id);
+                switchOrg(o.id);
                 setOpen(false);
               }}
               className={[
                 "flex items-center gap-2 w-full px-3 py-2 text-sm text-left",
                 "hover:bg-surface-hover transition-colors",
-                t.id === team.id ? "text-brand font-medium" : "text-text-secondary",
+                o.id === org.id ? "text-brand font-medium" : "text-text-secondary",
               ].join(" ")}
             >
-              {t.id === team.id && <Check className="w-3.5 h-3.5" />}
-              <span className={t.id !== team.id ? "ml-[20px]" : ""}>{t.name}</span>
-              <span className="ml-auto text-[11px] text-text-dim">{t.role}</span>
+              {o.id === org.id && <Check className="w-3.5 h-3.5" />}
+              <span className={o.id !== org.id ? "ml-[20px]" : ""}>{o.name}</span>
+              <span className="ml-auto text-[11px] text-text-dim">{o.role}</span>
             </button>
           ))}
         </div>

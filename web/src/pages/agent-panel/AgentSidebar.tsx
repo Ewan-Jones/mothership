@@ -1,5 +1,5 @@
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
-import { TeamSwitcher } from "../../components/TeamSwitcher";
+import { OrgSwitcher } from "../../components/OrgSwitcher";
 import { AgentSidebarConfig } from "./AgentSidebarConfig";
 import { AgentSidebarTree } from "./AgentSidebarTree";
 
@@ -84,7 +84,7 @@ export function AgentSidebar({
       <div className="border-t border-border-subtle px-2 py-2">
         {!collapsed && (
           <div className="px-1 mb-1.5">
-            <TeamSwitcher />
+            <OrgSwitcher />
           </div>
         )}
       </div>

@@ -15,34 +15,33 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Input } from "../../components/ui/input";
-import { useTeam } from "../contexts/TeamContext";
+import { useOrg } from "../contexts/OrgContext";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface TeamMember {
+interface OrgMember {
   id: string;
   userId: string;
   role: string;
-  userName: string;
-  userEmail: string;
+  user: { id: string; name: string; email: string; image?: string };
 }
 
-interface TeamDetail {
+interface OrgDetail {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
-  createdBy: string;
+  logo?: string;
+  members: OrgMember[];
 }
 
 /* ------------------------------------------------------------------ */
 /*  API helper                                                         */
 /* ------------------------------------------------------------------ */
 
-async function teamApi<T>(body: Record<string, unknown>): Promise<T> {
-  const res = await fetch("/web/teams", {
+async function orgApi<T>(body: Record<string, unknown>): Promise<T> {
+  const res = await fetch("/web/organizations", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -90,12 +89,11 @@ function nameToSlug(name: string): string {
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function TeamsPage() {
-  const { team: currentTeam, role: currentRole, refreshTeams } = useTeam();
+export function OrgsPage() {
+  const { org: currentOrg, role: currentRole, refreshOrgs } = useOrg();
 
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<TeamDetail | null>(null);
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<OrgDetail | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Dialog states
@@ -106,111 +104,104 @@ export function TeamsPage() {
   const [formSaving, setFormSaving] = useState(false);
 
   const [addMemberOpen, setAddMemberOpen] = useState(false);
-  const [addMemberUserId, setAddMemberUserId] = useState("");
+  const [addMemberEmail, setAddMemberEmail] = useState("");
   const [addMemberRole, setAddMemberRole] = useState("member");
   const [addMemberSaving, setAddMemberSaving] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteSaving, setDeleteSaving] = useState(false);
 
-  // Edit team name/description
+  // Edit org name
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
-  // Load my teams list
-  const [myTeams, setMyTeams] = useState<{ id: string; name: string; slug: string; role: string }[]>([]);
+  // Load my orgs list
+  const [myOrgs, setMyOrgs] = useState<{ id: string; name: string; slug: string; role: string }[]>([]);
 
-  const loadMyTeams = useCallback(async () => {
+  const loadMyOrgs = useCallback(async () => {
     try {
-      const list = await teamApi<{ id: string; name: string; slug: string; role: string }[]>({ action: "list" });
-      setMyTeams(list);
+      const list = await orgApi<{ id: string; name: string; slug: string; role: string }[]>({ action: "list" });
+      setMyOrgs(list);
     } catch (err) {
       console.error(err);
     }
   }, []);
 
   useEffect(() => {
-    loadMyTeams();
-  }, [loadMyTeams]);
+    loadMyOrgs();
+  }, [loadMyOrgs]);
 
-  // Auto-select current team
+  // Auto-select current org
   useEffect(() => {
-    if (!selectedTeamId && currentTeam?.id) {
-      setSelectedTeamId(currentTeam.id);
+    if (!selectedOrgId && currentOrg?.id) {
+      setSelectedOrgId(currentOrg.id);
     }
-  }, [selectedTeamId, currentTeam]);
+  }, [selectedOrgId, currentOrg]);
 
-  // Load team detail & members when selection changes
+  // Load org detail when selection changes
   useEffect(() => {
-    if (!selectedTeamId) {
+    if (!selectedOrgId) {
       setDetail(null);
-      setMembers([]);
       return;
     }
     setLoading(true);
-    Promise.all([
-      teamApi<TeamDetail>({ action: "get", teamId: selectedTeamId }),
-      teamApi<TeamMember[]>({ action: "list-members", teamId: selectedTeamId }),
-    ])
-      .then(([d, m]) => {
+    orgApi<OrgDetail>({ action: "get", organizationId: selectedOrgId })
+      .then((d) => {
         setDetail(d);
-        setMembers(m);
       })
       .catch((err) => {
         console.error(err);
-        toast.error("加载团队详情失败");
+        toast.error("加载组织详情失败");
       })
       .finally(() => setLoading(false));
-  }, [selectedTeamId]);
+  }, [selectedOrgId]);
 
   const canManage = currentRole === "owner" || currentRole === "admin";
   const isOwner = currentRole === "owner";
 
-  // --- Create team ---
+  // --- Create org ---
   const handleCreate = async () => {
     if (!formName.trim()) return;
     setFormSaving(true);
     try {
-      const t = await teamApi<{ id: string }>({
+      const t = await orgApi<{ id: string }>({
         action: "create",
         name: formName.trim(),
         slug: formSlug || nameToSlug(formName),
         description: formDesc.trim() || undefined,
       });
-      toast.success("团队创建成功");
+      toast.success("组织创建成功");
       setCreateOpen(false);
       setFormName("");
       setFormSlug("");
       setFormDesc("");
-      await loadMyTeams();
-      await refreshTeams();
-      setSelectedTeamId(t.id);
+      await loadMyOrgs();
+      await refreshOrgs();
+      setSelectedOrgId(t.id);
     } catch (err) {
       console.error(err);
-      toast.error("创建团队失败");
+      toast.error("创建组织失败");
     } finally {
       setFormSaving(false);
     }
   };
 
-  // --- Update team info ---
+  // --- Update org info ---
   const handleSaveEdit = async () => {
-    if (!selectedTeamId || !editName.trim()) return;
+    if (!selectedOrgId || !editName.trim()) return;
     setEditSaving(true);
     try {
-      await teamApi({
+      await orgApi({
         action: "update",
-        teamId: selectedTeamId,
-        name: editName.trim(),
-        description: editDesc.trim(),
+        organizationId: selectedOrgId,
+        data: { name: editName.trim() },
       });
-      toast.success("团队信息已更新");
+      toast.success("组织信息已更新");
       setEditingName(false);
-      setDetail((d) => (d ? { ...d, name: editName.trim(), description: editDesc.trim() } : d));
-      await loadMyTeams();
-      await refreshTeams();
+      setDetail((d) => (d ? { ...d, name: editName.trim() } : d));
+      await loadMyOrgs();
+      await refreshOrgs();
     } catch (err) {
       console.error(err);
       toast.error("更新失败");
@@ -219,26 +210,26 @@ export function TeamsPage() {
     }
   };
 
-  // --- Add member ---
+  // --- Add member (invite) ---
   const handleAddMember = async () => {
-    if (!selectedTeamId || !addMemberUserId.trim()) return;
+    if (!selectedOrgId || !addMemberEmail.trim()) return;
     setAddMemberSaving(true);
     try {
-      await teamApi({
+      await orgApi({
         action: "add-member",
-        teamId: selectedTeamId,
-        userId: addMemberUserId.trim(),
+        organizationId: selectedOrgId,
+        email: addMemberEmail.trim(),
         role: addMemberRole,
       });
-      toast.success("成员已添加");
+      toast.success("邀请已发送");
       setAddMemberOpen(false);
-      setAddMemberUserId("");
-      // Reload members
-      const m = await teamApi<TeamMember[]>({ action: "list-members", teamId: selectedTeamId });
-      setMembers(m);
+      setAddMemberEmail("");
+      // Reload detail
+      const d = await orgApi<OrgDetail>({ action: "get", organizationId: selectedOrgId });
+      setDetail(d);
     } catch (err) {
       console.error(err);
-      toast.error("添加成员失败");
+      toast.error("邀请成员失败");
     } finally {
       setAddMemberSaving(false);
     }
@@ -246,12 +237,12 @@ export function TeamsPage() {
 
   // --- Remove member ---
   const handleRemoveMember = async (userId: string) => {
-    if (!selectedTeamId) return;
+    if (!selectedOrgId) return;
     try {
-      await teamApi({ action: "remove-member", teamId: selectedTeamId, userId });
+      await orgApi({ action: "remove-member", organizationId: selectedOrgId, userId });
       toast.success("成员已移除");
-      const m = await teamApi<TeamMember[]>({ action: "list-members", teamId: selectedTeamId });
-      setMembers(m);
+      const d = await orgApi<OrgDetail>({ action: "get", organizationId: selectedOrgId });
+      setDetail(d);
     } catch (err) {
       console.error(err);
       toast.error("移除成员失败");
@@ -260,75 +251,76 @@ export function TeamsPage() {
 
   // --- Update role ---
   const handleUpdateRole = async (userId: string, newRole: string) => {
-    if (!selectedTeamId) return;
+    if (!selectedOrgId) return;
     try {
-      await teamApi({ action: "update-role", teamId: selectedTeamId, userId, role: newRole });
+      await orgApi({ action: "update-role", organizationId: selectedOrgId, userId, role: newRole });
       toast.success("角色已更新");
-      const m = await teamApi<TeamMember[]>({ action: "list-members", teamId: selectedTeamId });
-      setMembers(m);
+      const d = await orgApi<OrgDetail>({ action: "get", organizationId: selectedOrgId });
+      setDetail(d);
     } catch (err) {
       console.error(err);
       toast.error("更新角色失败");
     }
   };
 
-  // --- Delete team ---
-  const handleDeleteTeam = async () => {
-    if (!selectedTeamId) return;
+  // --- Delete org ---
+  const handleDeleteOrg = async () => {
+    if (!selectedOrgId) return;
     setDeleteSaving(true);
     try {
-      await teamApi({ action: "delete", teamId: selectedTeamId });
-      toast.success("团队已删除");
+      await orgApi({ action: "delete", organizationId: selectedOrgId });
+      toast.success("组织已删除");
       setDeleteOpen(false);
-      setSelectedTeamId(null);
+      setSelectedOrgId(null);
       setDetail(null);
-      setMembers([]);
-      await loadMyTeams();
-      await refreshTeams();
+      await loadMyOrgs();
+      await refreshOrgs();
     } catch (err) {
       console.error(err);
-      toast.error("删除团队失败");
+      toast.error("删除组织失败");
     } finally {
       setDeleteSaving(false);
     }
   };
 
+  const members = detail?.members ?? [];
+
   /* ---- Render ---- */
 
   return (
     <div className="flex h-full">
-      {/* Left panel: team list */}
+      {/* Left panel: org list */}
       <div className="w-[260px] border-r border-border-subtle flex flex-col bg-surface-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-          <h2 className="text-sm font-semibold text-text-bright">我的团队</h2>
+          <h2 className="text-sm font-semibold text-text-bright">我的组织</h2>
           <Button variant="ghost" size="sm" onClick={() => setCreateOpen(true)} className="h-7 w-7 p-0">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
         <div className="flex-1 overflow-y-auto py-1">
-          {myTeams.map((t) => (
+          {myOrgs.map((o) => (
             <button
-              key={t.id}
+              key={o.id}
               type="button"
-              onClick={() => setSelectedTeamId(t.id)}
+              onClick={() => setSelectedOrgId(o.id)}
               className={[
                 "flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm",
                 "transition-colors duration-100",
-                t.id === selectedTeamId
+                o.id === selectedOrgId
                   ? "bg-brand-subtle text-brand-light font-medium"
                   : "text-text-secondary hover:bg-surface-hover",
               ].join(" ")}
             >
-              <RoleIcon role={t.role} />
-              <span className="truncate">{t.name}</span>
-              <span className="ml-auto text-[11px] text-text-dim">{ROLE_LABELS[t.role]}</span>
+              <RoleIcon role={o.role} />
+              <span className="truncate">{o.name}</span>
+              <span className="ml-auto text-[11px] text-text-dim">{ROLE_LABELS[o.role]}</span>
             </button>
           ))}
-          {myTeams.length === 0 && <p className="px-4 py-6 text-sm text-text-dim text-center">暂无团队</p>}
+          {myOrgs.length === 0 && <p className="px-4 py-6 text-sm text-text-dim text-center">暂无组织</p>}
         </div>
       </div>
 
-      {/* Right panel: team detail */}
+      {/* Right panel: org detail */}
       <div className="flex-1 overflow-y-auto p-6">
         {loading && (
           <div className="flex items-center justify-center h-64">
@@ -338,18 +330,17 @@ export function TeamsPage() {
 
         {!loading && !detail && (
           <div className="flex flex-col items-center justify-center h-64 text-text-dim">
-            <p className="text-sm">选择一个团队查看详情</p>
+            <p className="text-sm">选择一个组织查看详情</p>
           </div>
         )}
 
         {!loading && detail && (
           <div className="max-w-[720px] mx-auto space-y-6">
-            {/* Team info */}
+            {/* Org info */}
             <div className="space-y-3">
               {editingName ? (
                 <div className="space-y-3">
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="团队名称" />
-                  <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} placeholder="描述（可选）" />
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="组织名称" />
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleSaveEdit} disabled={editSaving}>
                       {editSaving ? "保存中..." : "保存"}
@@ -363,10 +354,7 @@ export function TeamsPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h1 className="text-xl font-bold text-text-bright">{detail.name}</h1>
-                    <p className="text-sm text-text-dim mt-0.5">
-                      {detail.slug}
-                      {detail.description && ` · ${detail.description}`}
-                    </p>
+                    <p className="text-sm text-text-dim mt-0.5">{detail.slug}</p>
                   </div>
                   {canManage && (
                     <Button
@@ -374,7 +362,6 @@ export function TeamsPage() {
                       variant="outline"
                       onClick={() => {
                         setEditName(detail.name);
-                        setEditDesc(detail.description || "");
                         setEditingName(true);
                       }}
                     >
@@ -392,7 +379,7 @@ export function TeamsPage() {
                 {canManage && (
                   <Button size="sm" variant="outline" onClick={() => setAddMemberOpen(true)}>
                     <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                    添加成员
+                    邀请成员
                   </Button>
                 )}
               </div>
@@ -411,8 +398,8 @@ export function TeamsPage() {
                       <tr key={m.id} className="border-t border-border-subtle hover:bg-surface-hover">
                         <td className="px-4 py-2.5">
                           <div>
-                            <p className="font-medium text-text-primary">{m.userName || m.userId}</p>
-                            <p className="text-xs text-text-dim">{m.userEmail}</p>
+                            <p className="font-medium text-text-primary">{m.user?.name || m.userId}</p>
+                            <p className="text-xs text-text-dim">{m.user?.email}</p>
                           </div>
                         </td>
                         <td className="px-4 py-2.5">
@@ -460,10 +447,10 @@ export function TeamsPage() {
             {isOwner && (
               <div className="pt-4 border-t border-border-subtle">
                 <h3 className="text-sm font-semibold text-destructive mb-2">危险区域</h3>
-                <p className="text-sm text-text-dim mb-3">删除团队将同时删除所有关联资源，此操作不可撤销。</p>
+                <p className="text-sm text-text-dim mb-3">删除组织将同时删除所有关联资源，此操作不可撤销。</p>
                 <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
                   <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                  删除团队
+                  删除组织
                 </Button>
               </div>
             )}
@@ -471,11 +458,11 @@ export function TeamsPage() {
         )}
       </div>
 
-      {/* Create team dialog */}
+      {/* Create org dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>创建团队</DialogTitle>
+            <DialogTitle>创建组织</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
@@ -489,7 +476,7 @@ export function TeamsPage() {
                     setFormSlug(nameToSlug(e.target.value));
                   }
                 }}
-                placeholder="团队名称"
+                placeholder="组织名称"
               />
             </div>
             <div>
@@ -526,16 +513,16 @@ export function TeamsPage() {
       <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>添加成员</DialogTitle>
+            <DialogTitle>邀请成员</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <label className="text-sm font-medium text-text-primary">用户 ID / Email</label>
+              <label className="text-sm font-medium text-text-primary">邮箱</label>
               <Input
                 className="mt-1"
-                value={addMemberUserId}
-                onChange={(e) => setAddMemberUserId(e.target.value)}
-                placeholder="输入用户 ID 或邮箱"
+                value={addMemberEmail}
+                onChange={(e) => setAddMemberEmail(e.target.value)}
+                placeholder="输入邮箱地址"
               />
             </div>
             <div>
@@ -554,26 +541,26 @@ export function TeamsPage() {
             <Button variant="outline" onClick={() => setAddMemberOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleAddMember} disabled={addMemberSaving || !addMemberUserId.trim()}>
-              {addMemberSaving ? "添加中..." : "添加"}
+            <Button onClick={handleAddMember} disabled={addMemberSaving || !addMemberEmail.trim()}>
+              {addMemberSaving ? "邀请中..." : "邀请"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete team confirmation */}
+      {/* Delete org confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除团队</AlertDialogTitle>
+            <AlertDialogTitle>确认删除组织</AlertDialogTitle>
             <AlertDialogDescription>
-              即将删除团队「{detail?.name}」，所有关联资源将被永久删除。此操作不可撤销。
+              即将删除组织「{detail?.name}」，所有关联资源将被永久删除。此操作不可撤销。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteTeam}
+              onClick={handleDeleteOrg}
               disabled={deleteSaving}
               className="bg-destructive text-white hover:bg-destructive/90"
             >

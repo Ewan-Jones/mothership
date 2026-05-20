@@ -15,7 +15,7 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
-import { TeamSwitcher } from "../TeamSwitcher";
+import { OrgSwitcher } from "../OrgSwitcher";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -210,30 +210,30 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
 
       {/* ---- Bottom: Team section ---- */}
       <div className={["border-t border-border-subtle", collapsed ? "px-0 py-2" : "px-2 py-2"].join(" ")}>
-        {/* TeamSwitcher — current team display + dropdown */}
+        {/* OrgSwitcher — current org display + dropdown */}
         {!collapsed && (
           <div className="px-1 mb-1.5">
-            <TeamSwitcher />
+            <OrgSwitcher />
           </div>
         )}
 
-        {/* Teams page nav button */}
+        {/* Organizations page nav button */}
         <button
           type="button"
-          onClick={() => onNavigate("teams")}
-          title={collapsed ? "团队" : undefined}
+          onClick={() => onNavigate("organizations")}
+          title={collapsed ? "组织" : undefined}
           className={[
             "relative flex items-center w-full",
             "text-[13px] font-medium cursor-pointer",
             "transition-all duration-150",
             "whitespace-nowrap overflow-hidden select-none",
             collapsed ? "justify-center gap-0 px-0 py-2 mx-0 rounded-lg" : "gap-2.5 px-3 py-2 rounded-[var(--radius)]",
-            currentPage === "teams"
+            currentPage === "organizations"
               ? "bg-brand-subtle text-brand-light"
               : "text-text-secondary hover:bg-surface-hover hover:text-text-primary",
           ].join(" ")}
         >
-          {currentPage === "teams" && (
+          {currentPage === "organizations" && (
             <span
               className={[
                 "absolute top-1 bottom-1 w-[3px] rounded-r-[3px]",
@@ -249,7 +249,7 @@ export function Sidebar({ collapsed, onToggle, currentPage, onNavigate }: Sideba
               collapsed ? "opacity-0 w-0" : "opacity-100",
             ].join(" ")}
           >
-            团队
+            组织
           </span>
         </button>
       </div>

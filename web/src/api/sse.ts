@@ -7,9 +7,9 @@ export function connectSSE(sessionId: string, onEvent: (event: SessionEvent) => 
   disconnectSSE();
 
   const uuid = getUuid();
-  const activeTeamId = localStorage.getItem("active_team_id");
+  const activeOrgId = localStorage.getItem("active_org_id");
   const params = new URLSearchParams({ uuid: uuid });
-  if (activeTeamId) params.set("activeTeamId", activeTeamId);
+  if (activeOrgId) params.set("activeOrganizationId", activeOrgId);
   const url = `/web/sessions/${sessionId}/events?${params}`;
   const es = new EventSource(url);
   currentEventSource = es;

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { AppShell } from "./components/shell";
-import { TeamProvider } from "./contexts/TeamContext";
+import { OrgProvider } from "./contexts/OrgContext";
 import { useSession } from "./lib/auth-client";
 import { ThemeProvider } from "./lib/theme";
 import { ApiKeyManager } from "./pages/ApiKeyManager";
@@ -20,7 +20,7 @@ const McpPage = lazy(() => import("./pages/McpPage").then((m) => ({ default: m.M
 const TasksPage = lazy(() => import("./pages/TasksPage").then((m) => ({ default: m.TasksPage })));
 const ChannelsPage = lazy(() => import("./pages/ChannelsPage").then((m) => ({ default: m.ChannelsPage })));
 const WorkflowPage = lazy(() => import("./pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
-const TeamsPage = lazy(() => import("./pages/TeamsPage").then((m) => ({ default: m.TeamsPage })));
+const TeamsPage = lazy(() => import("./pages/OrgsPage").then((m) => ({ default: m.OrgsPage })));
 const AgentAppShell = lazy(() =>
   import("./pages/agent-panel/AgentAppShell").then((m) => ({ default: m.AgentAppShell })),
 );
@@ -36,7 +36,7 @@ export function parseConfigView(pathname: string): string | null {
     "channels",
     "workflow",
     "environments",
-    "teams",
+    "organizations",
   ];
   const segment = pathname.replace(/^\/ctrl\/?/, "").split("/")[0];
   return configViews.includes(segment) ? segment : null;
@@ -56,7 +56,7 @@ type ViewId =
   | "channels"
   | "workflow"
   | "environments"
-  | "teams";
+  | "organizations";
 
 export default function App() {
   const { data: session, isPending } = useSession();
@@ -105,7 +105,7 @@ export default function App() {
       "channels",
       "workflow",
       "environments",
-      "teams",
+      "organizations",
     ];
     const segment = path.replace(/^\/ctrl\/?/, "").split("/")[0];
     if (configViews.includes(segment)) {
@@ -225,7 +225,7 @@ export default function App() {
 
   return (
     <ThemeProvider defaultTheme="system">
-      <TeamProvider>
+      <OrgProvider>
         {agentPanelMode ? (
           <Suspense
             fallback={
@@ -267,7 +267,7 @@ export default function App() {
                 <WorkflowPage />
               ) : configView === "environments" ? (
                 <EnvironmentsPage onNavigateToSession={navigateToSession} />
-              ) : configView === "teams" ? (
+              ) : configView === "organizations" ? (
                 <TeamsPage />
               ) : currentSessionId ? (
                 <SessionDetail
@@ -283,7 +283,7 @@ export default function App() {
           </AppShell>
         )}
         <Toaster richColors position="top-right" />
-      </TeamProvider>
+      </OrgProvider>
     </ThemeProvider>
   );
 }
