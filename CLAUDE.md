@@ -286,12 +286,13 @@ acp-link 有两种认证方式（优先级从高到低）：
 - **`@mothership/opencode`**（`packages/plugin-opencode/`）：opencode 引擎插件实现，依赖 core 和 plugin-sdk
 - **`@mothership/workflow-engine`**（`packages/workflow-engine/`）：工作流引擎核心 — YAML 解析器（`parser/`）、DAG 调度器（`scheduler/`）、节点执行器（`executor/`：Shell/Python/Agent/API/Audit/Loop/SubWorkflow）、快照恢复（`recovery/`）、secrets 解析（`secrets/`）、存储适配器（`storage/`）、引擎门面（`engine/`）
 
-### 前端架构 (React + Vite)
+### 前端架构 (React + Vite + TanStack Router)
 
 **构建配置**：`web/vite.config.ts`
 
 - Tailwind CSS v4 使用 `@tailwindcss/vite` 插件（**不是** tailwind.config.js）
-- base path: `/ctrl/`
+- TanStack Router 使用 `@tanstack/router-plugin/vite` 插件（file-based routing，**必须**在 plugins 数组第一位）
+- base path: `/ctrl/`，TanStack Router `basepath: '/ctrl'`
 - 路径别名：`@/src` → `web/src`，`@/components` → `web/components`，`@server` → `../../src`（前端引用后端类型）
 - 开发代理：`/web`、`/api`、`/acp` → `http://localhost:3000`
 
@@ -301,22 +302,73 @@ acp-link 有两种认证方式（优先级从高到低）：
 - `@plugin "@tailwindcss/typography"` 用于 prose 类
 - 颜色系统：brand blue (#409EFF)，深色侧边栏 (#1a1f2e)
 
+**路由架构**：TanStack Router file-based routing（`web/src/routes/`）
+
+入口：`web/src/main.tsx` → `createRouter({ routeTree, basepath: '/ctrl' })` + `<RouterProvider />`
+
+路由树结构：
+
+```
+web/src/routes/
+├── __root.tsx              → ThemeProvider + OrgProvider + 认证检查（useSession）+ Toaster
+├── _app.tsx                → pathless layout：AppShell（Sidebar + Topbar），动态 overflow 样式
+├── _app/
+│   ├── index.tsx           → Dashboard              /ctrl/
+│   ├── models.tsx          → ModelsPage             /ctrl/models
+│   ├── agents.tsx          → AgentsPage             /ctrl/agents
+│   ├── skills.tsx          → SkillsPage             /ctrl/skills
+│   ├── knowledge-bases.tsx → KnowledgeBasesPage     /ctrl/knowledge-bases
+│   ├── mcp.tsx             → McpPage                /ctrl/mcp
+│   ├── tasks.tsx           → TasksPage              /ctrl/tasks
+│   ├── channels.tsx        → ChannelsPage           /ctrl/channels
+│   ├── workflow.tsx        → WorkflowPage            /ctrl/workflow
+│   ├── workflow_.$.tsx     → WorkflowPage catch-all  /ctrl/workflow/*
+│   ├── environments.tsx    → EnvironmentsPage        /ctrl/environments
+│   ├── organizations.tsx   → OrgsPage               /ctrl/organizations
+│   ├── apikeys.tsx         → ApiKeyManager           /ctrl/apikeys
+│   └── $sessionId.tsx      → SessionDetail           /ctrl/:sessionId
+├── agent/
+│   ├── $agentId.tsx        → AgentAppShell           /ctrl/agent/:agentId
+│   └── $agentId_.$sessionId.tsx → AgentAppShell      /ctrl/agent/:agentId/:sessionId
+└── login.tsx               → LoginPage               /ctrl/login
+```
+
+路由关键约定：
+- `_app` 是 pathless layout（`_` 前缀），不贡献 URL 段，只提供 AppShell 布局
+- `_` 后缀（如 `workflow_.$`、`$agentId_.$sessionId`）表示 flat route，不嵌套布局
+- `$` 前缀是动态参数，`$` 单独（无名称）是 splat catch-all
+- `__root.tsx` 统一处理认证：未登录 redirect `/login`，已登录在 `/login` redirect `/`
+- `routeTree.gen.ts` 由 Vite 插件自动生成，**严禁手动编辑**
+- 所有页面组件 lazy 加载（`lazy(() => import(...))`）
+- 新增页面：在 `web/src/routes/_app/` 下创建路由文件，插件自动注册
+
 **组件层级**：
 
-- `web/src/App.tsx`：路由 + better-auth session 管理
-- `web/src/components/shell/`：AppShell、Sidebar（应用外壳）
+- `web/src/main.tsx`：TanStack Router 初始化 + `<RouterProvider />`
+- `web/src/App.tsx`：仅保留 `parseConfigView` 工具函数（测试依赖）
+- `web/src/routes/`：路由定义文件（每个文件 = 一个路由）
+- `web/src/components/shell/`：AppShell（collapsed/onToggle/children）、Sidebar（`<Link>` + `useRouterState`）、Topbar（`useRouterState` 推导面包屑）
 - `web/src/components/config/`：DataTable、FormDialog、StatusBadge（配置页通用组件）
 - `web/src/components/`：FilePickerDialog、PermissionTab、SessionDetail 等功能组件
-- `web/src/pages/`：Dashboard、ModelsPage、AgentsPage、SkillsPage、McpPage、TasksPage、ChannelsPage、LoginPage、ApiKeyManager、OrgsPage、KnowledgeBasesPage、WorkflowPage、EnvironmentsPage 等
-  - `web/src/pages/agent-panel/`：统一智能体面板（三栏布局，独立路由 `/ctrl/agent/`）
-  - `web/src/pages/workflow/`：工作流编辑器（React Flow 可视化）、运行记录、版本管理
+- `web/src/pages/`：Dashboard、ModelsPage、AgentsPage 等页面组件（不接收导航回调，用 `useNavigate()` 自主导航）
+  - `web/src/pages/agent-panel/`：AgentAppShell（从路由参数读取 agentId/sessionId）
+  - `web/src/pages/workflow/`：WorkflowPage（保留内部子路由，使用 `window.location.pathname` 自行解析）
 - `web/src/acp/`：ACP 客户端（`client.ts`、`relay-client.ts`、`types.ts`），处理 session/list、session/load、session/resume 等 ACP 协议
+
+**导航方式**：
+
+- 声明式：`<Link to="/models">`（Sidebar 导航项）
+- 编程式：`useNavigate()` — `void navigate({ to: '/$sessionId', params: { sessionId }, search: { cwd, agentId } })`
+- 路由参数：`Route.useParams()` 获取动态参数（如 `sessionId`、`agentId`）
+- 路由状态：`useRouterState()` 获取当前 pathname（Topbar 面包屑、Sidebar 高亮）
+- **禁止**使用 `window.history.pushState` 或 `window.location.href` 进行导航
 
 **状态管理**：
 
 - 本地状态：useState + useCallback
 - 远程数据：API client (`web/src/api/client.ts`) + fetch
 - 认证状态：better-auth session（cookie-based）
+- 路由状态：TanStack Router（pathname、params、search）
 
 **API Client 模式**：
 
@@ -626,6 +678,11 @@ Permission 选项（`web/src/components/PermissionTab.tsx`）：
 20. **Workflow 节点 inputs 引用**：节点的 inputs 字段中引用的变量名必须在 `depends_on` 中声明依赖的节点中存在，否则校验失败
 21. **requireOrgScope 校验链路**：资源归属校验通过 `session→environment→organization` 链路，新增路由操作 organization 级资源时必须调用 `requireOrgScope`，不能仅依赖 `sessionAuth`
 22. **@noble/ciphers 替代 crypto.subtle**：HTTP 环境（非 Bun 运行时）下 `crypto.subtle` 不可用，加密操作（登录密码 AES-256-GCM）使用 `@noble/ciphers` 实现
+23. **routeTree.gen.ts 严禁手动编辑**：由 `@tanstack/router-plugin` Vite 插件自动生成。新增/删除路由文件后插件会自动更新，手动编辑会被覆盖
+24. **TanStack Router Vite 插件顺序**：`TanStackRouterVite` 必须在 `plugins` 数组第一位（在 `react()` 之前），否则路由树生成不正确
+25. **createFileRoute 路径自动修正**：路由文件中的 `createFileRoute("...")` 路径参数会被插件自动修正为正确的路由 ID（如 `/_app/workflow_/$`），不需要手动对齐
+26. **Sidebar 导航项必须有 `to` 字段**：`NAV_GROUPS` 中有 `to` 的项目渲染为 `<Link>`，没有 `to` 的渲染为 `<button>`（如"会话"仅用于高亮指示）
+27. **AgentAppShell 路由参数**：`agentId` 和 `sessionId` 从路由参数注入（非 prop drilling），路由文件在 `routes/agent/` 下，`_` 后缀表示 flat route
 
 ## 代码风格
 
@@ -698,11 +755,12 @@ Permission 选项（`web/src/components/PermissionTab.tsx`）：
   - `src/__tests__/`：测试文件与源码同名，加 `.test.ts` 后缀
 
 - **前端**：
+  - `web/src/routes/`：TanStack Router 路由文件（file-based routing，`routeTree.gen.ts` 自动生成）
   - `web/src/components/`：通用组件
     - `config/`：配置页专用组件（`DataTable`, `FormDialog`）
-    - `shell/`：应用外壳（`AppShell`, `Sidebar`）
+    - `shell/`：应用外壳（`AppShell`, `Sidebar`, `Topbar`）
     - `ui/`：shadcn 原子组件
-  - `web/src/pages/`：页面组件（`Dashboard.tsx`, `ModelsPage.tsx`, `TasksPage.tsx`, `ChannelsPage.tsx`, `SessionDetail.tsx` 等）
+  - `web/src/pages/`：页面组件（`Dashboard.tsx`, `ModelsPage.tsx` 等，不接收导航回调）
   - `web/src/api/`：API 客户端（`client.ts`）
   - `web/src/acp/`：ACP 协议客户端（`client.ts`, `types.ts`）
   - `web/src/__tests__/`：测试文件
@@ -745,9 +803,35 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
 ### React 组件模式
 
 1. **状态管理**：使用 `useState` + `useCallback`，避免依赖循环
-2. **表单处理**：使用 react-hook-form + zod（`FormDialog` 已封装）
-3. **异步操作**：try-catch + toast 错误提示，finally 清理 loading 状态
-4. **条件渲染**：使用 `&&` 或三元运算符，避免不必要的 div 包裹
+2. **导航**：使用 TanStack Router 的 `<Link to="/path">` 或 `useNavigate()`，禁止 `window.history.pushState` 和 `window.location.href`
+3. **路由参数**：`Route.useParams()` 获取动态参数，`Route.useSearch()` 获取 search params
+4. **表单处理**：使用 react-hook-form + zod（`FormDialog` 已封装）
+5. **异步操作**：try-catch + toast 错误提示，finally 清理 loading 状态
+6. **条件渲染**：使用 `&&` 或三元运算符，避免不必要的 div 包裹
+7. **新增页面**：在 `web/src/routes/_app/` 下创建路由文件，组件 lazy import，插件自动注册路由
+
+### 前端路由文件模板
+
+新增配置页面时，在 `web/src/routes/_app/` 下创建文件：
+
+```typescript
+import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
+
+const MyPage = lazy(() => import("../../pages/MyPage").then((m) => ({ default: m.MyPage })));
+
+export const Route = createFileRoute("/_app/my-page")({
+  component: () => (
+    <Suspense>
+      <MyPage />
+    </Suspense>
+  ),
+});
+```
+
+- 路由路径由文件名决定（`my-page.tsx` → `/ctrl/my-page`）
+- `createFileRoute` 的路径参数必须与插件生成的路径匹配（插件会自动修正）
+- `routeTree.gen.ts` 由插件自动生成，无需手动编辑
 
 ### 后端路由模式
 
