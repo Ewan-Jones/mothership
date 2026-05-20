@@ -1,10 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import path from "path";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    TanStackRouterVite({
+      routesDirectory: "./src/routes",
+      generatedRouteTree: "./src/routeTree.gen.ts",
+      quoteStyle: "double",
+    }),
+    react(),
+    tailwindcss(),
+  ],
   base: "/ctrl/",
   resolve: {
     alias: {
@@ -43,6 +52,9 @@ export default defineConfig({
           }
           if (id.includes("node_modules/@radix-ui")) {
             return "radix-ui";
+          }
+          if (id.includes("node_modules/@tanstack/react-router") || id.includes("node_modules/@tanstack/router-")) {
+            return "tanstack-router";
           }
           if (id.includes("node_modules/@tanstack")) {
             return "tanstack";
