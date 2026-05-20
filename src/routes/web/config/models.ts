@@ -9,8 +9,8 @@ const app = new Elysia({ name: "web-config-models", prefix: "/web" }).use(authGu
   "config-body": ConfigBodySchema,
 });
 
-/** 可用模型缓存（按 teamId 隔离） */
-const cachedAvailableByTeam = new Map<
+/** 可用模型缓存（按 organizationId 隔离） */
+const cachedAvailableByOrg = new Map<
   string,
   {
     models: Array<{
@@ -58,12 +58,12 @@ async function buildAvailableList(ctx: AuthContext): Promise<ModelEntry[]> {
 
 async function getAvailable(ctx: AuthContext, forceRefresh = false): Promise<ModelEntry[]> {
   const now = Date.now();
-  const cached = cachedAvailableByTeam.get(ctx.organizationId);
+  const cached = cachedAvailableByOrg.get(ctx.organizationId);
   if (!forceRefresh && cached && now - cached.updatedAt < CACHE_TTL_MS) {
     return cached.models;
   }
   const models = await buildAvailableList(ctx);
-  cachedAvailableByTeam.set(ctx.organizationId, { models, updatedAt: now });
+  cachedAvailableByOrg.set(ctx.organizationId, { models, updatedAt: now });
   return models;
 }
 
@@ -89,7 +89,7 @@ async function handleSet(ctx: AuthContext, data: { model?: string; small_model?:
     smallModel: data.small_model,
     permission: data.permission,
   });
-  cachedAvailableByTeam.delete(ctx.organizationId);
+  cachedAvailableByOrg.delete(ctx.organizationId);
   const uc = await configPg.getUserConfig(ctx);
   return configSuccess({
     model: uc.currentModel ?? null,
@@ -99,7 +99,7 @@ async function handleSet(ctx: AuthContext, data: { model?: string; small_model?:
 }
 
 export function invalidateAvailableCache() {
-  cachedAvailableByTeam.clear();
+  cachedAvailableByOrg.clear();
 }
 
 async function handleRefresh(ctx: AuthContext) {
@@ -112,7 +112,7 @@ app.post(
   async ({ store, body, error, request }: any) => {
     const authContext = await loadOrgContext(store.user!, request);
     if (!authContext)
-      return error(500, { success: false, error: { code: "NO_TEAM_CONTEXT", message: "Failed to load team context" } });
+      return error(500, { success: false, error: { code: "NO_ORG_CONTEXT", message: "Failed to load organization context" } });
     const authCtx = authContext;
     const b = (body as any) ?? {};
     const payload = {

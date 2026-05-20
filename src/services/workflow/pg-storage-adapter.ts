@@ -1,7 +1,7 @@
 /**
  * PostgreSQL StorageAdapter 实现。
  *
- * 基于 Drizzle ORM + PostgreSQL，通过 teamId 实现多租户隔离。
+ * 基于 Drizzle ORM + PostgreSQL，通过 organizationId 实现多租户隔离。
  * 使用事件溯源模式：workflowEvent 存储事件流，workflowSnapshot 存储状态快照，
  * workflowNodeOutput 存储节点输出。
  */

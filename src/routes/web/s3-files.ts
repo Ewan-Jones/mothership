@@ -33,7 +33,7 @@ app.get(
   "/files",
   async ({ query, error, store }) => {
     const orgId = store.authContext?.organizationId;
-    if (!orgId) return error(403, { error: { type: "forbidden", message: "No team context" } });
+    if (!orgId) return error(403, { error: { type: "forbidden", message: "No organization context" } });
 
     const q = query as Record<string, string | undefined>;
     const sessionId = q.sessionId;
@@ -63,7 +63,7 @@ app.get(
   "/files/presign",
   async ({ query, error, store }) => {
     const orgId = store.authContext?.organizationId;
-    if (!orgId) return error(403, { error: { type: "forbidden", message: "No team context" } });
+    if (!orgId) return error(403, { error: { type: "forbidden", message: "No organization context" } });
 
     const q = query as Record<string, string | undefined>;
     const sessionId = q.sessionId;
@@ -86,7 +86,7 @@ app.post(
   "/files/presign",
   async ({ body, error, store }) => {
     const orgId = store.authContext?.organizationId;
-    if (!orgId) return error(403, { error: { type: "forbidden", message: "No team context" } });
+    if (!orgId) return error(403, { error: { type: "forbidden", message: "No organization context" } });
 
     const b = body as S3PresignPutBody;
     if (!b.sessionId || !b.key || !b.contentType) {
@@ -110,7 +110,7 @@ app.post(
   "/files/upload",
   async ({ query, request, error, store }) => {
     const orgId = store.authContext?.organizationId;
-    if (!orgId) return error(403, { error: { type: "forbidden", message: "No team context" } });
+    if (!orgId) return error(403, { error: { type: "forbidden", message: "No organization context" } });
 
     const q = query as Record<string, string | undefined>;
     const sessionId = q.sessionId;
@@ -146,7 +146,7 @@ app.delete(
   "/files",
   async ({ body, error, store }) => {
     const orgId = store.authContext?.organizationId;
-    if (!orgId) return error(403, { error: { type: "forbidden", message: "No team context" } });
+    if (!orgId) return error(403, { error: { type: "forbidden", message: "No organization context" } });
 
     const b = body as S3DeleteBody;
     if (!b.sessionId || !b.key) {

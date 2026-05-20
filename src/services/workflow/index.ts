@@ -2,7 +2,7 @@
  * WorkflowEngine 服务单例。
  *
  * 每个 team 缓存一个引擎实例（Map），因为：
- * - StorageAdapter 按 teamId 隔离数据，不能跨 team 共享
+ * - StorageAdapter 按 organizationId 隔离数据，不能跨 organization 共享
  * - 引擎内部维护 activeRuns Map（取消/审批状态），不能每次请求重建
  * - Transport（ACP WebSocket）是全局共享的，所有引擎复用同一个实例
  */

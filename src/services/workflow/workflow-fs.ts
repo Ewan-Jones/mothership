@@ -2,7 +2,7 @@
  * Workflow 文件系统操作。
  *
  * 所有工作流 YAML 文件存储在 <cwd>/.agents/workflows/<workflowId>/ 下。
- * 按项目目录隔离，不需要 teamId 层级。
+ * 按项目目录隔离，不需要 organizationId 层级。
  */
 
 import { existsSync } from "node:fs";

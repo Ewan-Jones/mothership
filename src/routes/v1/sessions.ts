@@ -47,7 +47,7 @@ app.post(
   async ({ store, body, error }) => {
     const authContext = store.authContext;
     if (!authContext) {
-      return error(403, { error: { type: "forbidden", message: "No team context" } });
+      return error(403, { error: { type: "forbidden", message: "No organization context" } });
     }
     const b = body as CreateSessionRequest;
     const username = (store as any).username as string | undefined;

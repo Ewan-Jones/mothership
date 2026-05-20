@@ -30,7 +30,7 @@ app.post(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async ({ store, body, error, request }: any) => {
     const authCtx = (await loadOrgContext(store.user!, request as any))!;
-    if (!authCtx) return error(401, { error: { type: "UNAUTHORIZED", message: "No team context" } });
+    if (!authCtx) return error(401, { error: { type: "UNAUTHORIZED", message: "No organization context" } });
 
     const payload = body as Record<string, unknown>;
     const action = payload.action as string;

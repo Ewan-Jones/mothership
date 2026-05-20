@@ -17,7 +17,7 @@ app.post(
   async ({ store, body, error }) => {
     const authContext = store.authContext;
     if (!authContext) {
-      return error(403, { error: { type: "forbidden", message: "No team context" } });
+      return error(403, { error: { type: "forbidden", message: "No organization context" } });
     }
     const b = body as CreateCodeSessionRequest;
     const session = await createSession({ ...b, source: "code", userId: authContext.userId });
@@ -32,7 +32,7 @@ app.post(
   async ({ store, params, error }) => {
     const authContext = store.authContext;
     if (!authContext) {
-      return error(403, { error: { type: "forbidden", message: "No team context" } });
+      return error(403, { error: { type: "forbidden", message: "No organization context" } });
     }
     const sessionId = params.id;
     const session = await getSession(sessionId);

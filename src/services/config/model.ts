@@ -8,7 +8,7 @@ import { model } from "../../db/schema";
 // 安全依赖：所有函数通过 providerId 操作 model 数据。调用方（通常是
 // routes/web/config/providers.ts）必须先通过 getProvider(ctx, name) 验证
 // provider 属于当前团队，再使用返回的 provider.id 调用这些函数。
-// providerId 在此层不做 teamId 验证，因为它来自已验证的 provider。
+// providerId 在此层不做 organizationId 验证，因为它来自已验证的 provider。
 // ────────────────────────────────────────────
 
 /** 构建 model 写入字段（addModel 的 values 和 set 共享） */

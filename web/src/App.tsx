@@ -20,7 +20,7 @@ const McpPage = lazy(() => import("./pages/McpPage").then((m) => ({ default: m.M
 const TasksPage = lazy(() => import("./pages/TasksPage").then((m) => ({ default: m.TasksPage })));
 const ChannelsPage = lazy(() => import("./pages/ChannelsPage").then((m) => ({ default: m.ChannelsPage })));
 const WorkflowPage = lazy(() => import("./pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
-const TeamsPage = lazy(() => import("./pages/OrgsPage").then((m) => ({ default: m.OrgsPage })));
+const OrgsPageLazy = lazy(() => import("./pages/OrgsPage").then((m) => ({ default: m.OrgsPage })));
 const AgentAppShell = lazy(() =>
   import("./pages/agent-panel/AgentAppShell").then((m) => ({ default: m.AgentAppShell })),
 );
@@ -268,7 +268,7 @@ export default function App() {
               ) : configView === "environments" ? (
                 <EnvironmentsPage onNavigateToSession={navigateToSession} />
               ) : configView === "organizations" ? (
-                <TeamsPage />
+                <OrgsPageLazy />
               ) : currentSessionId ? (
                 <SessionDetail
                   key={currentSessionId}

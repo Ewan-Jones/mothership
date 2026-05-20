@@ -17,7 +17,7 @@ app.post(
     const user = store.user!;
     const authCtx = await loadOrgContext(user, request);
     if (!authCtx) {
-      return error(401, { error: { type: "UNAUTHORIZED", message: "No team context" } });
+      return error(401, { error: { type: "UNAUTHORIZED", message: "No organization context" } });
     }
 
     try {

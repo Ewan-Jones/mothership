@@ -24,7 +24,7 @@ app.post(
 
     const authCtx = await loadOrgContext(user, request);
     if (!authCtx) {
-      return error(403, { error: "No team context" });
+      return error(403, { error: "No organization context" });
     }
 
     const resolvedSessionId = await resolveExistingSessionId(sessionId);
