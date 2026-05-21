@@ -161,9 +161,9 @@ html, body {
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
   }
 }
 
@@ -918,7 +918,7 @@ html, body {
 
 .view-toggle-btn:hover:not(.active) { color: var(--text-primary); }
 
-.hidden { display: none !important; }
+.hidden { display: none; }
 
 .card {
   background: var(--surface-elevated);
@@ -3074,7 +3074,7 @@ async function setSection(key: string, value: unknown) {
   // ========= KPI Counter Animation =========
   function animateCounters() {
     document.querySelectorAll('.kpi-value[data-count]').forEach(el => {
-      const target = parseInt(el.dataset.count);
+      const target = parseInt(el.dataset.count, 10);
       const suffix = el.dataset.suffix || '';
       const duration = 800;
       const start = performance.now();
@@ -3082,7 +3082,7 @@ async function setSection(key: string, value: unknown) {
       function tick(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
+        const eased = 1 - (1 - progress) ** 3;
         el.textContent = Math.round(target * eased) + (progress >= 1 ? suffix : '');
         if (progress < 1) requestAnimationFrame(tick);
       }
@@ -3206,7 +3206,7 @@ async function setSection(key: string, value: unknown) {
   }
 
   // ========= Config Table Expand =========
-  function toggleExpand(row) {
+  function _toggleExpand(row) {
     const nextRow = row.nextElementSibling;
     if (!nextRow) return;
     const content = nextRow.querySelector('.expand-content');

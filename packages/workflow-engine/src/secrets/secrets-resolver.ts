@@ -5,7 +5,7 @@
  * 提供 resolve() 批量解析密钥，redactSecrets() 对 metadata 做脱敏处理。
  */
 
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
 
 // ---------- 类型 ----------
 
@@ -29,13 +29,13 @@ async function parseEnvFile(filePath: string): Promise<Record<string, string>> {
   const text = await file.text();
   const result: Record<string, string> = {};
 
-  for (const rawLine of text.split('\n')) {
+  for (const rawLine of text.split("\n")) {
     const line = rawLine.trim();
 
     // 跳过空行和注释
-    if (!line || line.startsWith('#')) continue;
+    if (!line || line.startsWith("#")) continue;
 
-    const eqIndex = line.indexOf('=');
+    const eqIndex = line.indexOf("=");
     if (eqIndex === -1) continue; // 无效行，跳过
 
     const key = line.slice(0, eqIndex).trim();
@@ -112,10 +112,7 @@ export class SecretsResolver {
    * - 仅替换字符串中的精确匹配（不替换子串）
    * - 返回新对象，不修改输入
    */
-  redactSecrets(
-    metadata: Record<string, unknown>,
-    secretValues: Record<string, string>,
-  ): Record<string, unknown> {
+  redactSecrets(metadata: Record<string, unknown>, secretValues: Record<string, string>): Record<string, unknown> {
     return this.redactValue(metadata, secretValues) as Record<string, unknown>;
   }
 
@@ -138,10 +135,10 @@ export class SecretsResolver {
 
   /** 递归脱敏任意值 */
   private redactValue(value: unknown, secretValues: Record<string, string>): unknown {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       // 精确匹配替换：整个值等于某个 secret 时才替换
       if (Object.values(secretValues).includes(value)) {
-        return '***';
+        return "***";
       }
       return value;
     }
@@ -150,7 +147,7 @@ export class SecretsResolver {
       return value.map((item) => this.redactValue(item, secretValues));
     }
 
-    if (value !== null && typeof value === 'object') {
+    if (value !== null && typeof value === "object") {
       const result: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         result[k] = this.redactValue(v, secretValues);

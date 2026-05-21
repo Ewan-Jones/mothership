@@ -424,6 +424,7 @@ export function evaluateExpression(ast: ASTNode, context: EvalContext, depth = 0
       throw new WorkflowError(`Unknown unary operator: '${ast.op}'`, WorkflowErrorCode.INVALID_EXPRESSION);
     }
 
+    // biome-ignore lint/suspicious/noFallthroughSwitchClause: binary case block ends with return/throw
     case "binary": {
       // 短路求值
       if (ast.op === "&&") {

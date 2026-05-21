@@ -38,7 +38,7 @@ export function isValidResourceName(name: string): boolean {
 export function toKeyHint(apiKey: string | undefined | null): string | null {
   const realKey = resolveApiKey(apiKey);
   if (!realKey || realKey.length < 4) return null;
-  return "***" + realKey.slice(-4);
+  return `***${realKey.slice(-4)}`;
 }
 
 /** 解析 apiKey：明文直接返回，{env:XXX} 引用尝试环境变量 */

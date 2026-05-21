@@ -1,16 +1,15 @@
 import { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, test } from "bun:test";
-import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "../db/schema";
 
 let sqlite: Database;
-let db: ReturnType<typeof drizzle>;
+let _db: ReturnType<typeof drizzle>;
 
 beforeEach(() => {
   sqlite = new Database(":memory:");
   sqlite.exec("PRAGMA foreign_keys = ON");
-  db = drizzle(sqlite, { schema });
+  _db = drizzle(sqlite, { schema });
 
   // Create tables
   sqlite.exec(`

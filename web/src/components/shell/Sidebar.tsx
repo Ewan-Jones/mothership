@@ -1,3 +1,4 @@
+import { Link, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
@@ -15,7 +16,6 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
-import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { OrgSwitcher } from "../OrgSwitcher";
 

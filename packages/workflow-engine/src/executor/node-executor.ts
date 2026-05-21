@@ -5,9 +5,9 @@
  * 调用 execute() 时根据 node.type 查找执行器，未注册则抛 WorkflowError。
  */
 
-import type { NodeDef } from '../types/dag';
-import type { NodeExecutor, NodeExecutionContext } from '../scheduler/dag-scheduler';
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
+import type { NodeExecutionContext, NodeExecutor } from "../scheduler/dag-scheduler";
+import type { NodeDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
 
 /** 按节点类型分发到对应执行器的注册表 */
 export class NodeExecutorRegistry implements NodeExecutor {
@@ -18,14 +18,13 @@ export class NodeExecutorRegistry implements NodeExecutor {
     this.executors.set(nodeType, executor);
   }
 
-  async execute(node: NodeDef, ctx: NodeExecutionContext): Promise<import('../types/execution').NodeOutput> {
+  async execute(node: NodeDef, ctx: NodeExecutionContext): Promise<import("../types/execution").NodeOutput> {
     const executor = this.executors.get(node.type);
     if (!executor) {
-      throw new WorkflowError(
-        `No executor registered for node type '${node.type}'`,
-        WorkflowErrorCode.NODE_FAILED,
-        { node_id: node.id, node_type: node.type },
-      );
+      throw new WorkflowError(`No executor registered for node type '${node.type}'`, WorkflowErrorCode.NODE_FAILED, {
+        node_id: node.id,
+        node_type: node.type,
+      });
     }
     return executor.execute(node, ctx);
   }

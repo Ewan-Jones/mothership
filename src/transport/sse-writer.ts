@@ -1,4 +1,4 @@
-import { log, error as logError } from "../logger";
+import { log } from "../logger";
 import { toClientPayload } from "./client-payload";
 import type { SessionEvent } from "./event-bus";
 import { getEventBus } from "./event-bus";
@@ -9,7 +9,7 @@ export interface SSEWriter {
 }
 
 export function createSSEWriter(request: Request): SSEWriter {
-  const stream = new ReadableStream({
+  const _stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
       request.signal.addEventListener("abort", () => {

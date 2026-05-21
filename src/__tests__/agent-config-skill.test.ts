@@ -34,9 +34,7 @@ mock.module("../db/schema", () => ({
 }));
 
 // mock.module 必须在 import 之前
-const { listAgentSkillIds, syncAgentSkills } = await import(
-  "../services/config/agent-config-skill"
-);
+const { listAgentSkillIds, syncAgentSkills } = await import("../services/config/agent-config-skill");
 
 describe("agent-config-skill service", () => {
   test("listAgentSkillIds 返回 skillId 数组", async () => {

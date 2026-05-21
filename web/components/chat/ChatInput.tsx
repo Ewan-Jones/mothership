@@ -1,14 +1,22 @@
-import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type ClipboardEvent, type DragEvent } from "react";
-import { cn } from "../../src/lib/utils";
-import { Button } from "../ui/button";
-import { Send, Square, Paperclip, Slash, AtSign } from "lucide-react";
-import type { ChatInputMessage, UserMessageImage, FileAttachment } from "../../src/lib/types";
-import type { AvailableCommand } from "../../src/acp/types";
-import type { FileInfo } from "../../src/types";
-import { CommandMenu } from "./CommandMenu";
-import { FilePickerDialog } from "../../src/components/FilePickerDialog";
-import { fetchUpload } from "../../src/api/client";
 import imageCompression from "browser-image-compression";
+import { AtSign, Send, Slash, Square } from "lucide-react";
+import {
+  type ClipboardEvent,
+  type DragEvent,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import type { AvailableCommand } from "../../src/acp/types";
+import { fetchUpload } from "../../src/api/client";
+import { FilePickerDialog } from "../../src/components/FilePickerDialog";
+import type { ChatInputMessage, FileAttachment, UserMessageImage } from "../../src/lib/types";
+import { cn } from "../../src/lib/utils";
+import type { FileInfo } from "../../src/types";
+import { Button } from "../ui/button";
+import { CommandMenu } from "./CommandMenu";
 
 // 图片压缩配置
 const IMAGE_COMPRESSION_OPTIONS = {
@@ -64,7 +72,7 @@ export function ChatInput({
   useEffect(() => {
     const handler = (e: Event) => {
       const { path, name } = (e as CustomEvent).detail;
-      setText((prev) => prev + `@./${path} `);
+      setText((prev) => `${prev}@./${path} `);
       setAttachments((prev) => {
         if (prev.some((a) => a.path === path)) return prev;
         return [...prev, { name, path }];
@@ -82,7 +90,7 @@ export function ChatInput({
     e.preventDefault();
     const name = treePath.split("/").pop() || treePath;
     const cleanPath = treePath.endsWith("/") ? treePath.slice(0, -1) : treePath;
-    setText((prev) => prev + `@./${cleanPath} `);
+    setText((prev) => `${prev}@./${cleanPath} `);
     setAttachments((prev) => {
       if (prev.some((a) => a.path === cleanPath)) return prev;
       return [...prev, { name, path: cleanPath }];
@@ -94,7 +102,11 @@ export function ChatInput({
     const trimmed = text.trim();
     if ((!trimmed && images.length === 0) || disabled) return;
 
-    onSubmit({ text: trimmed, images: images.length > 0 ? images : undefined, attachments: attachments.length > 0 ? attachments : undefined });
+    onSubmit({
+      text: trimmed,
+      images: images.length > 0 ? images : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
+    });
     setText("");
     setImages([]);
     setAttachments([]);
@@ -138,46 +150,52 @@ export function ChatInput({
     [handleSubmit, isLoading, onInterrupt, showCommandMenu],
   );
 
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    setText(value);
+  const handleInput = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      setText(value);
 
-    // 检测 slash 命令模式：仅在输入开头输入 / 时触发
-    if (value.startsWith("/") && commands && commands.length > 0) {
-      setShowCommandMenu(true);
-      setCommandFilter(value.slice(1).split(/\s/)[0] || "");
-    } else if (showCommandMenu) {
-      setShowCommandMenu(false);
-      setCommandFilter("");
-    }
-
-    // 检测 @ 文件引用触发
-    if (fileWorkspaceId && value.endsWith("@")) {
-      const prevChar = value.length > 1 ? value[value.length - 2] : " ";
-      if (prevChar === " " || value.length === 1) {
-        setShowFilePicker(true);
+      // 检测 slash 命令模式：仅在输入开头输入 / 时触发
+      if (value.startsWith("/") && commands && commands.length > 0) {
+        setShowCommandMenu(true);
+        setCommandFilter(value.slice(1).split(/\s/)[0] || "");
+      } else if (showCommandMenu) {
+        setShowCommandMenu(false);
+        setCommandFilter("");
       }
-    }
 
-    // 自动调整高度
-    const el = e.target;
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 200) + "px";
-  }, [commands, showCommandMenu]);
+      // 检测 @ 文件引用触发
+      if (fileWorkspaceId && value.endsWith("@")) {
+        const prevChar = value.length > 1 ? value[value.length - 2] : " ";
+        if (prevChar === " " || value.length === 1) {
+          setShowFilePicker(true);
+        }
+      }
+
+      // 自动调整高度
+      const el = e.target;
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    },
+    [commands, showCommandMenu, fileWorkspaceId],
+  );
 
   // 粘贴图片
-  const handlePaste = useCallback(async (e: ClipboardEvent) => {
-    if (!supportsImages) return;
-    const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
-    if (files.length === 0) return;
+  const handlePaste = useCallback(
+    async (e: ClipboardEvent) => {
+      if (!supportsImages) return;
+      const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+      if (files.length === 0) return;
 
-    e.preventDefault();
-    const newImages = await processImageFiles(files);
-    setImages((prev) => [...prev, ...newImages]);
-  }, [supportsImages]);
+      e.preventDefault();
+      const newImages = await processImageFiles(files);
+      setImages((prev) => [...prev, ...newImages]);
+    },
+    [supportsImages],
+  );
 
   // 选择文件（图片走 base64，其他文件上传到 user/ 文件夹）
-  const handleFileSelect = useCallback(async () => {
+  const _handleFileSelect = useCallback(async () => {
     if (!fileInputRef.current || !fileWorkspaceId) return;
     const files = fileInputRef.current.files;
     if (!files || files.length === 0) return;
@@ -238,7 +256,7 @@ export function ChatInput({
 
   const handleFilePickerSelect = useCallback((file: FileInfo) => {
     setText((prev) => prev.replace(/@$/, ""));
-    setText((prev) => prev + `@./${file.path} `);
+    setText((prev) => `${prev}@./${file.path} `);
     setAttachments((prev) => {
       if (prev.some((a) => a.path === file.path)) return prev;
       return [...prev, { name: file.name, path: file.path }];
@@ -253,7 +271,7 @@ export function ChatInput({
       setCommandFilter("");
     } else {
       if (!text.startsWith("/")) {
-        setText("/" + text);
+        setText(`/${text}`);
       }
       setShowCommandMenu(true);
       setCommandFilter(text.startsWith("/") ? text.slice(1).split(/\s/)[0] || "" : "");
@@ -289,116 +307,115 @@ export function ChatInput({
             className="absolute bottom-full left-0 right-0 mb-1 z-50"
           />
         )}
-      <div className={cn(
-        "rounded-xl border border-border bg-surface-2 overflow-hidden",
-        "focus-within:border-brand/50 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] transition-all",
-      )} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
-        {/* 图片预览 */}
-        {images.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-3 pt-3">
-            {images.map((img, i) => (
-              <div key={i} className="relative group">
-                <img
-                  src={`data:${img.mimeType};base64,${img.data}`}
-                  alt={`Attached image ${i + 1}`}
-                  className="h-14 w-14 object-cover rounded-lg border border-border"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeImage(i)}
-                  className="absolute -top-1.5 -right-1.5 h-5 w-5 min-h-[32px] min-w-[32px] rounded-full bg-surface-2 border border-border text-text-muted hover:text-text-primary text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label={`Remove image ${i + 1}`}
-                >
-                  {"\u00D7"}
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 输入区域 — Anthropic 单行紧凑布局 */}
         <div
-          className="flex items-end gap-2 px-3 py-2.5"
+          className={cn(
+            "rounded-xl border border-border bg-surface-2 overflow-hidden",
+            "focus-within:border-brand/50 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] transition-all",
+          )}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
         >
-          {/* Slash 命令按钮 */}
-          {commands && commands.length > 0 && (
+          {/* 图片预览 */}
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-3 pt-3">
+              {images.map((img, i) => (
+                <div key={img.data} className="relative group">
+                  <img
+                    src={`data:${img.mimeType};base64,${img.data}`}
+                    alt={`Attached image ${i + 1}`}
+                    className="h-14 w-14 object-cover rounded-lg border border-border"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeImage(i)}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 min-h-[32px] min-w-[32px] rounded-full bg-surface-2 border border-border text-text-muted hover:text-text-primary text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Remove image ${i + 1}`}
+                  >
+                    {"\u00D7"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 输入区域 — Anthropic 单行紧凑布局 */}
+          <div className="flex items-end gap-2 px-3 py-2.5">
+            {/* Slash 命令按钮 */}
+            {commands && commands.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={toggleCommandMenu}
+                className={cn(
+                  "flex-shrink-0 h-8 w-8",
+                  showCommandMenu
+                    ? "bg-brand/15 text-brand"
+                    : "text-text-muted hover:text-text-secondary hover:bg-surface-1/50",
+                )}
+                disabled={disabled}
+                title="命令列表"
+              >
+                <Slash className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* @ 文件引用按钮 */}
+            {fileWorkspaceId && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFilePicker(true)}
+                className="flex-shrink-0 h-8 w-8 text-text-muted hover:text-text-secondary hover:bg-surface-1/50"
+                disabled={disabled}
+                title="引用文件"
+              >
+                <AtSign className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Textarea — Poppins font */}
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder={placeholder}
+              disabled={disabled}
+              rows={1}
+              className={cn(
+                "flex-1 resize-none border-none bg-transparent outline-none",
+                "text-sm text-text-primary placeholder:text-text-muted font-display",
+                "max-h-[200px] min-h-[24px] leading-normal",
+              )}
+            />
+
+            {/* 右侧发送/取消按钮 */}
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              onClick={toggleCommandMenu}
+              onClick={isLoading ? onInterrupt : handleSubmit}
+              disabled={!isLoading && !canSend}
               className={cn(
                 "flex-shrink-0 h-8 w-8",
-                showCommandMenu
-                  ? "bg-brand/15 text-brand"
-                  : "text-text-muted hover:text-text-secondary hover:bg-surface-1/50",
+                isLoading
+                  ? "bg-text-primary text-surface-2 hover:bg-text-secondary"
+                  : canSend
+                    ? "bg-brand text-white hover:bg-brand-light hover:scale-[1.05] active:scale-[0.97]"
+                    : "bg-surface-1 text-text-muted",
               )}
-              disabled={disabled}
-              title="命令列表"
             >
-              <Slash className="h-4 w-4" />
+              {isLoading ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <Send className="h-4 w-4" />}
             </Button>
-          )}
-
-          {/* @ 文件引用按钮 */}
-          {fileWorkspaceId && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowFilePicker(true)}
-              className="flex-shrink-0 h-8 w-8 text-text-muted hover:text-text-secondary hover:bg-surface-1/50"
-              disabled={disabled}
-              title="引用文件"
-            >
-              <AtSign className="h-4 w-4" />
-            </Button>
-          )}
-
-          {/* Textarea — Poppins font */}
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            placeholder={placeholder}
-            disabled={disabled}
-            rows={1}
-            className={cn(
-              "flex-1 resize-none border-none bg-transparent outline-none",
-              "text-sm text-text-primary placeholder:text-text-muted font-display",
-              "max-h-[200px] min-h-[24px] leading-normal",
-            )}
-          />
-
-          {/* 右侧发送/取消按钮 */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={isLoading ? onInterrupt : handleSubmit}
-            disabled={!isLoading && !canSend}
-            className={cn(
-              "flex-shrink-0 h-8 w-8",
-              isLoading
-                ? "bg-text-primary text-surface-2 hover:bg-text-secondary"
-                : canSend
-                  ? "bg-brand text-white hover:bg-brand-light hover:scale-[1.05] active:scale-[0.97]"
-                  : "bg-surface-1 text-text-muted",
-            )}
-          >
-            {isLoading ? (
-              <Square className="h-3.5 w-3.5" fill="currentColor" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+          </div>
         </div>
       </div>
-      </div>{/* end relative */}
+      {/* end relative */}
 
       {/* 提示文本 */}
       <div className="text-center mt-1.5">

@@ -1,10 +1,10 @@
+import { ArrowLeft, History, Pencil } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { WorkflowList } from "./workflow/WorkflowList";
 import { WorkflowEditor } from "./workflow/WorkflowEditor";
-import { WorkflowVersions } from "./workflow/WorkflowVersions";
+import { WorkflowList } from "./workflow/WorkflowList";
 import { WorkflowRuns } from "./workflow/WorkflowRuns";
-import { Pencil, History, ArrowLeft } from "lucide-react";
+import { WorkflowVersions } from "./workflow/WorkflowVersions";
 
 type WfView = "list" | "edit" | "versions" | "runs";
 

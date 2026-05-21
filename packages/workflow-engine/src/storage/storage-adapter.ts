@@ -5,7 +5,7 @@
  * 内存实现天然原子；数据库实现需要在 `atomicNodeComplete` 中使用事务。
  */
 
-import type { DAGEvent, DAGSnapshot, DAGStatus, EventType, NodeOutput, RunSummary } from '../types/execution';
+import type { DAGEvent, DAGSnapshot, DAGStatus, EventType, NodeOutput, RunSummary } from "../types/execution";
 
 export interface StorageAdapter {
   // ---------- 事件 ----------
@@ -19,11 +19,14 @@ export interface StorageAdapter {
    * - `nodeId`: 按节点 ID 过滤
    * - `types`: 按事件类型过滤
    */
-  getEvents(runId: string, opts?: {
-    afterEventId?: string;
-    nodeId?: string;
-    types?: EventType[];
-  }): Promise<DAGEvent[]>;
+  getEvents(
+    runId: string,
+    opts?: {
+      afterEventId?: string;
+      nodeId?: string;
+      types?: EventType[];
+    },
+  ): Promise<DAGEvent[]>;
 
   // ---------- 快照 ----------
 
@@ -55,11 +58,7 @@ export interface StorageAdapter {
    * 原子写入节点完成结果：output + snapshot + event 在同一事务中写入。
    * 内存实现按顺序写入即可（单线程天然原子）。
    */
-  atomicNodeComplete(opts: {
-    output: NodeOutput;
-    snapshot: DAGSnapshot;
-    event: DAGEvent;
-  }): Promise<void>;
+  atomicNodeComplete(opts: { output: NodeOutput; snapshot: DAGSnapshot; event: DAGEvent }): Promise<void>;
 
   // ---------- 清理 ----------
 

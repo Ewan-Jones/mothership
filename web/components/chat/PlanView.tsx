@@ -1,9 +1,9 @@
+import { CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { useState } from "react";
-import type { PlanDisplayEntry } from "../../src/lib/types";
 import type { PlanEntry, PlanEntryPriority, PlanEntryStatus } from "../../src/acp/types";
+import type { PlanDisplayEntry } from "../../src/lib/types";
 import { cn } from "../../src/lib/utils";
 import { ScrollArea } from "../ui/scroll-area";
-import { CheckCircle2, Loader2, Circle } from "lucide-react";
 
 // =============================================================================
 // Plan 展示组件 — 执行计划可视化
@@ -42,9 +42,7 @@ export function PlanDisplay({ entry }: PlanDisplayProps) {
             <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="1.5" fill="none" />
           </svg>
 
-          <span className="text-xs font-display font-medium text-text-secondary">
-            执行计划
-          </span>
+          <span className="text-xs font-display font-medium text-text-secondary">执行计划</span>
 
           <span className="text-[10px] text-text-muted font-mono">
             {completed}/{total}
@@ -58,29 +56,26 @@ export function PlanDisplay({ entry }: PlanDisplayProps) {
             />
           </div>
 
-          <span className="text-[10px] text-text-muted font-mono">
-            {percentage}%
-          </span>
+          <span className="text-[10px] text-text-muted font-mono">{percentage}%</span>
         </button>
 
         {/* Entry list */}
-        {!collapsed && (
-          total > 5 ? (
+        {!collapsed &&
+          (total > 5 ? (
             <ScrollArea className="max-h-64 border-t border-border">
               <div className="px-3 py-1.5 space-y-0.5">
-                {entries.map((planEntry, i) => (
-                  <PlanEntryRow key={i} entry={planEntry} />
+                {entries.map((planEntry) => (
+                  <PlanEntryRow key={planEntry.content} entry={planEntry} />
                 ))}
               </div>
             </ScrollArea>
           ) : (
             <div className="border-t border-border px-3 py-1.5 space-y-0.5">
-              {entries.map((planEntry, i) => (
-                <PlanEntryRow key={i} entry={planEntry} />
+              {entries.map((planEntry) => (
+                <PlanEntryRow key={planEntry.content} entry={planEntry} />
               ))}
             </div>
-          )
-        )}
+          ))}
       </div>
     </div>
   );
@@ -96,11 +91,13 @@ function PlanEntryRow({ entry }: { entry: PlanEntry }) {
       <span className="flex-shrink-0 mt-0.5">
         <StatusIcon status={entry.status} />
       </span>
-      <span className={cn(
-        "text-xs leading-relaxed flex-1",
-        entry.status === "completed" ? "text-text-muted line-through" : "text-text-secondary",
-        entry.status === "in_progress" && "text-text-primary font-medium",
-      )}>
+      <span
+        className={cn(
+          "text-xs leading-relaxed flex-1",
+          entry.status === "completed" ? "text-text-muted line-through" : "text-text-secondary",
+          entry.status === "in_progress" && "text-text-primary font-medium",
+        )}
+      >
         {entry.content}
       </span>
       <PriorityBadge priority={entry.priority} />
@@ -141,10 +138,9 @@ function PriorityBadge({ priority }: { priority: PlanEntryPriority }) {
   };
 
   return (
-    <span className={cn(
-      "text-[9px] font-display rounded-full px-1.5 py-0.5 flex-shrink-0 leading-none",
-      styles[priority],
-    )}>
+    <span
+      className={cn("text-[9px] font-display rounded-full px-1.5 py-0.5 flex-shrink-0 leading-none", styles[priority])}
+    >
       {labels[priority]}
     </span>
   );

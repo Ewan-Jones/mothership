@@ -3,48 +3,43 @@
 // ============================================================================
 
 export interface JsonRpcRequest {
-  jsonrpc: '2.0'
-  id: string | number
-  method: string
-  params?: unknown
+  jsonrpc: "2.0";
+  id: string | number;
+  method: string;
+  params?: unknown;
 }
 
 export interface JsonRpcResponse {
-  jsonrpc: '2.0'
-  id: string | number
-  result?: unknown
-  error?: JsonRpcError
+  jsonrpc: "2.0";
+  id: string | number;
+  result?: unknown;
+  error?: JsonRpcError;
 }
 
 export interface JsonRpcNotification {
-  jsonrpc: '2.0'
-  method: string
-  params?: unknown
+  jsonrpc: "2.0";
+  method: string;
+  params?: unknown;
 }
 
 export interface JsonRpcError {
-  code: number
-  message: string
-  data?: unknown
+  code: number;
+  message: string;
+  data?: unknown;
 }
 
-export type JsonRpcMessage =
-  | JsonRpcRequest
-  | JsonRpcResponse
-  | JsonRpcNotification
+export type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse | JsonRpcNotification;
 
 export function isRequest(msg: JsonRpcMessage): msg is JsonRpcRequest {
-  return 'method' in msg && 'id' in msg
+  return "method" in msg && "id" in msg;
 }
 
 export function isResponse(msg: JsonRpcMessage): msg is JsonRpcResponse {
-  return 'id' in msg && !('method' in msg)
+  return "id" in msg && !("method" in msg);
 }
 
-export function isNotification(
-  msg: JsonRpcMessage,
-): msg is JsonRpcNotification {
-  return 'method' in msg && !('id' in msg)
+export function isNotification(msg: JsonRpcMessage): msg is JsonRpcNotification {
+  return "method" in msg && !("id" in msg);
 }
 
 // ============================================================================
@@ -52,76 +47,72 @@ export function isNotification(
 // ============================================================================
 
 export interface InitializeParams {
-  protocolVersion: string
+  protocolVersion: string;
   clientInfo: {
-    name: string
-    version: string
-  }
-  capabilities?: ClientCapabilities
+    name: string;
+    version: string;
+  };
+  capabilities?: ClientCapabilities;
 }
 
 export interface ClientCapabilities {
-  streaming?: boolean
-  toolApproval?: boolean
+  streaming?: boolean;
+  toolApproval?: boolean;
 }
 
 export interface InitializeResult {
-  protocolVersion: string
+  protocolVersion: string;
   serverInfo: {
-    name: string
-    version: string
-  }
-  capabilities?: ServerCapabilities
+    name: string;
+    version: string;
+  };
+  capabilities?: ServerCapabilities;
 }
 
 export interface ServerCapabilities {
-  streaming?: boolean
-  tools?: boolean
+  streaming?: boolean;
+  tools?: boolean;
 }
 
 export interface SessionSetupParams {
-  sessionId?: string
-  context?: SessionContext
+  sessionId?: string;
+  context?: SessionContext;
 }
 
 export interface SessionContext {
-  workingDirectory?: string
-  files?: string[]
+  workingDirectory?: string;
+  files?: string[];
 }
 
 export interface PromptParams {
-  sessionId: string
-  messages: PromptMessage[]
+  sessionId: string;
+  messages: PromptMessage[];
 }
 
 export interface PromptMessage {
-  role: 'user' | 'assistant'
-  content: string | ContentPart[]
+  role: "user" | "assistant";
+  content: string | ContentPart[];
 }
 
 export interface ContentPart {
-  type: 'text' | 'image' | 'file'
-  text?: string
-  data?: string
-  mimeType?: string
-  path?: string
+  type: "text" | "image" | "file";
+  text?: string;
+  data?: string;
+  mimeType?: string;
+  path?: string;
 }
 
 export interface ContentNotification {
-  sessionId: string
-  content: string
-  done?: boolean
+  sessionId: string;
+  content: string;
+  done?: boolean;
 }
 
 // ============================================================================
 // Permission Types
 // ============================================================================
 
-export type PermissionOptionKind =
-  | "allow_once"
-  | "allow_always"
-  | "reject_once"
-  | "reject_always";
+export type PermissionOptionKind = "allow_once" | "allow_always" | "reject_once" | "reject_always";
 
 export interface PermissionOption {
   optionId: string;
@@ -190,10 +181,7 @@ export interface BrowserExecuteResult {
   error?: string;
 }
 
-export type BrowserToolResult =
-  | BrowserTabsResult
-  | BrowserReadResult
-  | BrowserExecuteResult;
+export type BrowserToolResult = BrowserTabsResult | BrowserReadResult | BrowserExecuteResult;
 
 // ============================================================================
 // Proxy Messages (Client → Server)
@@ -459,11 +447,7 @@ export type SessionUpdate =
 // Connection State
 // ============================================================================
 
-export type ConnectionState =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error";
+export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 
 // ============================================================================
 // Capabilities Types

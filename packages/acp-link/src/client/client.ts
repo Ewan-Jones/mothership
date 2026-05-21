@@ -1,9 +1,6 @@
-import { WSTransport } from "./transport.js";
-import { ACPProtocol } from "./protocol.js";
-import { ACPState } from "./state.js";
-import { ACPPending } from "./pending.js";
 import type {
   ACPSettings,
+  AvailableCommand,
   BrowserToolParams,
   BrowserToolResult,
   ConnectionState,
@@ -12,15 +9,17 @@ import type {
   ListSessionsResponse,
   LoadSessionRequest,
   PermissionRequestPayload,
-  ProxyMessage,
   PromptUsage,
+  ProxyMessage,
   ResumeSessionRequest,
   SessionModelState,
   SessionModeState,
   SessionUpdate,
-  AvailableCommand,
-  ModelInfo,
 } from "../types.js";
+import { ACPPending } from "./pending.js";
+import { ACPProtocol } from "./protocol.js";
+import { ACPState } from "./state.js";
+import { WSTransport } from "./transport.js";
 
 /**
  * Error thrown when disconnect() is called while a connection is in progress.
@@ -285,9 +284,7 @@ export class ACPClient {
 
   sendPrompt(content: string | ContentBlock[]): void {
     if (!this.state.sessionId) throw new Error("No active session");
-    const blocks: ContentBlock[] = typeof content === "string"
-      ? [{ type: "text" as const, text: content }]
-      : content;
+    const blocks: ContentBlock[] = typeof content === "string" ? [{ type: "text" as const, text: content }] : content;
     this.sendRaw({ type: "prompt", payload: { content: blocks } });
   }
 
@@ -306,9 +303,7 @@ export class ACPClient {
   }
 
   respondToPermission(requestId: string, optionId: string | null): void {
-    const outcome = optionId
-      ? { outcome: "selected" as const, optionId }
-      : { outcome: "cancelled" as const };
+    const outcome = optionId ? { outcome: "selected" as const, optionId } : { outcome: "cancelled" as const };
     this.sendRaw({ type: "permission_response", payload: { requestId, outcome } });
   }
 
@@ -357,19 +352,45 @@ export class ACPClient {
   // Backward-compatible state getters (delegate to ACPState)
   // ==========================================================================
 
-  getState(): ConnectionState { return this.state.connectionState; }
-  getSessionId(): string | null { return this.state.sessionId; }
-  get supportsImages(): boolean { return this.state.supportsImages; }
-  getPromptCapabilities() { return this.state.promptCapabilities; }
-  get modelState(): SessionModelState | null { return this.state.modelState; }
-  get modeState(): SessionModeState | null { return this.state.modeState; }
-  get availableCommands(): AvailableCommand[] { return this.state.availableCommands; }
-  get supportsModelSelection(): boolean { return this.state.supportsModelSelection; }
-  get agentCapabilities() { return this.state.agentCapabilities; }
-  get supportsLoadSession(): boolean { return this.state.supportsLoadSession; }
-  get supportsResumeSession(): boolean { return this.state.supportsResumeSession; }
-  get supportsSessionList(): boolean { return this.state.supportsSessionList; }
-  get supportsSessionHistory(): boolean { return this.state.supportsSessionHistory; }
+  getState(): ConnectionState {
+    return this.state.connectionState;
+  }
+  getSessionId(): string | null {
+    return this.state.sessionId;
+  }
+  get supportsImages(): boolean {
+    return this.state.supportsImages;
+  }
+  getPromptCapabilities() {
+    return this.state.promptCapabilities;
+  }
+  get modelState(): SessionModelState | null {
+    return this.state.modelState;
+  }
+  get modeState(): SessionModeState | null {
+    return this.state.modeState;
+  }
+  get availableCommands(): AvailableCommand[] {
+    return this.state.availableCommands;
+  }
+  get supportsModelSelection(): boolean {
+    return this.state.supportsModelSelection;
+  }
+  get agentCapabilities() {
+    return this.state.agentCapabilities;
+  }
+  get supportsLoadSession(): boolean {
+    return this.state.supportsLoadSession;
+  }
+  get supportsResumeSession(): boolean {
+    return this.state.supportsResumeSession;
+  }
+  get supportsSessionList(): boolean {
+    return this.state.supportsSessionList;
+  }
+  get supportsSessionHistory(): boolean {
+    return this.state.supportsSessionHistory;
+  }
 
   // ==========================================================================
   // Backward-compatible handler setters

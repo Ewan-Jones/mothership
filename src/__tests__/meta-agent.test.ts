@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 const mockCreateWebEnvironment = mock<(params: any) => Promise<any>>();
 const mockListEnvironmentsWithInstances = mock<(organizationId: string) => Promise<any[]>>();
@@ -38,7 +38,7 @@ mock.module("../services/config/skill-meta-content", () => ({
   writeMetaSkillFile: mockWriteMetaSkillFile,
 }));
 
-import { META_ENVIRONMENT_NAME, findMetaEnvironment, ensureMetaEnvironment } from "../services/meta-agent";
+import { ensureMetaEnvironment, findMetaEnvironment, META_ENVIRONMENT_NAME } from "../services/meta-agent";
 
 const testCtx = {
   organizationId: "team-001",

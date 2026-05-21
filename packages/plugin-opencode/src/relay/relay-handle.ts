@@ -1,8 +1,4 @@
-import type {
-  EngineRelayHandle,
-  EngineRelayMessage,
-  EngineRelayState,
-} from "@mothership/plugin-sdk";
+import type { EngineRelayHandle, EngineRelayMessage, EngineRelayState } from "@mothership/plugin-sdk";
 
 const RELAY_KEEPALIVE_INTERVAL_MS = 20_000;
 
@@ -67,7 +63,9 @@ export function createRelayHandle(
   dependencies: RelayHandleDependencies,
 ): OpencodeRelayHandle {
   const url = `ws://127.0.0.1:${input.port}/ws?token=${encodeURIComponent(input.token)}`;
-  console.log(`[RelayHandle] Creating relay to ${url.replace(/token=[^&]+/, "token=***")} for instance ${input.instanceId}`);
+  console.log(
+    `[RelayHandle] Creating relay to ${url.replace(/token=[^&]+/, "token=***")} for instance ${input.instanceId}`,
+  );
   const socket = dependencies.createWebSocket(url);
   const listeners = new Set<(message: EngineRelayMessage) => void>();
   const keepAliveIntervalMs = dependencies.keepAliveIntervalMs ?? RELAY_KEEPALIVE_INTERVAL_MS;
@@ -134,7 +132,9 @@ export function createRelayHandle(
       try {
         const parsed = JSON.parse(line);
         if (!shouldIgnoreInbound(parsed)) {
-          console.log(`[RelayHandle] Inbound ← acp-link (${input.instanceId}): type=${parsed.type}${hasListeners ? "" : " (buffered)"}`);
+          console.log(
+            `[RelayHandle] Inbound ← acp-link (${input.instanceId}): type=${parsed.type}${hasListeners ? "" : " (buffered)"}`,
+          );
         }
         emit(parsed);
       } catch {

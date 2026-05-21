@@ -1,6 +1,6 @@
 import Elysia from "elysia";
 import { verifyWorkerJwt } from "../../auth/jwt";
-import { log, error as logError } from "../../logger";
+import { log } from "../../logger";
 import { errorResponse } from "../../plugins/auth";
 import { getSession, resolveExistingSessionId } from "../../services/session";
 import {
@@ -64,11 +64,11 @@ app.post("/session/:sessionId/events", async ({ request, params, error }) => {
   const body = await request.json();
   const events = Array.isArray(body.events) ? body.events : [body];
 
-  let count = 0;
+  let _count = 0;
   for (const msg of events) {
     if (!msg || typeof msg !== "object") continue;
     ingestBridgeMessage(sessionId, msg as Record<string, unknown>);
-    count++;
+    _count++;
   }
 
   return { status: "ok" };

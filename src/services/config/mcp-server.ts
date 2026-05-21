@@ -94,9 +94,7 @@ export async function countToolsByServer(organizationId: string, serverName: str
 
 /** 删除指定 server 的所有缓存 tool */
 export async function deleteToolsByServer(organizationId: string, serverName: string): Promise<void> {
-  await db
-    .delete(mcpTool)
-    .where(and(eq(mcpTool.organizationId, organizationId), eq(mcpTool.serverName, serverName)));
+  await db.delete(mcpTool).where(and(eq(mcpTool.organizationId, organizationId), eq(mcpTool.serverName, serverName)));
 }
 
 /** 替换指定 server 的缓存 tool（事务保证原子性：先删后插） */
@@ -106,9 +104,7 @@ export async function replaceToolsForServer(
   tools: Array<{ name: string; description?: string; inputSchema?: unknown }>,
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx
-      .delete(mcpTool)
-      .where(and(eq(mcpTool.organizationId, organizationId), eq(mcpTool.serverName, serverName)));
+    await tx.delete(mcpTool).where(and(eq(mcpTool.organizationId, organizationId), eq(mcpTool.serverName, serverName)));
     if (tools.length > 0) {
       const now = new Date();
       const rows = tools.map((t) => ({

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { resetConfig, setConfig } from "../config";
 
 // Mock config before imports
 

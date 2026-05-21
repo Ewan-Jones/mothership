@@ -29,10 +29,7 @@ export async function ensureWorkspaceRuntimeDirs(workspace: string): Promise<Pre
 /**
  * 写入 opencode runtime 配置文件。
  */
-export async function writeOpencodeConfig(
-  workspace: string,
-  config: OpencodeRuntimeConfig,
-): Promise<string> {
+export async function writeOpencodeConfig(workspace: string, config: OpencodeRuntimeConfig): Promise<string> {
   const { configPath } = await ensureWorkspaceRuntimeDirs(workspace);
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   return configPath;

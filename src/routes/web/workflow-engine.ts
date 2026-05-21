@@ -5,22 +5,21 @@
  * listRuns 直接调用 StorageAdapter（不走引擎门面）。
  */
 
-import Elysia from "elysia";
 import { WorkflowError } from "@mothership/workflow-engine";
-import { authGuardPlugin } from "../../plugins/auth";
-
-import { getTeamEngine } from "../../services/workflow";
-import { createPgStorageAdapter } from "../../services/workflow/pg-storage-adapter";
+import { and, eq } from "drizzle-orm";
+import Elysia from "elysia";
 import { db } from "../../db";
 import { workflowSnapshot } from "../../db/schema";
-import { and, eq } from "drizzle-orm";
+import { authGuardPlugin } from "../../plugins/auth";
+import { getTeamEngine } from "../../services/workflow";
+import { createPgStorageAdapter } from "../../services/workflow/pg-storage-adapter";
 
 const app = new Elysia({ name: "web-workflow-engine", prefix: "/web" }).use(authGuardPlugin);
 
 // POST /web/workflow-engine — action 分发
 app.post(
   "/workflow-engine",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error }: any) => {
     const authCtx = store.authContext!;
     const payload = body as Record<string, unknown>;
     const action = payload.action as string;

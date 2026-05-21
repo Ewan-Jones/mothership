@@ -62,7 +62,7 @@ export const sseBus = new SSEBus();
 // RCS Chat Adapter — 将 SSE 事件转为 ThreadEntry
 // =============================================================================
 
-function mapToolStatus(status: string): ToolCallStatus {
+function _mapToolStatus(status: string): ToolCallStatus {
   if (status === "completed") return "complete";
   if (status === "failed") return "error";
   return "running";
@@ -355,7 +355,7 @@ export class RCSChatAdapter {
           }
 
           // Create new AssistantMessage
-          if (content && content.trim()) {
+          if (content?.trim()) {
             const newEntry: AssistantMessageEntry = {
               type: "assistant_message",
               id: `assistant-${Date.now()}`,

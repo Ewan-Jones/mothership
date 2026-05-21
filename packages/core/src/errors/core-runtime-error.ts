@@ -24,11 +24,7 @@ export class CoreRuntimeError extends Error {
   /**
    * 创建一条带错误码和附加上下文的 core 运行时错误。
    */
-  constructor(
-    code: CoreRuntimeErrorCode,
-    message: string,
-    details?: Record<string, unknown>,
-  ) {
+  constructor(code: CoreRuntimeErrorCode, message: string, details?: Record<string, unknown>) {
     super(message);
     this.name = "CoreRuntimeError";
     this.code = code;
@@ -39,9 +35,7 @@ export class CoreRuntimeError extends Error {
 /**
  * 判断给定异常是否为 core 运行时错误。
  */
-export function isCoreRuntimeError(
-  error: unknown,
-): error is CoreRuntimeError {
+export function isCoreRuntimeError(error: unknown): error is CoreRuntimeError {
   return error instanceof CoreRuntimeError;
 }
 

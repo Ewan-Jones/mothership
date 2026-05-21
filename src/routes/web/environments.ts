@@ -17,6 +17,7 @@ import {
   updateWebEnvironment,
 } from "../../services/environment";
 import { enterEnvironment, listInstancesResponse, spawnInstanceFromEnvironment } from "../../services/instance";
+
 const app = new Elysia({ name: "web-environments", prefix: "/web" }).use(authGuardPlugin).model({
   "environment-info": EnvironmentInfoSchema,
   "environment-list-response": EnvironmentListResponseSchema,
@@ -28,7 +29,7 @@ const app = new Elysia({ name: "web-environments", prefix: "/web" }).use(authGua
 /** GET /web/environments — List environments for the current team */
 app.get(
   "/environments",
-  async ({ store, request }) => {
+  async ({ store }) => {
     const authCtx = store.authContext!;
     return listEnvironmentsWithInstances(authCtx.organizationId);
   },
@@ -38,7 +39,7 @@ app.get(
 /** POST /web/environments — Register a new environment */
 app.post(
   "/environments",
-  async ({ store, body, request, error }) => {
+  async ({ store, body, error }) => {
     const user = store.user!;
     const authCtx = store.authContext!;
     const b = body as {
@@ -48,7 +49,7 @@ app.post(
       autoStart?: boolean;
     };
 
-    let record;
+    let record: Awaited<ReturnType<typeof createWebEnvironment>>;
     try {
       record = await createWebEnvironment({
         name: b.name,
@@ -79,7 +80,7 @@ app.post(
 /** GET /web/environments/:id — Get environment detail (with secret) */
 app.get(
   "/environments/:id",
-  async ({ store, params, request, error }) => {
+  async ({ store, params, error }) => {
     const authCtx = store.authContext!;
     try {
       const env = await getOwnedEnvironment(params.id, authCtx.organizationId);
@@ -95,7 +96,7 @@ app.get(
 /** PUT /web/environments/:id — Update environment metadata */
 app.put(
   "/environments/:id",
-  async ({ store, params, body, request, error }) => {
+  async ({ store, params, body, error }) => {
     const authCtx = store.authContext!;
     const b = body as {
       name?: string;
@@ -104,7 +105,7 @@ app.put(
       autoStart?: boolean;
     };
 
-    let updated;
+    let updated: Awaited<ReturnType<typeof updateWebEnvironment>>;
     try {
       updated = await updateWebEnvironment(params.id, authCtx.organizationId, {
         name: b.name,
@@ -127,7 +128,7 @@ app.put(
 /** POST /web/environments/:id/enter — Enter an environment */
 app.post(
   "/environments/:id/enter",
-  async ({ store, params, body, error, request }) => {
+  async ({ store, params, body, error }) => {
     const user = store.user!;
     const authCtx = store.authContext!;
     try {
@@ -153,7 +154,7 @@ app.post(
 /** GET /web/environments/:id/instances — List active instances for an environment */
 app.get(
   "/environments/:id/instances",
-  async ({ store, params, request, error }) => {
+  async ({ store, params, error }) => {
     const authCtx = store.authContext!;
     try {
       await getOwnedEnvironment(params.id, authCtx.organizationId);
@@ -169,7 +170,7 @@ app.get(
 /** DELETE /web/environments/:id — Delete environment */
 app.delete(
   "/environments/:id",
-  async ({ store, params, request, error }) => {
+  async ({ store, params, error }) => {
     const authCtx = store.authContext!;
     try {
       await getOwnedEnvironment(params.id, authCtx.organizationId);

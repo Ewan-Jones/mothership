@@ -1,5 +1,5 @@
 <script setup>
-const features = [
+const _features = [
   {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
     title: "ACP 协议",
@@ -38,7 +38,7 @@ const features = [
   },
 ];
 
-const stack = [
+const _stack = [
   { name: "Hono", color: "#e3602b" },
   { name: "Bun", color: "#fbf0df" },
   { name: "React", color: "#61dafb" },

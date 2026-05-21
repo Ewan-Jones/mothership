@@ -1,8 +1,8 @@
-import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { mkdtemp, rm, writeFile, mkdir, stat, rename, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { listPathsRecursive, renamePath, mkdirp } from "../services/workspace-fs";
+import { join } from "node:path";
+import { listPathsRecursive, mkdirp, renamePath } from "../services/workspace-fs";
 
 describe("workspace-fs tree utilities", () => {
   let baseDir: string;

@@ -10,17 +10,17 @@
  * - 事件发射：sub_workflow.started / sub_workflow.completed
  */
 
-import { nanoid } from 'nanoid';
-import { join } from 'node:path';
-import type { NodeDef, SubWorkflowNodeDef, WorkflowDef } from '../types/dag';
-import type { NodeExecutor, NodeExecutionContext } from '../scheduler/dag-scheduler';
-import type { NodeOutput } from '../types/execution';
-import type { NodeExecutorRegistry } from './node-executor';
-import { parseWorkflowYaml } from '../parser/yaml-parser';
-import { validateDAG } from '../parser/dag-validator';
-import { DAGScheduler } from '../scheduler/dag-scheduler';
-import { CancellationManager } from '../scheduler/cancellation';
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
+import { join } from "node:path";
+import { nanoid } from "nanoid";
+import { validateDAG } from "../parser/dag-validator";
+import { parseWorkflowYaml } from "../parser/yaml-parser";
+import { CancellationManager } from "../scheduler/cancellation";
+import type { NodeExecutionContext, NodeExecutor } from "../scheduler/dag-scheduler";
+import { DAGScheduler } from "../scheduler/dag-scheduler";
+import type { NodeDef, SubWorkflowNodeDef, WorkflowDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
+import type { NodeOutput } from "../types/execution";
+import type { NodeExecutorRegistry } from "./node-executor";
 
 // ---------- SubWorkflowExecutor ----------
 
@@ -30,18 +30,14 @@ export class SubWorkflowExecutor implements NodeExecutor {
   private readonly parentBaseDir: string;
   private readonly registry: NodeExecutorRegistry;
 
-  constructor(
-    parentRunId: string,
-    registry: NodeExecutorRegistry,
-    parentBaseDir?: string,
-  ) {
+  constructor(parentRunId: string, registry: NodeExecutorRegistry, parentBaseDir?: string) {
     this.parentRunId = parentRunId;
     this.parentBaseDir = parentBaseDir ?? process.cwd();
     this.registry = registry;
   }
 
   async execute(node: NodeDef, ctx: NodeExecutionContext): Promise<NodeOutput> {
-    if (node.type !== 'workflow') {
+    if (node.type !== "workflow") {
       throw new WorkflowError(
         `SubWorkflowExecutor only handles 'workflow' nodes, got '${node.type}'`,
         WorkflowErrorCode.NODE_FAILED,
@@ -59,11 +55,10 @@ export class SubWorkflowExecutor implements NodeExecutor {
     try {
       source = await Bun.file(absRefPath).text();
     } catch {
-      throw new WorkflowError(
-        `Sub-workflow file not found: ${absRefPath}`,
-        WorkflowErrorCode.SUB_WORKFLOW_ERROR,
-        { node_id: node.id, ref: absRefPath },
-      );
+      throw new WorkflowError(`Sub-workflow file not found: ${absRefPath}`, WorkflowErrorCode.SUB_WORKFLOW_ERROR, {
+        node_id: node.id,
+        ref: absRefPath,
+      });
     }
 
     // 解析 + 校验
@@ -71,14 +66,13 @@ export class SubWorkflowExecutor implements NodeExecutor {
     const validation = validateDAG(parsed);
     if (!validation.valid) {
       const issues = validation.issues
-        .filter((i) => i.type === 'error')
+        .filter((i) => i.type === "error")
         .map((i) => i.message)
-        .join('; ');
-      throw new WorkflowError(
-        `Sub-workflow validation failed: ${issues}`,
-        WorkflowErrorCode.SUB_WORKFLOW_ERROR,
-        { node_id: node.id, ref: absRefPath },
-      );
+        .join("; ");
+      throw new WorkflowError(`Sub-workflow validation failed: ${issues}`, WorkflowErrorCode.SUB_WORKFLOW_ERROR, {
+        node_id: node.id,
+        ref: absRefPath,
+      });
     }
 
     const subDef = validation.def;
@@ -90,7 +84,7 @@ export class SubWorkflowExecutor implements NodeExecutor {
     const subParams = (ctx.resolvedInputs.params as Record<string, unknown>) ?? wfNode.params ?? {};
 
     // 发射 sub_workflow.started 事件
-    await this.emitEvent(ctx, 'sub_workflow.started', node, {
+    await this.emitEvent(ctx, "sub_workflow.started", node, {
       sub_run_id: subRunId,
       ref: absRefPath,
     });
@@ -106,7 +100,7 @@ export class SubWorkflowExecutor implements NodeExecutor {
     if (ctx.signal.aborted) {
       onParentAbort();
     } else {
-      ctx.signal.addEventListener('abort', onParentAbort, { once: true });
+      ctx.signal.addEventListener("abort", onParentAbort, { once: true });
     }
 
     try {
@@ -127,62 +121,62 @@ export class SubWorkflowExecutor implements NodeExecutor {
       const lastNodeId = this.getLastNodeId(subDef);
       const lastOutput = lastNodeId ? await ctx.storage.getOutput(subRunId, lastNodeId) : null;
 
-      if (result.status === 'SUCCESS') {
+      if (result.status === "SUCCESS") {
         // 子工作流成功
-        await this.emitEvent(ctx, 'sub_workflow.completed', node, {
+        await this.emitEvent(ctx, "sub_workflow.completed", node, {
           sub_run_id: subRunId,
           outputs: lastOutput,
         });
 
-        return lastOutput ?? {
-          stdout: '',
-          exit_code: 0,
-        };
+        return (
+          lastOutput ?? {
+            stdout: "",
+            exit_code: 0,
+          }
+        );
       }
 
-      if (result.status === 'SUSPENDED') {
+      if (result.status === "SUSPENDED") {
         // 传播 SUSPENDED 状态
-        await this.emitEvent(ctx, 'sub_workflow.completed', node, {
+        await this.emitEvent(ctx, "sub_workflow.completed", node, {
           sub_run_id: subRunId,
-          status: 'SUSPENDED',
+          status: "SUSPENDED",
         });
-        throw new WorkflowError(
-          'Sub-workflow suspended',
-          WorkflowErrorCode.RECOVERY_ERROR,
-          { node_id: node.id, sub_run_id: subRunId },
-        );
+        throw new WorkflowError("Sub-workflow suspended", WorkflowErrorCode.RECOVERY_ERROR, {
+          node_id: node.id,
+          sub_run_id: subRunId,
+        });
       }
 
-      if (result.status === 'CANCELLED') {
+      if (result.status === "CANCELLED") {
         // 传播 CANCELLED 状态
-        throw new WorkflowError(
-          'Sub-workflow cancelled',
-          WorkflowErrorCode.DAG_CANCELLED,
-          { node_id: node.id, sub_run_id: subRunId },
-        );
+        throw new WorkflowError("Sub-workflow cancelled", WorkflowErrorCode.DAG_CANCELLED, {
+          node_id: node.id,
+          sub_run_id: subRunId,
+        });
       }
 
       // 子工作流失败
       if (wfNode.ignore_errors) {
         // ignore_errors: 父节点仍然 COMPLETED
-        await this.emitEvent(ctx, 'sub_workflow.completed', node, {
+        await this.emitEvent(ctx, "sub_workflow.completed", node, {
           sub_run_id: subRunId,
-          status: 'FAILED',
+          status: "FAILED",
           ignore_errors: true,
           outputs: lastOutput,
         });
 
         return {
-          stdout: lastOutput?.stdout ?? '',
+          stdout: lastOutput?.stdout ?? "",
           exit_code: 0,
           json: { _sub_workflow_failed: true, _sub_run_id: subRunId },
         };
       }
 
       // 默认：传播失败
-      await this.emitEvent(ctx, 'sub_workflow.completed', node, {
+      await this.emitEvent(ctx, "sub_workflow.completed", node, {
         sub_run_id: subRunId,
-        status: 'FAILED',
+        status: "FAILED",
       });
 
       throw new WorkflowError(
@@ -191,7 +185,7 @@ export class SubWorkflowExecutor implements NodeExecutor {
         { node_id: node.id, sub_run_id: subRunId },
       );
     } finally {
-      ctx.signal.removeEventListener('abort', onParentAbort);
+      ctx.signal.removeEventListener("abort", onParentAbort);
     }
   }
 
@@ -212,11 +206,11 @@ export class SubWorkflowExecutor implements NodeExecutor {
   /** 发射事件到 storage */
   private async emitEvent(
     ctx: NodeExecutionContext,
-    type: import('../types/execution').EventType,
+    type: import("../types/execution").EventType,
     node: NodeDef,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
-    const event: import('../types/execution').DAGEvent = {
+    const event: import("../types/execution").DAGEvent = {
       event_id: `evt_${nanoid(10)}`,
       run_id: ctx.runId,
       node_id: node.id,

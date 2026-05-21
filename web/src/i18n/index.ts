@@ -19,6 +19,7 @@ import sessionsEN from "./locales/en/sessions.json";
 import sidebarEN from "./locales/en/sidebar.json";
 import skillsEN from "./locales/en/skills.json";
 import tasksEN from "./locales/en/tasks.json";
+import workflowsEN from "./locales/en/workflows.json";
 import agentPanelZH from "./locales/zh/agentPanel.json";
 import agentsZH from "./locales/zh/agents.json";
 import apikeyZH from "./locales/zh/apikey.json";
@@ -36,7 +37,6 @@ import sessionsZH from "./locales/zh/sessions.json";
 import sidebarZH from "./locales/zh/sidebar.json";
 import skillsZH from "./locales/zh/skills.json";
 import tasksZH from "./locales/zh/tasks.json";
-import workflowsEN from "./locales/en/workflows.json";
 import workflowsZH from "./locales/zh/workflows.json";
 
 export const NS = {

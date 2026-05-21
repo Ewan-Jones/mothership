@@ -8,18 +8,18 @@
  * - 按需 spawn 实例，自动创建 API key 注入环境变量
  */
 
-import { createWebEnvironment, listEnvironmentsWithInstances } from "./environment-web";
-import { spawnInstanceFromEnvironment } from "./instance";
-import { upsertSkill } from "./config/skill";
-import { getAgentConfig, createAgentConfig } from "./config/agent-config";
 import { auth } from "../auth/better-auth";
 import type { AuthContext } from "../plugins/auth";
-import { META_SKILL_NAME, META_SKILL_DESCRIPTION, writeMetaSkillFile } from "./config/skill-meta-content";
+import { createAgentConfig, getAgentConfig } from "./config/agent-config";
+import { upsertSkill } from "./config/skill";
+import { META_SKILL_DESCRIPTION, META_SKILL_NAME, writeMetaSkillFile } from "./config/skill-meta-content";
+import { createWebEnvironment, listEnvironmentsWithInstances } from "./environment-web";
+import { spawnInstanceFromEnvironment } from "./instance";
 
 export const META_ENVIRONMENT_NAME = "meta-agent";
 const META_AGENT_CONFIG_NAME = "meta";
 const META_KEY_LABEL = "Meta Agent";
-const META_KEY_EXPIRY_MS = 3600_000; // 1 小时
+const _META_KEY_EXPIRY_MS = 3600_000; // 1 小时
 
 export interface EnsureMetaResult {
   environmentId: string;

@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import { mkdirSync, realpathSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, realpathSync, rmdirSync, symlinkSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 // ── workspace 路径符号链接逃逸验证 ──
@@ -15,7 +15,7 @@ function validateWorkspacePath(p: string): string | null {
   const normalized = resolve(p);
   if (BLOCKED_PATHS.includes(normalized)) return `不允许使用系统目录: ${normalized}`;
   for (const blocked of BLOCKED_PATHS) {
-    if (blocked !== "/" && normalized.startsWith(blocked + "/")) {
+    if (blocked !== "/" && normalized.startsWith(`${blocked}/`)) {
       return `不允许使用系统目录下的路径: ${normalized}`;
     }
   }
@@ -30,7 +30,7 @@ function ensureWorkspaceDir(workspacePath: string): string {
 
 describe("workspace path symlink escape prevention", () => {
   // 使用 sandbox 可写且不在 BLOCKED_PATHS 内的目录。
-  const testDir = join("/private/tmp", ".rcs-symlink-test-" + process.pid);
+  const testDir = join("/private/tmp", `.rcs-symlink-test-${process.pid}`);
   const linkPath = join(testDir, "link_to_blocked");
 
   beforeEach(() => {

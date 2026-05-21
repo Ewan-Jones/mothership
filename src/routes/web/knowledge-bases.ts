@@ -21,7 +21,6 @@ import {
   uploadKnowledgeResource,
 } from "../../services/knowledge-upload";
 
-
 const app = new Elysia({ name: "web-knowledge-bases", prefix: "/web" }).use(authGuardPlugin).model({
   "knowledge-base-info": KnowledgeBaseInfoSchema,
   "knowledge-base-list": KnowledgeBaseInfoSchema.array(),
@@ -34,7 +33,7 @@ const app = new Elysia({ name: "web-knowledge-bases", prefix: "/web" }).use(auth
 
 app.get(
   "/knowledgeBases",
-  async ({ store, request }: any) => {
+  async ({ store }: any) => {
     const authCtx = store.authContext!;
     return await listKnowledgeBasesByTeamId(authCtx.organizationId);
   },
@@ -43,7 +42,7 @@ app.get(
 
 app.post(
   "/knowledgeBases",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error }: any) => {
     const authCtx = store.authContext!;
     const payload = body as { name: string; slug: string; description?: string };
     const result = await createKnowledgeBaseRecord(
@@ -65,7 +64,7 @@ app.post(
 
 app.get(
   "/knowledgeBases/:id",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error }: any) => {
     const authCtx = store.authContext!;
     const id = params.id;
     const detail = await getKnowledgeBaseDetail(authCtx.organizationId, id);
@@ -79,7 +78,7 @@ app.get(
 
 app.patch(
   "/knowledgeBases/:id",
-  async ({ store, params, body, error, request }: any) => {
+  async ({ store, params, body, error }: any) => {
     const authCtx = store.authContext!;
     const id = params.id;
     const payload = body as { name?: string; slug?: string; description?: string };
@@ -99,7 +98,7 @@ app.patch(
 
 app.delete(
   "/knowledgeBases/:id",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error }: any) => {
     const authCtx = store.authContext!;
     const id = params.id;
     try {
@@ -158,7 +157,7 @@ app.post(
 
 app.post(
   "/knowledgeBases/:id/resources/url",
-  async ({ store, params, body, error, request }: any) => {
+  async ({ store, params, body, error }: any) => {
     const authCtx = store.authContext!;
     const id = params.id;
     const payload = body as { url: string; sourceName?: string };
@@ -184,7 +183,7 @@ app.post(
 
 app.get(
   "/knowledgeBases/:id/resources",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error }: any) => {
     const authCtx = store.authContext!;
     const id = params.id;
     const items = await listKnowledgeResources(authCtx.organizationId, id);
@@ -198,7 +197,7 @@ app.get(
 
 app.delete(
   "/knowledgeBases/:id/resources/:resourceId",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error }: any) => {
     const authCtx = store.authContext!;
     const id = params.id;
     const resourceId = params.resourceId;

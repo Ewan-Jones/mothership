@@ -2,8 +2,8 @@ import Elysia from "elysia";
 import { auth } from "../auth/better-auth";
 import { decryptPassword, getEncryptionKey } from "../auth/encryption";
 import { verifyWorkerJwt } from "../auth/jwt";
-import { AppError } from "../errors";
 import { config } from "../config";
+import { AppError } from "../errors";
 
 // ────────────────────────────────────────────
 // 测试注入：路由级测试通过 setTestAuth 绕过认证
@@ -164,7 +164,7 @@ export const authGuardPlugin = new Elysia({ name: "auth-guard" })
           // 0. Environment secret match
           const { environmentRepo } = await import("../repositories");
           const envRecord = await environmentRepo.getBySecret(token);
-          if (envRecord && envRecord.userId) {
+          if (envRecord?.userId) {
             const user = await lookupUserById(envRecord.userId);
             if (user) {
               store.user = user;
@@ -218,7 +218,7 @@ export const authGuardPlugin = new Elysia({ name: "auth-guard" })
     sessionIngressAuth(enabled: boolean) {
       if (!enabled) return {};
       return {
-        beforeHandle: async ({ store, request, error }: any) => {
+        beforeHandle: async ({ store: _store, request, error }: any) => {
           const token = extractToken(request);
 
           // Worker JWT

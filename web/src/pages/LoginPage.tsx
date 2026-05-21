@@ -1,7 +1,7 @@
+import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
 import { encryptPassword } from "../lib/password-crypto";
 

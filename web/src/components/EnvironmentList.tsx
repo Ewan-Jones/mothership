@@ -1,5 +1,5 @@
-import type { Environment } from "../types";
 import { useTranslation } from "react-i18next";
+import type { Environment } from "../types";
 import { StatusBadge } from "./Navbar";
 
 type InstanceInfo = {
@@ -9,8 +9,6 @@ type InstanceInfo = {
   status: string;
   error?: string;
 };
-
-import { esc, formatTime } from "../lib/utils";
 
 interface EnvironmentListProps {
   environments: Environment[];

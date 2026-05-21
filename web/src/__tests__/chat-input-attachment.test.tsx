@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 describe("ChatInput Attachment Integration", () => {
@@ -23,7 +22,7 @@ describe("ChatInput Attachment Integration", () => {
   });
 
   test("ChatInputMessage type includes attachments field", async () => {
-    const typesMod = await import("../../src/lib/types");
+    const _typesMod = await import("../../src/lib/types");
     // Verify the type exists by checking that we can create a valid object
     const msg: any = {
       text: "hello",
@@ -35,7 +34,7 @@ describe("ChatInput Attachment Integration", () => {
   });
 
   test("FileAttachment type is exported", async () => {
-    const typesMod = await import("../../src/lib/types");
+    const _typesMod = await import("../../src/lib/types");
     const att: any = { name: "test.txt", path: "user/test.txt" };
     expect(att.name).toBe("test.txt");
     expect(att.path).toBe("user/test.txt");

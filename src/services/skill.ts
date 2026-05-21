@@ -309,9 +309,7 @@ export async function importSkillDirectories(
   const existingResults = await Promise.all(
     entries.map(async ([name]) => {
       const existing = await _deps.configPg.getSkill(ctx, name);
-      return existing
-        ? { name, enabled: true, path: existing.contentPath ?? skillContentPath(name) }
-        : null;
+      return existing ? { name, enabled: true, path: existing.contentPath ?? skillContentPath(name) } : null;
     }),
   );
   const conflicts: ImportSkillsConflict[] = existingResults.filter((r): r is ImportSkillsConflict => r !== null);

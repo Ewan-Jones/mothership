@@ -21,17 +21,15 @@ import {
   resolveWorkspacePath,
 } from "../../services/workspace-fs";
 
-const app = new Elysia({ name: "web-user-file", prefix: "/web/environments" })
-  .use(authGuardPlugin)
-  .model({
-    "tree-response": TreeResponseSchema,
-    "rename-request": RenameRequestSchema,
-    "rename-response": RenameResponseSchema,
-    "mkdir-request": MkdirRequestSchema,
-    "mkdir-response": MkdirResponseSchema,
-    "batch-delete-request": BatchDeleteRequestSchema,
-    "batch-delete-response": BatchDeleteResponseSchema,
-  });
+const app = new Elysia({ name: "web-user-file", prefix: "/web/environments" }).use(authGuardPlugin).model({
+  "tree-response": TreeResponseSchema,
+  "rename-request": RenameRequestSchema,
+  "rename-response": RenameResponseSchema,
+  "mkdir-request": MkdirRequestSchema,
+  "mkdir-response": MkdirResponseSchema,
+  "batch-delete-request": BatchDeleteRequestSchema,
+  "batch-delete-response": BatchDeleteResponseSchema,
+});
 
 async function requireEnv(envId: string, orgId: string, errorFn: (status: number, body: unknown) => any) {
   try {

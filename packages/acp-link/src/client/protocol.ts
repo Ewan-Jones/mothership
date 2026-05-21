@@ -1,17 +1,17 @@
-import { EventEmitter } from "./emitter.js";
 import type {
-  ProxyResponse,
-  ProxyStatusMessage,
+  BrowserToolParams,
+  PermissionRequestPayload,
   ProxyErrorMessage,
+  ProxyPromptCompleteMessage,
+  ProxyResponse,
   ProxySessionCreatedMessage,
   ProxySessionListMessage,
   ProxySessionLoadedMessage,
   ProxySessionResumedMessage,
-  ProxyPromptCompleteMessage,
-  PermissionRequestPayload,
-  BrowserToolParams,
+  ProxyStatusMessage,
   SessionUpdate,
 } from "../types.js";
+import { EventEmitter } from "./emitter.js";
 
 export interface ProtocolEvents {
   status: ProxyStatusMessage["payload"];
@@ -25,7 +25,7 @@ export interface ProtocolEvents {
   permission_request: PermissionRequestPayload;
   browser_tool_call: { callId: string; params: BrowserToolParams };
   model_changed: { modelId: string };
-  pong: void;
+  pong: undefined;
 }
 
 /**

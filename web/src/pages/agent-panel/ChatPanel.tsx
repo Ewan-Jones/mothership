@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ACPMain } from "../../../components/ACPMain";
 import { TooltipProvider } from "../../../components/ui/tooltip";
-import { ACPClient, DisconnectRequestedError } from "../../acp/client";
+import { type ACPClient, DisconnectRequestedError } from "../../acp/client";
 import { createRelayClient } from "../../acp/relay-client";
 import type { ConnectionState } from "../../acp/types";
 import { NS } from "../../i18n";
@@ -64,7 +64,7 @@ export function ChatPanel({
       setConnectionState("disconnected");
       onClientChange?.(null);
     };
-  }, [agentId]);
+  }, [agentId, sessionId, onClientChange]);
 
   // 未选中实例 → 欢迎空状态
   if (!agentId) {

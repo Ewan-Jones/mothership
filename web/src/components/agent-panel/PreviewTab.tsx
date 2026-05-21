@@ -1,6 +1,6 @@
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
 
 interface PreviewTabProps {
   envId: string | null;
@@ -59,9 +59,7 @@ export function PreviewTab({ envId, filePath }: PreviewTabProps) {
   return (
     <div className="flex-1 overflow-hidden flex flex-col h-full">
       {fileName && (
-        <div className="px-3 py-2 border-b border-border text-xs text-text-muted font-display truncate">
-          {fileName}
-        </div>
+        <div className="px-3 py-2 border-b border-border text-xs text-text-muted font-display truncate">{fileName}</div>
       )}
       <div className="flex-1 overflow-auto">
         {loading && (
@@ -69,9 +67,7 @@ export function PreviewTab({ envId, filePath }: PreviewTabProps) {
             <Loader2 className="h-5 w-5 animate-spin text-text-muted" />
           </div>
         )}
-        {!loading && error && (
-          <div className="p-4 text-center text-sm text-status-error">{error}</div>
-        )}
+        {!loading && error && <div className="p-4 text-center text-sm text-status-error">{error}</div>}
         {!loading && !error && content === null && !fileName && (
           <div className="p-4 text-center text-sm text-text-muted">{t("fileTree.preview.noFileSelected")}</div>
         )}

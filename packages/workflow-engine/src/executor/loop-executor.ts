@@ -9,16 +9,16 @@
  * - 发射 loop.iteration_started / loop.iteration_completed 事件
  */
 
-import { nanoid } from 'nanoid';
-import type { LoopNodeDef, NodeDef, WorkflowDef } from '../types/dag';
-import type { NodeExecutor, NodeExecutionContext } from '../scheduler/dag-scheduler';
-import type { NodeOutput } from '../types/execution';
-import { evaluateExpression, parseExpression } from '../parser/expression-parser';
-import type { EvalContext } from '../types/expression';
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
-import { CancellationManager } from '../scheduler/cancellation';
-import { DAGScheduler } from '../scheduler/dag-scheduler';
-import type { NodeExecutorRegistry } from '../executor/node-executor';
+import { nanoid } from "nanoid";
+import type { NodeExecutorRegistry } from "../executor/node-executor";
+import { evaluateExpression, parseExpression } from "../parser/expression-parser";
+import { CancellationManager } from "../scheduler/cancellation";
+import type { NodeExecutionContext, NodeExecutor } from "../scheduler/dag-scheduler";
+import { DAGScheduler } from "../scheduler/dag-scheduler";
+import type { LoopNodeDef, NodeDef, WorkflowDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
+import type { NodeOutput } from "../types/execution";
+import type { EvalContext } from "../types/expression";
 
 // ---------- 常量 ----------
 
@@ -35,7 +35,7 @@ export class LoopExecutor implements NodeExecutor {
   ) {}
 
   async execute(node: NodeDef, ctx: NodeExecutionContext): Promise<NodeOutput> {
-    if (node.type !== 'loop') {
+    if (node.type !== "loop") {
       throw new WorkflowError(
         `LoopExecutor only handles 'loop' nodes, got '${node.type}'`,
         WorkflowErrorCode.NODE_FAILED,
@@ -56,15 +56,14 @@ export class LoopExecutor implements NodeExecutor {
     for (let i = 0; i < max_iterations; i++) {
       // 检查父级取消信号
       if (ctx.signal.aborted) {
-        throw new WorkflowError(
-          'Loop cancelled',
-          WorkflowErrorCode.DAG_CANCELLED,
-          { node_id: loopNodeId, iteration: i },
-        );
+        throw new WorkflowError("Loop cancelled", WorkflowErrorCode.DAG_CANCELLED, {
+          node_id: loopNodeId,
+          iteration: i,
+        });
       }
 
       // 发射 loop.iteration_started 事件
-      await this.emitLoopEvent(ctx, 'loop.iteration_started', loopNodeId, {
+      await this.emitLoopEvent(ctx, "loop.iteration_started", loopNodeId, {
         iteration: i,
         max_iterations,
       });
@@ -74,7 +73,7 @@ export class LoopExecutor implements NodeExecutor {
       const prefix = `${loopNodeId}.iter${i}.`;
       const prefixedNodes = this.prefixNodeIds(body.nodes, prefix);
       const subWorkflowDef: WorkflowDef = {
-        schema_version: '1.0',
+        schema_version: "1.0",
         name: `${loopNodeId}-iteration-${i}`,
         nodes: prefixedNodes,
       };
@@ -85,7 +84,7 @@ export class LoopExecutor implements NodeExecutor {
         iterCancellation.cancel();
       }
       const onParentAbort = () => iterCancellation.cancel();
-      ctx.signal.addEventListener('abort', onParentAbort, { once: true });
+      ctx.signal.addEventListener("abort", onParentAbort, { once: true });
 
       try {
         // 创建子 DAG 调度器并执行
@@ -101,20 +100,19 @@ export class LoopExecutor implements NodeExecutor {
 
         const result = await scheduler.run();
 
-        if (result.status === 'FAILED' || result.status === 'ERROR') {
-          throw new WorkflowError(
-            `Loop iteration ${i} failed`,
-            WorkflowErrorCode.NODE_FAILED,
-            { node_id: loopNodeId, iteration: i, sub_status: result.status },
-          );
+        if (result.status === "FAILED" || result.status === "ERROR") {
+          throw new WorkflowError(`Loop iteration ${i} failed`, WorkflowErrorCode.NODE_FAILED, {
+            node_id: loopNodeId,
+            iteration: i,
+            sub_status: result.status,
+          });
         }
 
-        if (result.status === 'CANCELLED') {
-          throw new WorkflowError(
-            'Loop cancelled during iteration',
-            WorkflowErrorCode.DAG_CANCELLED,
-            { node_id: loopNodeId, iteration: i },
-          );
+        if (result.status === "CANCELLED") {
+          throw new WorkflowError("Loop cancelled during iteration", WorkflowErrorCode.DAG_CANCELLED, {
+            node_id: loopNodeId,
+            iteration: i,
+          });
         }
 
         // 构建迭代输出映射（使用原始节点 ID，不带前缀）
@@ -130,7 +128,7 @@ export class LoopExecutor implements NodeExecutor {
         const willContinue = !!condResult;
 
         // 发射 loop.iteration_completed 事件
-        await this.emitLoopEvent(ctx, 'loop.iteration_completed', loopNodeId, {
+        await this.emitLoopEvent(ctx, "loop.iteration_completed", loopNodeId, {
           iteration: i,
           will_continue: willContinue,
         });
@@ -143,7 +141,7 @@ export class LoopExecutor implements NodeExecutor {
           break;
         }
       } finally {
-        ctx.signal.removeEventListener('abort', onParentAbort);
+        ctx.signal.removeEventListener("abort", onParentAbort);
       }
     }
 
@@ -156,11 +154,13 @@ export class LoopExecutor implements NodeExecutor {
       );
     }
 
-    return lastOutput ?? {
-      stdout: '',
-      json: { iterations: 0 },
-      exit_code: 0,
-    };
+    return (
+      lastOutput ?? {
+        stdout: "",
+        json: { iterations: 0 },
+        exit_code: 0,
+      }
+    );
   }
 
   // ---------- 私有方法 ----------
@@ -193,8 +193,8 @@ export class LoopExecutor implements NodeExecutor {
       const prefixedId = `${prefix}${node.id}`;
       const output = await ctx.storage.getOutput(subRunId, prefixedId);
       result[node.id] = {
-        output: (output?.json ?? { stdout: output?.stdout ?? '' }) as Record<string, unknown>,
-        status: output ? 'COMPLETED' : 'PENDING',
+        output: (output?.json ?? { stdout: output?.stdout ?? "" }) as Record<string, unknown>,
+        status: output ? "COMPLETED" : "PENDING",
       };
     }
 
@@ -212,7 +212,7 @@ export class LoopExecutor implements NodeExecutor {
     const lastNode = bodyNodes[bodyNodes.length - 1];
     const lastOutput = iterOutputs[lastNode.id];
     return {
-      stdout: typeof lastOutput?.output?.stdout === 'string' ? lastOutput.output.stdout : '',
+      stdout: typeof lastOutput?.output?.stdout === "string" ? lastOutput.output.stdout : "",
       json: lastOutput?.output,
       exit_code: 0,
     };
@@ -221,15 +221,15 @@ export class LoopExecutor implements NodeExecutor {
   /** 发射循环节点事件 */
   private async emitLoopEvent(
     ctx: NodeExecutionContext,
-    type: 'loop.iteration_started' | 'loop.iteration_completed',
+    type: "loop.iteration_started" | "loop.iteration_completed",
     nodeId: string,
     metadata: Record<string, unknown>,
   ): Promise<void> {
-    const event: import('../types/execution').DAGEvent = {
+    const event: import("../types/execution").DAGEvent = {
       event_id: `evt_${nanoid(10)}`,
       run_id: ctx.runId,
       node_id: nodeId,
-      node_type: 'loop',
+      node_type: "loop",
       timestamp: new Date().toISOString(),
       type,
       metadata,

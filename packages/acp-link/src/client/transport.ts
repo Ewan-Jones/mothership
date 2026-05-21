@@ -6,7 +6,7 @@ export interface TransportEvents {
   state: { state: TransportState; detail?: CloseEvent };
   message: string;
   reconnecting: { attempt: number; maxAttempts: number };
-  reconnectFailed: void;
+  reconnectFailed: undefined;
 }
 
 /**
@@ -98,7 +98,7 @@ export class WSTransport extends EventEmitter<TransportEvents> {
             attempt: this.reconnectAttempt,
             maxAttempts: WSTransport.MAX_RECONNECT_ATTEMPTS,
           });
-          const delay = WSTransport.BASE_DELAY_MS * Math.pow(2, this.reconnectAttempt - 1);
+          const delay = WSTransport.BASE_DELAY_MS * 2 ** (this.reconnectAttempt - 1);
           this.reconnectTimer = setTimeout(() => {
             this.createConnection();
           }, delay);
@@ -107,7 +107,7 @@ export class WSTransport extends EventEmitter<TransportEvents> {
           this.emit("reconnectFailed");
         }
       };
-    } catch (error) {
+    } catch (_error) {
       this.setState("error");
       this.emit("reconnectFailed");
     }
@@ -117,7 +117,11 @@ export class WSTransport extends EventEmitter<TransportEvents> {
     if (this.ws) {
       const old = this.ws;
       this.ws = null;
-      try { old.close(); } catch { /* ignore */ }
+      try {
+        old.close();
+      } catch {
+        /* ignore */
+      }
     }
   }
 

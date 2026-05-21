@@ -1,5 +1,5 @@
-import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { resolveWorkspacePath } from "../services/workspace-resolver";
 
 describe("resolveWorkspacePath", () => {

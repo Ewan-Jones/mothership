@@ -1,9 +1,5 @@
 import { expect, test } from "bun:test";
-import {
-  resolveInputs,
-  generateShellEnvVars,
-  generatePythonPreamble,
-} from "../../parser/inputs-resolver";
+import { generatePythonPreamble, generateShellEnvVars, resolveInputs } from "../../parser/inputs-resolver";
 import type { EvalContext } from "../../types/expression";
 
 const ctx: EvalContext = {
@@ -60,10 +56,7 @@ test("resolveInputs 解析数组值", () => {
 });
 
 test("resolveInputs 解析字符串拼接表达式", () => {
-  const result = resolveInputs(
-    { LABEL: "'prefix_' + nodes.fetch.output.result" },
-    ctx,
-  );
+  const result = resolveInputs({ LABEL: "'prefix_' + nodes.fetch.output.result" }, ctx);
   expect(result.LABEL.value).toBe("prefix_hello");
 });
 

@@ -1,15 +1,9 @@
 "use client";
 
-import { Button } from "../ui/button";
-import { cn } from "../../src/lib/utils";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import {
-  type ComponentProps,
-  createContext,
-  type HTMLAttributes,
-  useContext,
-  useState,
-} from "react";
+import { type ComponentProps, createContext, type HTMLAttributes, useContext, useState } from "react";
+import { cn } from "../../src/lib/utils";
+import type { Button } from "../ui/button";
 
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string;
@@ -38,22 +32,14 @@ export const CodeBlock = ({
       <div
         className={cn(
           "code-block-wrapper group relative w-full overflow-hidden rounded-lg border border-border-subtle bg-surface-2 text-foreground",
-          className
+          className,
         )}
         {...props}
       >
         {/* Header: language label + copy button */}
         <div className="code-block-header">
-          <span className="font-mono">
-            {language || "text"}
-          </span>
-          {children ? (
-            <div className="flex items-center gap-1">
-              {children}
-            </div>
-          ) : (
-            <CodeBlockCopyButton />
-          )}
+          <span className="font-mono">{language || "text"}</span>
+          {children ? <div className="flex items-center gap-1">{children}</div> : <CodeBlockCopyButton />}
         </div>
 
         {/* Code area — font-mono 12px pre-wrap */}
@@ -107,7 +93,7 @@ export const CodeBlockCopyButton = ({
       className={cn(
         "code-block-copy-btn inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium transition-all duration-200 cursor-pointer",
         isCopied && "copied",
-        className
+        className,
       )}
       {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
     >

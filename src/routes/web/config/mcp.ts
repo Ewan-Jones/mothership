@@ -276,7 +276,7 @@ const app = new Elysia({ name: "web-config-mcp", prefix: "/web" }).use(authGuard
 
 app.post(
   "/config/mcp",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error }: any) => {
     const authCtx = store.authContext!;
     const b = body as ConfigBody;
     const { action, name, config, url, headers, timeout } = {

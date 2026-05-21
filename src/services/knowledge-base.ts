@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { config } from "../config";
 import type { KnowledgeBaseRow } from "../repositories/knowledge-base";
 import { agentKnowledgeBindingRepo, knowledgeBaseRepo, knowledgeResourceRepo } from "../repositories/knowledge-base";
-import { getKnowledgeProvider, setKnowledgeProviderForTesting } from "./knowledge-provider/registry";
+import { getKnowledgeProvider } from "./knowledge-provider/registry";
 import type { KnowledgeBaseStatus, KnowledgeResourceStatus } from "./knowledge-provider/types";
 
 export interface KnowledgeTenantIdentity {
@@ -10,7 +10,7 @@ export interface KnowledgeTenantIdentity {
   remoteUserId: string;
 }
 
-function generateKnowledgeBaseId(): string {
+function _generateKnowledgeBaseId(): string {
   return `kb_${randomBytes(8).toString("hex")}`;
 }
 
@@ -50,7 +50,7 @@ function validateSlug(slug: string): string | null {
   return null;
 }
 
-function toUnixTimestamp(value: Date | null | undefined): number | null {
+function _toUnixTimestamp(value: Date | null | undefined): number | null {
   return value ? Math.floor(value.getTime() / 1000) : null;
 }
 

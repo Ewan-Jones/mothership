@@ -1,10 +1,10 @@
+import { useRouterState } from "@tanstack/react-router";
 import { LogOut, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { signOut, useSession } from "../../lib/auth-client";
 import { LanguageSwitcher } from "../../i18n/LanguageSwitcher";
+import { signOut, useSession } from "../../lib/auth-client";
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -37,7 +37,7 @@ export function Topbar() {
   const pageLabel = (() => {
     const segment = pathname.replace(/^\//, "").split("/")[0];
     if (!segment) return PAGE_LABELS["/"] ?? t("overview");
-    return PAGE_LABELS["/" + segment] ?? segment;
+    return PAGE_LABELS[`/${segment}`] ?? segment;
   })();
 
   useEffect(() => {

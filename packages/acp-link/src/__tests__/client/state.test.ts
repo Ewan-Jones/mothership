@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { ACPProtocol } from "../../client/protocol.js";
 import { ACPState } from "../../client/state.js";
 import { WSTransport } from "../../client/transport.js";
-import { ACPProtocol } from "../../client/protocol.js";
 
 // ACPState 状态管理测试
 describe("ACPState", () => {

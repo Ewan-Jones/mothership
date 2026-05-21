@@ -5,11 +5,11 @@
  * 将事件发射、重试退避、AbortSignal 组合等通用逻辑抽取到一处。
  */
 
-import { nanoid } from 'nanoid';
-import type { NodeDef } from '../types/dag';
-import type { NodeExecutor, NodeExecutionContext } from '../scheduler/dag-scheduler';
-import type { DAGEvent, EventType, NodeOutput } from '../types/execution';
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
+import { nanoid } from "nanoid";
+import type { NodeExecutionContext, NodeExecutor } from "../scheduler/dag-scheduler";
+import type { NodeDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
+import type { DAGEvent, EventType, NodeOutput } from "../types/execution";
 
 // ---------- 常量 ----------
 
@@ -28,21 +28,21 @@ export abstract class RemoteExecutorBase implements NodeExecutor {
   /** 发射 node.started 事件 */
   protected async emitNodeStarted(
     nodeId: string,
-    nodeType: NodeDef['type'],
+    nodeType: NodeDef["type"],
     ctx: NodeExecutionContext,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
-    await this.emitEvent(ctx, 'node.started', nodeId, nodeType, metadata);
+    await this.emitEvent(ctx, "node.started", nodeId, nodeType, metadata);
   }
 
   /** 发射 node.completed 事件 */
   protected async emitNodeCompleted(
     nodeId: string,
-    nodeType: NodeDef['type'],
+    nodeType: NodeDef["type"],
     ctx: NodeExecutionContext,
     output: NodeOutput,
   ): Promise<void> {
-    await this.emitEvent(ctx, 'node.completed', nodeId, nodeType, {
+    await this.emitEvent(ctx, "node.completed", nodeId, nodeType, {
       exit_code: output.exit_code,
       output_size: output.size,
     });
@@ -51,12 +51,12 @@ export abstract class RemoteExecutorBase implements NodeExecutor {
   /** 发射 node.failed 事件 */
   protected async emitNodeFailed(
     nodeId: string,
-    nodeType: NodeDef['type'],
+    nodeType: NodeDef["type"],
     ctx: NodeExecutionContext,
     error: string,
     exitCode?: number,
   ): Promise<void> {
-    await this.emitEvent(ctx, 'node.failed', nodeId, nodeType, {
+    await this.emitEvent(ctx, "node.failed", nodeId, nodeType, {
       error,
       ...(exitCode !== undefined ? { exit_code: exitCode } : {}),
     });
@@ -65,13 +65,13 @@ export abstract class RemoteExecutorBase implements NodeExecutor {
   /** 发射 node.retrying 事件 */
   protected async emitNodeRetrying(
     nodeId: string,
-    nodeType: NodeDef['type'],
+    nodeType: NodeDef["type"],
     ctx: NodeExecutionContext,
     attempt: number,
     maxAttempts: number,
     nextDelayMs: number,
   ): Promise<void> {
-    await this.emitEvent(ctx, 'node.retrying', nodeId, nodeType, {
+    await this.emitEvent(ctx, "node.retrying", nodeId, nodeType, {
       attempt,
       max_attempts: maxAttempts,
       next_delay_ms: nextDelayMs,
@@ -96,7 +96,7 @@ export abstract class RemoteExecutorBase implements NodeExecutor {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       if (attempt > 0) {
         const baseDelay = retryConfig?.delay ?? DEFAULT_RETRY_DELAY_MS;
-        const multiplier = retryConfig?.backoff === 'exponential' ? 2 ** (attempt - 1) : 1;
+        const multiplier = retryConfig?.backoff === "exponential" ? 2 ** (attempt - 1) : 1;
         const jitter = 0.5 + Math.random() * 0.5;
         const delay = Math.round(baseDelay * multiplier * jitter);
 
@@ -117,7 +117,7 @@ export abstract class RemoteExecutorBase implements NodeExecutor {
         clearTimeout(timer);
         controller.abort();
       };
-      ctx.signal.addEventListener('abort', onExternalAbort, { once: true });
+      ctx.signal.addEventListener("abort", onExternalAbort, { once: true });
 
       try {
         return await doExecute(attempt, controller.signal);
@@ -132,11 +132,11 @@ export abstract class RemoteExecutorBase implements NodeExecutor {
         if (attempt === maxAttempts - 1) throw lastError;
       } finally {
         clearTimeout(timer);
-        ctx.signal.removeEventListener('abort', onExternalAbort);
+        ctx.signal.removeEventListener("abort", onExternalAbort);
       }
     }
 
-    throw lastError ?? new WorkflowError('All retry attempts exhausted', WorkflowErrorCode.NODE_FAILED);
+    throw lastError ?? new WorkflowError("All retry attempts exhausted", WorkflowErrorCode.NODE_FAILED);
   }
 
   // ---------- 响应处理 ----------
@@ -175,7 +175,7 @@ export abstract class RemoteExecutorBase implements NodeExecutor {
     ctx: NodeExecutionContext,
     type: EventType,
     nodeId: string,
-    nodeType: NodeDef['type'],
+    nodeType: NodeDef["type"],
     metadata?: Record<string, unknown>,
   ): Promise<void> {
     const event: DAGEvent = {

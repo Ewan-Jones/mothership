@@ -31,13 +31,7 @@ app.get("/:name/download", async ({ params, query, set }) => {
   const rows = await db
     .select({ id: skill.id })
     .from(skill)
-    .where(
-      and(
-        eq(skill.id, payload.skillId),
-        eq(skill.organizationId, payload.organizationId),
-        eq(skill.name, name),
-      ),
-    )
+    .where(and(eq(skill.id, payload.skillId), eq(skill.organizationId, payload.organizationId), eq(skill.name, name)))
     .limit(1);
   if (rows.length === 0) {
     return jsonError(404, "not_found", "Skill not found");

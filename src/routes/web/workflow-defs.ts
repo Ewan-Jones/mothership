@@ -9,8 +9,8 @@ import { authGuardPlugin } from "../../plugins/auth";
 import {
   createWorkflowDef,
   deleteWorkflowDef,
-  getVersionYaml,
   getVersions,
+  getVersionYaml,
   getWorkflowDef,
   listRecoverableWorkflows,
   listWorkflowDefs,
@@ -27,8 +27,8 @@ const app = new Elysia({ name: "web-workflow-defs", prefix: "/web" }).use(authGu
 app.post(
   "/workflow-defs",
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ store, body, error, request }: any) => {
-    const authCtx = store.authContext!
+  async ({ store, body, error }: any) => {
+    const authCtx = store.authContext!;
 
     const payload = body as Record<string, unknown>;
     const action = payload.action as string;

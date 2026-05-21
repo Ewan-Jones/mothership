@@ -1,4 +1,4 @@
-import { Bot, ChevronDown, ChevronRight, Loader2, Plus, Power, RefreshCw } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -71,7 +71,7 @@ export function AgentSidebarTree({ selectedInstanceId, onSelectInstance, onCreat
     return "stopped";
   };
 
-  const handleStopInstance = useCallback(
+  const _handleStopInstance = useCallback(
     async (instanceId: string) => {
       try {
         await client.web.instances({ id: instanceId }).delete();
@@ -141,12 +141,14 @@ export function AgentSidebarTree({ selectedInstanceId, onSelectInstance, onCreat
               onClick={() => setCollapsedEnvs((prev) => ({ ...prev, [env.id]: !prev[env.id] }))}
               className="agent-tree-env-header"
             >
-              {collapsed ? <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />}
+              {collapsed ? (
+                <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+              )}
               <Bot className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{env.name}</span>
-              {instances.length > 0 && (
-                <span className="agent-tree-instance-count">{instances.length}</span>
-              )}
+              {instances.length > 0 && <span className="agent-tree-instance-count">{instances.length}</span>}
             </button>
             {!collapsed && (
               <div className="agent-tree-env-body">

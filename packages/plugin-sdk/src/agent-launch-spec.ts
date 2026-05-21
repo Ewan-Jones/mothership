@@ -76,9 +76,7 @@ export interface StreamableHttpMcpServerConfig {
 /**
  * MCP 服务配置。
  */
-export type McpServerConfig =
-  | StdioMcpServerConfig
-  | StreamableHttpMcpServerConfig;
+export type McpServerConfig = StdioMcpServerConfig | StreamableHttpMcpServerConfig;
 
 /**
  * Agent 启动配置规范。

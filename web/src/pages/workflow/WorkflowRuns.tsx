@@ -1,18 +1,7 @@
-import { useTranslation } from "react-i18next";
+import { AlertTriangle, ArrowRight, Inbox, Loader, RefreshCw, Search, Square } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Inbox,
-  Loader,
-  RefreshCw,
-  Square,
-  XCircle,
-  Search,
-  ArrowRight,
-} from "lucide-react";
-import { workflowEngineApi, type RunSummary, type DAGStatus } from "../../api/workflow-engine";
+import { useTranslation } from "react-i18next";
+import { type DAGStatus, type RunSummary, workflowEngineApi } from "../../api/workflow-engine";
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
   PENDING: { color: "#94a3b8", bg: "#f1f5f9" },
@@ -128,7 +117,7 @@ export function WorkflowRuns({ onSelectRun }: WorkflowRunsProps) {
     return true;
   });
 
-  const isTerminal = (s: DAGStatus) => ["SUCCESS", "FAILED", "CANCELLED", "ERROR"].includes(s);
+  const _isTerminal = (s: DAGStatus) => ["SUCCESS", "FAILED", "CANCELLED", "ERROR"].includes(s);
 
   const handleCancel = async (runId: string) => {
     try {

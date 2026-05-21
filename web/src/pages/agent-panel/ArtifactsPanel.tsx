@@ -1,9 +1,9 @@
+import { FolderTree, PanelRightClose } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PanelRightClose, FolderTree } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { NS } from "../../i18n";
 import { FileTreeTab } from "../../components/agent-panel/FileTreeTab";
 import { PreviewTab } from "../../components/agent-panel/PreviewTab";
+import { NS } from "../../i18n";
 
 interface ArtifactsPanelProps {
   collapsed: boolean;
@@ -98,11 +98,7 @@ export function ArtifactsPanel({ collapsed, onToggleCollapse, envId }: Artifacts
         {/* Split content: file tree (left) + preview (right) */}
         <div className="agent-artifacts-split">
           <div className="agent-artifacts-tree-pane">
-            <FileTreeTab
-              envId={envId}
-              onPreviewFile={handlePreviewFile}
-              onReferenceFile={handleReferenceFile}
-            />
+            <FileTreeTab envId={envId} onPreviewFile={handlePreviewFile} onReferenceFile={handleReferenceFile} />
           </div>
           <div className="agent-artifacts-preview-pane">
             <PreviewTab envId={envId} filePath={previewFilePath} />

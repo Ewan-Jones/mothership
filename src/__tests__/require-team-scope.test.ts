@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { requireOrgScope } from "../plugins/require-team-scope";
 import type { AuthContext } from "../plugins/auth";
+import { requireOrgScope } from "../plugins/require-team-scope";
 
 const makeAuthCtx = (organizationId: string): AuthContext => ({
   organizationId,

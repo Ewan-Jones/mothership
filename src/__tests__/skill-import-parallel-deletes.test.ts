@@ -36,7 +36,7 @@ beforeEach(() => {
     readSkillDetailFromMd: mock(async () => null),
     writeSkillMd: mock(async (_dir: string, _name: string) => "/path/SKILL.md"),
     deleteSkillDir: mock(async () => {}),
-    resolveImportPlan: (grouped: Map<string, unknown>, _conflicts: unknown[], strategy: string | undefined) =>
+    resolveImportPlan: (grouped: Map<string, unknown>, _conflicts: unknown[], _strategy: string | undefined) =>
       ({
         pendingEntries: Array.from(grouped.entries()),
         skipped: [],

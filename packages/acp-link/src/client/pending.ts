@@ -102,7 +102,7 @@ export class ACPPending {
    * 拒绝所有 pending（用于永久断开）。
    */
   rejectAll(error: Error): void {
-    for (const [key, entry] of this.pending) {
+    for (const [_key, entry] of this.pending) {
       clearTimeout(entry.timer);
       entry.reject(error);
     }

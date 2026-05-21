@@ -56,8 +56,6 @@ export class PortAllocator {
   }
 }
 
-export function createPortAllocator(
-  dependencies: PortAllocatorDependencies = {},
-): PortAllocator {
+export function createPortAllocator(dependencies: PortAllocatorDependencies = {}): PortAllocator {
   return new PortAllocator(PORT_MIN, PORT_MAX, dependencies);
 }

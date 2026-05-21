@@ -5,8 +5,8 @@
  * 并构建反向邻接表用于错误传播。
  */
 
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
-import type { NodeDef } from '../types/dag';
+import type { NodeDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
 
 /**
  * 拓扑排序 — 返回按依赖层级排列的节点 ID 数组。
@@ -57,7 +57,7 @@ export function topologicalSort(nodes: NodeDef[]): string[] {
   }
 
   if (result.length !== nodes.length) {
-    throw new WorkflowError('Cycle detected in DAG', WorkflowErrorCode.CYCLE_DETECTED);
+    throw new WorkflowError("Cycle detected in DAG", WorkflowErrorCode.CYCLE_DETECTED);
   }
 
   return result;
@@ -113,7 +113,7 @@ export function identifyParallelGroups(nodes: NodeDef[]): string[][] {
   }
 
   if (groups.flat().length !== nodes.length) {
-    throw new WorkflowError('Cycle detected in DAG', WorkflowErrorCode.CYCLE_DETECTED);
+    throw new WorkflowError("Cycle detected in DAG", WorkflowErrorCode.CYCLE_DETECTED);
   }
 
   return groups;

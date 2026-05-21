@@ -2,18 +2,9 @@ import type { EnginePlugin, EngineRelayHandle, EngineRuntime } from "@mothership
 import { CoreNodeRegistry } from "../registry/core-node-registry";
 import { EnginePluginRegistry } from "../registry/engine-plugin-registry";
 import { createInstanceOrchestrator } from "../runtime/instance-orchestrator";
-import {
-  createRuntimeInstanceStore,
-  type RuntimeInstanceStore,
-} from "../runtime/runtime-instance-store";
-import type {
-  ConnectInstanceRelayRequest,
-  LaunchInstanceRequest,
-} from "../types/launch-request";
-import type {
-  CoreNode,
-  CreateCoreNodeInput,
-} from "../types/core-node";
+import { createRuntimeInstanceStore, type RuntimeInstanceStore } from "../runtime/runtime-instance-store";
+import type { CoreNode, CreateCoreNodeInput } from "../types/core-node";
+import type { ConnectInstanceRelayRequest, LaunchInstanceRequest } from "../types/launch-request";
 import type { RuntimeInstanceSnapshot } from "../types/runtime-instance";
 
 /**
@@ -27,9 +18,7 @@ export interface CoreRuntimeFacade {
   /** 启动一个实例直到进入 `running`。 */
   launchInstance(request: LaunchInstanceRequest): Promise<RuntimeInstanceSnapshot>;
   /** 为实例建立或复用 relay 连接。 */
-  connectInstanceRelay(
-    request: ConnectInstanceRelayRequest,
-  ): Promise<EngineRelayHandle>;
+  connectInstanceRelay(request: ConnectInstanceRelayRequest): Promise<EngineRelayHandle>;
   /** 停止指定实例。 */
   stopInstance(instanceId: string): Promise<void>;
   /** 查询单个实例快照；不存在时返回 `null`。 */
@@ -47,10 +36,7 @@ export interface CoreRuntimeFacade {
   /** 删除实例记录及其 runtime 缓存。 */
   deleteInstance(instanceId: string): boolean;
   /** 写入 plugin 补充元数据（port, token, pid 等）。 */
-  updateInstanceMetadata(
-    instanceId: string,
-    metadata: Record<string, unknown>,
-  ): RuntimeInstanceSnapshot;
+  updateInstanceMetadata(instanceId: string, metadata: Record<string, unknown>): RuntimeInstanceSnapshot;
 }
 
 /**
@@ -74,9 +60,7 @@ export interface CreateCoreRuntimeOptions {
 /**
  * 创建 `@mothership/core` 的唯一公开运行时入口。
  */
-export function createCoreRuntime(
-  options?: CreateCoreRuntimeOptions,
-): CoreRuntimeFacade {
+export function createCoreRuntime(options?: CreateCoreRuntimeOptions): CoreRuntimeFacade {
   const pluginRegistry = new EnginePluginRegistry();
   const nodeRegistry = new CoreNodeRegistry();
   const instanceStore = options?.store ?? createRuntimeInstanceStore();

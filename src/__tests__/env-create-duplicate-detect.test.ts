@@ -1,6 +1,4 @@
 import { describe, expect, it, mock } from "bun:test";
-import { resetTestAuth, setTestAuth } from "../plugins/auth";
-import { setTestOrgContext } from "../services/org-context";
 
 // mock logger
 // mock errors
@@ -26,16 +24,10 @@ mock.module("../errors", () => ({
   ConfigWriteError: class extends Error {
     code = "CONFIG_WRITE_ERROR";
     statusCode = 500;
-    constructor(m: string) {
-      super(m);
-    }
   },
   NotFoundError: class extends Error {
     code = "NOT_FOUND";
     statusCode = 404;
-    constructor(m: string) {
-      super(m);
-    }
   },
 }));
 

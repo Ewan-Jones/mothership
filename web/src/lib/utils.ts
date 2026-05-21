@@ -39,7 +39,7 @@ export function isClosedSessionStatus(status: string | null | undefined): boolea
 export function truncate(str: string | null | undefined, max: number): string {
   if (!str) return "";
   const s = String(str);
-  return s.length > max ? s.slice(0, max) + "..." : s;
+  return s.length > max ? `${s.slice(0, max)}...` : s;
 }
 
 export function generateMessageUuid(): string {

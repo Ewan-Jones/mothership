@@ -11,12 +11,12 @@ export function StatusHeader({ agentName, modelName, entries = [] }: StatusHeade
   const stats = useMemo(() => computeStats(entries), [entries]);
   const displayName = useMemo(() => {
     if (!agentName) return "\u2014";
-    if (agentName.startsWith("env_")) return agentName.length > 14 ? agentName.slice(0, 14) + "\u2026" : agentName;
-    if (agentName.length > 18) return agentName.slice(0, 16) + "\u2026";
+    if (agentName.startsWith("env_")) return agentName.length > 14 ? `${agentName.slice(0, 14)}\u2026` : agentName;
+    if (agentName.length > 18) return `${agentName.slice(0, 16)}\u2026`;
     return agentName;
   }, [agentName]);
 
-  const tokenPercent = stats.estimatedTokens > 0 ? Math.min((stats.estimatedTokens / 200000) * 100, 100) : 0;
+  const _tokenPercent = stats.estimatedTokens > 0 ? Math.min((stats.estimatedTokens / 200000) * 100, 100) : 0;
   const inputPercent = stats.estimatedInputTokens > 0 ? (stats.estimatedInputTokens / 200000) * 100 : 0;
   const outputPercent = stats.estimatedOutputTokens > 0 ? (stats.estimatedOutputTokens / 200000) * 100 : 0;
 
@@ -50,10 +50,7 @@ export function StatusHeader({ agentName, modelName, entries = [] }: StatusHeade
         {formatTokenCount(stats.estimatedTokens)}/200k
       </span>
       <div className="w-16 h-1 rounded-sm bg-surface-3 overflow-hidden flex shrink-0">
-        <div
-          className="h-full bg-brand transition-[width] duration-500 ease"
-          style={{ width: `${inputPercent}%` }}
-        />
+        <div className="h-full bg-brand transition-[width] duration-500 ease" style={{ width: `${inputPercent}%` }} />
         <div
           className="h-full bg-accent-green transition-[width] duration-500 ease"
           style={{ width: `${outputPercent}%` }}

@@ -70,7 +70,7 @@ export function validateEnv(): Env {
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
     const issues = result.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`);
-    const message = "[RCS] Environment variable validation failed:\n" + issues.join("\n");
+    const message = `[RCS] Environment variable validation failed:\n${issues.join("\n")}`;
     if (process.env.NODE_ENV === "test" || (typeof Bun !== "undefined" && !!Bun.env.BUN_TEST)) {
       throw new Error(message);
     }

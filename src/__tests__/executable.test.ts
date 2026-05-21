@@ -37,7 +37,7 @@ describe("resolveExecutable", () => {
 
   test("resolves project-local executable if present", () => {
     // node_modules/.bin typically has executables
-    const localBin = join(process.cwd(), "node_modules", ".bin");
+    const _localBin = join(process.cwd(), "node_modules", ".bin");
     // Just verify the function doesn't crash when checking
     try {
       resolveExecutable("some-binary-that-does-not-exist-locally");

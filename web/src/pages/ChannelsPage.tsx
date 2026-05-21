@@ -154,7 +154,7 @@ export function ChannelsPage() {
       });
       if (error) {
         console.error(t("createBindingFailed"), error);
-        toast.error(t("createBindingFailed") + ": " + (error.message || t("unknownError")));
+        toast.error(`${t("createBindingFailed")}: ${error.message || t("unknownError")}`);
         return;
       }
       const created = data as unknown as ChannelBinding;
@@ -166,7 +166,7 @@ export function ChannelsPage() {
       toast.success(t("bindingCreated"));
     } catch (err) {
       console.error(t("createBindingFailed"), err);
-      toast.error(t("createBindingFailed") + ": " + (err instanceof Error ? err.message : t("unknownError")));
+      toast.error(`${t("createBindingFailed")}: ${err instanceof Error ? err.message : t("unknownError")}`);
     } finally {
       setFormSaving(false);
     }

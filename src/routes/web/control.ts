@@ -35,7 +35,7 @@ async function checkOwnership(
   }
   if (session.environmentId) {
     const env = await environmentRepo.getById(session.environmentId);
-    if (env && env.organizationId && env.organizationId !== orgId) {
+    if (env?.organizationId && env.organizationId !== orgId) {
       return {
         error: true,
         response: errorFn(403, { error: { type: "forbidden", message: "Not your organization's session" } }),

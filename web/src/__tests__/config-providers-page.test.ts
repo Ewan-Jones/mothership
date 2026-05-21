@@ -43,13 +43,11 @@ describe("buildProviderPayload", () => {
 
 describe("buildProviderModelRequest", () => {
   test("add_model wraps model fields in data", () => {
-    expect(buildProviderModelRequest("add_model", "openai", "gpt-4o", { modelId: "gpt-4o", name: "GPT-4o" })).toEqual(
-      {
-        action: "add_model",
-        name: "openai",
-        data: { modelId: "gpt-4o", name: "GPT-4o" },
-      },
-    );
+    expect(buildProviderModelRequest("add_model", "openai", "gpt-4o", { modelId: "gpt-4o", name: "GPT-4o" })).toEqual({
+      action: "add_model",
+      name: "openai",
+      data: { modelId: "gpt-4o", name: "GPT-4o" },
+    });
   });
 
   test("update_model keeps target modelId at top level and wraps update fields in data", () => {

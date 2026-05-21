@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { resetConfig, setConfig } from "../config";
 
 // Mock config
 
@@ -104,7 +103,7 @@ describe("SSE Writer", () => {
       const app = new Elysia();
 
       app.get("/stream/:sessionId", ({ request, params, query }) => {
-        const fromSeq = parseInt((query as any)?.fromSeq || "0");
+        const fromSeq = parseInt((query as any)?.fromSeq || "0", 10);
         return createSSEStream(request, params.sessionId, fromSeq);
       });
 

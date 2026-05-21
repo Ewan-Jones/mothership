@@ -48,7 +48,7 @@ async function requireEnv(envId: string, orgId: string, errorFn: (status: number
 // GET /:id/user — List directory
 app.get(
   "/:id/user",
-  async ({ store, params, query, error, request }) => {
+  async ({ store, params, query, error }) => {
     const authCtx = store.authContext!;
     const envId = params.id;
     await requireEnv(envId, authCtx.organizationId, error);
@@ -69,7 +69,7 @@ app.get(
 // GET /:id/user/* — Read file
 app.get(
   "/:id/user/*",
-  async ({ store, params, query, error, set, request }) => {
+  async ({ store, params, query, error, set }) => {
     const authCtx = store.authContext!;
     const envId = params.id;
     await requireEnv(envId, authCtx.organizationId, error);
@@ -80,7 +80,7 @@ app.get(
     if (!result) return error(404, { error: { type: "not_found", message: "Environment not found" } });
 
     const { resolved, displayPath } = result;
-    let info;
+    let info: Awaited<ReturnType<typeof stat>>;
     try {
       info = await stat(resolved);
     } catch {
@@ -162,7 +162,7 @@ app.post(
 // PUT /:id/user/* — Write file content
 app.put(
   "/:id/user/*",
-  async ({ store, params, body, error, request }) => {
+  async ({ store, params, body, error }) => {
     const authCtx = store.authContext!;
     const envId = params.id;
     await requireEnv(envId, authCtx.organizationId, error);
@@ -193,7 +193,7 @@ app.put(
 // DELETE /:id/user/* — Delete file
 app.delete(
   "/:id/user/*",
-  async ({ store, params, error, request }) => {
+  async ({ store, params, error }) => {
     const authCtx = store.authContext!;
     const envId = params.id;
     await requireEnv(envId, authCtx.organizationId, error);

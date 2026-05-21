@@ -5,7 +5,6 @@ import { getOwnedEnvironment } from "../../services/environment-core";
 import type { SpawnedInstance } from "../../services/instance";
 import { listInstances, spawnInstanceFromEnvironment, stopInstance } from "../../services/instance";
 
-
 const app = new Elysia({ name: "web-instances", prefix: "/web" }).use(authGuardPlugin).model({
   "instance-info": InstanceInfoSchema,
   "instance-info-list": InstanceInfoSchema.array(),
@@ -28,7 +27,7 @@ function toResponse(inst: SpawnedInstance) {
 
 app.post(
   "/instances/from-environment",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error }: any) => {
     const user = store.user!;
     const authCtx = store.authContext!;
     const b = body as { environmentId: string };
@@ -59,7 +58,7 @@ app.post(
 
 app.get(
   "/instances",
-  async ({ store, request }: any) => {
+  async ({ store, request: _request }: any) => {
     const authCtx = store.authContext!;
     const insts = listInstances(authCtx.organizationId);
     return insts.map(toResponse);
@@ -69,8 +68,8 @@ app.get(
 
 app.delete(
   "/instances/:id",
-  async ({ store, params, error, request }) => {
-    const user = store.user!;
+  async ({ store, params, error, request: _request }) => {
+    const _user = store.user!;
     const authCtx = store.authContext!;
     const id = params.id;
     const result = await stopInstance(id, authCtx.organizationId);

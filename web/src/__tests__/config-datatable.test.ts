@@ -83,7 +83,7 @@ describe("DataTable TanStack integration helpers", () => {
     interface Mixed {
       val: string | number;
     }
-    const mixedCols: Column<Mixed>[] = [{ key: "val", header: "Val", sortable: true }];
+    const _mixedCols: Column<Mixed>[] = [{ key: "val", header: "Val", sortable: true }];
     const mixedData: Mixed[] = [{ val: 42 }, { val: "alpha" }, { val: 10 }, { val: "beta" }];
     const sorted = sortData(mixedData, "val", "asc");
     expect(sorted[0].val).toBe(10);

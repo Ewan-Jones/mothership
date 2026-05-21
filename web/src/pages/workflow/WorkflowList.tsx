@@ -1,7 +1,7 @@
-import { useTranslation } from "react-i18next";
+import { AlertTriangle, ChevronRight, Inbox, Loader, Plus, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Inbox, Loader, Plus, RefreshCw, Search, Trash2, RotateCcw, ChevronRight } from "lucide-react";
-import { workflowDefApi, type WorkflowDefItem } from "../../api/workflow-defs";
+import { useTranslation } from "react-i18next";
+import { type WorkflowDefItem, workflowDefApi } from "../../api/workflow-defs";
 
 interface WorkflowListProps {
   onEditWorkflow: (workflowId: string) => void;
@@ -59,7 +59,7 @@ export function WorkflowList({ onEditWorkflow, onViewVersions }: WorkflowListPro
       onEditWorkflow(wf.id);
     } catch (err) {
       console.error(err);
-      alert(t("list.create_error") + ": " + (err as Error).message);
+      alert(`${t("list.create_error")}: ${(err as Error).message}`);
     } finally {
       setCreating(false);
     }
@@ -73,7 +73,7 @@ export function WorkflowList({ onEditWorkflow, onViewVersions }: WorkflowListPro
         loadList();
       } catch (err) {
         console.error(err);
-        alert(t("list.delete_failed") + ": " + (err as Error).message);
+        alert(`${t("list.delete_failed")}: ${(err as Error).message}`);
       }
     },
     [loadList, t],
@@ -87,7 +87,7 @@ export function WorkflowList({ onEditWorkflow, onViewVersions }: WorkflowListPro
       setShowRecoverPanel(true);
     } catch (err) {
       console.error(err);
-      alert(t("list.scan_failed") + ": " + (err as Error).message);
+      alert(`${t("list.scan_failed")}: ${(err as Error).message}`);
     }
   }, [t]);
 
@@ -100,7 +100,7 @@ export function WorkflowList({ onEditWorkflow, onViewVersions }: WorkflowListPro
       loadList();
     } catch (err) {
       console.error(err);
-      alert(t("list.recover_failed") + ": " + (err as Error).message);
+      alert(`${t("list.recover_failed")}: ${(err as Error).message}`);
     } finally {
       setRecovering(false);
     }
@@ -313,7 +313,6 @@ export function WorkflowList({ onEditWorkflow, onViewVersions }: WorkflowListPro
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 placeholder="my-workflow"
-                autoFocus
                 style={{
                   width: "100%",
                   padding: "6px 10px",

@@ -201,7 +201,7 @@ app.post(
 
 app.post(
   "/apiKeys",
-  async ({ store, body, error, request }: any) => {
+  async ({ store: _store, body, error, request }: any) => {
     const b = body ?? {};
 
     switch (b.action) {

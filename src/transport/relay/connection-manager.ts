@@ -44,7 +44,7 @@ export class RelayConnectionManager {
     for (const [wsId, entry] of this.connections) {
       if (entry.instanceId === instanceId) return { wsId, ...entry };
     }
-    return undefined;
+    return;
   }
 
   findByAgentId(agentId: string): ManagedConnection[] {

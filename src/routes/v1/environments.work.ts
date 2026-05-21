@@ -19,7 +19,7 @@ async function requireEnvOwnership(
   }
   const denied = requireOrgScope(authContext, env.organizationId);
   if (denied) return denied;
-  return undefined;
+  return;
 }
 
 /** GET /v1/environments/:id/work/poll — Long-poll for work */

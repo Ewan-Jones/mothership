@@ -1,15 +1,6 @@
-import type {
-  AgentLaunchSpec,
-  EnginePlugin,
-  EngineRelayHandle,
-  EngineRuntime,
-} from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec, EnginePlugin, EngineRelayHandle, EngineRuntime } from "@mothership/plugin-sdk";
 import { createCoreRuntimeError } from "../errors/core-runtime-error";
-import type {
-  RuntimeInstanceRecord,
-  RuntimeInstanceSnapshot,
-  RuntimeInstanceStatus,
-} from "../types/runtime-instance";
+import type { RuntimeInstanceRecord, RuntimeInstanceSnapshot, RuntimeInstanceStatus } from "../types/runtime-instance";
 
 /**
  * 为 store 提供可注入时间源，方便测试稳定断言时间戳。
@@ -69,22 +60,13 @@ export interface RuntimeInstanceStore {
   /** 返回全部实例快照列表。 */
   list(): RuntimeInstanceSnapshot[];
   /** 更新实例状态字段，并刷新 `updatedAt`。 */
-  update(
-    instanceId: string,
-    input: UpdateRuntimeInstanceRecordInput,
-  ): RuntimeInstanceSnapshot;
+  update(instanceId: string, input: UpdateRuntimeInstanceRecordInput): RuntimeInstanceSnapshot;
   /** 为已存在实例绑定 plugin/runtime/relay 缓存。 */
-  attachRuntime(
-    instanceId: string,
-    runtimeEntry: RuntimeInstanceRuntimeEntry,
-  ): RuntimeInstanceRuntimeEntry;
+  attachRuntime(instanceId: string, runtimeEntry: RuntimeInstanceRuntimeEntry): RuntimeInstanceRuntimeEntry;
   /** 读取实例的 runtime 缓存；不存在时返回 `null`。 */
   getRuntimeEntry(instanceId: string): RuntimeInstanceRuntimeEntry | null;
   /** 写入 relay 缓存，并同步把实例标记为已连接 relay。 */
-  setRelay(
-    instanceId: string,
-    relay: EngineRelayHandle,
-  ): RuntimeInstanceRuntimeEntry;
+  setRelay(instanceId: string, relay: EngineRelayHandle): RuntimeInstanceRuntimeEntry;
   /** 清空 relay 缓存，并同步把实例标记为未连接 relay。 */
   clearRelay(instanceId: string): RuntimeInstanceRuntimeEntry | null;
   /** 删除实例记录及其 runtime 缓存。 */
@@ -132,9 +114,7 @@ function toSnapshot(record: RuntimeInstanceRecord): RuntimeInstanceSnapshot {
 /**
  * 复制 runtime 缓存条目，避免外部直接持有 store 内部对象引用。
  */
-function cloneRuntimeEntry(
-  entry: RuntimeInstanceRuntimeEntry,
-): RuntimeInstanceRuntimeEntry {
+function cloneRuntimeEntry(entry: RuntimeInstanceRuntimeEntry): RuntimeInstanceRuntimeEntry {
   return {
     plugin: entry.plugin,
     runtime: entry.runtime,
@@ -145,9 +125,7 @@ function cloneRuntimeEntry(
 /**
  * 创建默认的内存版 runtime instance store。
  */
-export function createRuntimeInstanceStore(options?: {
-  now?: RuntimeClock;
-}): RuntimeInstanceStore {
+export function createRuntimeInstanceStore(options?: { now?: RuntimeClock }): RuntimeInstanceStore {
   const records = new Map<string, RuntimeInstanceRecord>();
   const runtimeEntries = new Map<string, RuntimeInstanceRuntimeEntry>();
   const now = options?.now ?? (() => new Date());
@@ -196,11 +174,7 @@ export function createRuntimeInstanceStore(options?: {
     require(instanceId) {
       const record = records.get(instanceId);
       if (!record) {
-        throw createCoreRuntimeError(
-          "INSTANCE_NOT_FOUND",
-          `Runtime instance not found: ${instanceId}`,
-          { instanceId },
-        );
+        throw createCoreRuntimeError("INSTANCE_NOT_FOUND", `Runtime instance not found: ${instanceId}`, { instanceId });
       }
 
       return toSnapshot(record);
@@ -219,11 +193,7 @@ export function createRuntimeInstanceStore(options?: {
     update(instanceId, input) {
       const current = records.get(instanceId);
       if (!current) {
-        throw createCoreRuntimeError(
-          "INSTANCE_NOT_FOUND",
-          `Runtime instance not found: ${instanceId}`,
-          { instanceId },
-        );
+        throw createCoreRuntimeError("INSTANCE_NOT_FOUND", `Runtime instance not found: ${instanceId}`, { instanceId });
       }
 
       const nextStatus = input.status ?? current.status;
@@ -231,10 +201,7 @@ export function createRuntimeInstanceStore(options?: {
         ...current,
         status: nextStatus,
         relayConnected: input.relayConnected ?? current.relayConnected,
-        errorMessage:
-          nextStatus === "error"
-            ? input.errorMessage ?? current.errorMessage
-            : undefined,
+        errorMessage: nextStatus === "error" ? (input.errorMessage ?? current.errorMessage) : undefined,
         pluginMetadata: input.pluginMetadata ?? current.pluginMetadata,
         updatedAt: now(),
       };
@@ -248,11 +215,7 @@ export function createRuntimeInstanceStore(options?: {
      */
     attachRuntime(instanceId, runtimeEntry) {
       if (!records.has(instanceId)) {
-        throw createCoreRuntimeError(
-          "INSTANCE_NOT_FOUND",
-          `Runtime instance not found: ${instanceId}`,
-          { instanceId },
-        );
+        throw createCoreRuntimeError("INSTANCE_NOT_FOUND", `Runtime instance not found: ${instanceId}`, { instanceId });
       }
 
       const entry = cloneRuntimeEntry(runtimeEntry);
@@ -274,11 +237,7 @@ export function createRuntimeInstanceStore(options?: {
     setRelay(instanceId, relay) {
       const currentEntry = runtimeEntries.get(instanceId);
       if (!currentEntry) {
-        throw createCoreRuntimeError(
-          "INSTANCE_NOT_FOUND",
-          `Runtime entry not found: ${instanceId}`,
-          { instanceId },
-        );
+        throw createCoreRuntimeError("INSTANCE_NOT_FOUND", `Runtime entry not found: ${instanceId}`, { instanceId });
       }
 
       runtimeEntries.set(instanceId, {

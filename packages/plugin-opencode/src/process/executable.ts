@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import { accessSync, constants } from "node:fs";
-import { dirname, delimiter, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const EXECUTABLE_FILE_DIR = dirname(fileURLToPath(import.meta.url));
@@ -41,10 +41,7 @@ function listAncestorDirs(startDir: string): string[] {
  * 若本地未安装，再回退到 PATH 和 `which`/`where`，兼容用户已全局安装命令的场景。
  */
 export function resolveExecutable(command: string): string {
-  const searchRoots = new Set<string>([
-    ...listAncestorDirs(process.cwd()),
-    ...listAncestorDirs(EXECUTABLE_FILE_DIR),
-  ]);
+  const searchRoots = new Set<string>([...listAncestorDirs(process.cwd()), ...listAncestorDirs(EXECUTABLE_FILE_DIR)]);
 
   for (const rootDir of searchRoots) {
     const localBin = join(rootDir, "node_modules", ".bin", command);

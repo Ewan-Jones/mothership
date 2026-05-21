@@ -27,7 +27,7 @@ mock.module("../services/config-pg", () => ({
 }));
 
 mock.module("../services/mcp-inspector", () => ({
-  inspectRemoteMcpServer: async (url: string, headers?: Record<string, string>, timeout?: number) => {
+  inspectRemoteMcpServer: async (_url: string, _headers?: Record<string, string>, _timeout?: number) => {
     return _inspectResult;
   },
 }));

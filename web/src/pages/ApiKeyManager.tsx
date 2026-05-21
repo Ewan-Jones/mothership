@@ -1,6 +1,6 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { client } from "../api/client";
 
@@ -171,7 +171,6 @@ export function ApiKeyManager() {
                         if (e.key === "Enter") handleUpdateLabel(key.id);
                         if (e.key === "Escape") setEditingId(null);
                       }}
-                      autoFocus
                     />
                     <button onClick={() => handleUpdateLabel(key.id)} className="text-xs text-brand hover:underline">
                       {t("keyList.save")}

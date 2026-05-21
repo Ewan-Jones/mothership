@@ -2,17 +2,17 @@
  * SubWorkflowExecutor 测试
  */
 
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { SubWorkflowExecutor } from '../../executor/sub-workflow-executor';
-import { NodeExecutorRegistry, createNodeExecutorRegistry } from '../../executor/node-executor';
-import { ProcessExecutor } from '../../executor/process-executor';
-import type { SubWorkflowNodeDef, NodeDef } from '../../types/dag';
-import type { NodeExecutionContext } from '../../scheduler/dag-scheduler';
-import { createInMemoryStorage } from '../../storage/in-memory-storage';
-import { WorkflowError, WorkflowErrorCode } from '../../types/errors';
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createNodeExecutorRegistry, type NodeExecutorRegistry } from "../../executor/node-executor";
+import { ProcessExecutor } from "../../executor/process-executor";
+import { SubWorkflowExecutor } from "../../executor/sub-workflow-executor";
+import type { NodeExecutionContext } from "../../scheduler/dag-scheduler";
+import { createInMemoryStorage } from "../../storage/in-memory-storage";
+import type { NodeDef, SubWorkflowNodeDef } from "../../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../../types/errors";
 
 // ---------- 辅助工具 ----------
 
@@ -20,7 +20,7 @@ import { WorkflowError, WorkflowErrorCode } from '../../types/errors';
 function makeCtx(overrides?: Partial<NodeExecutionContext>): NodeExecutionContext {
   const storage = createInMemoryStorage();
   return {
-    runId: 'test-run-001',
+    runId: "test-run-001",
     params: {},
     secrets: {},
     resolvedInputs: {},
@@ -33,8 +33,8 @@ function makeCtx(overrides?: Partial<NodeExecutionContext>): NodeExecutionContex
 /** 创建子流程节点定义 */
 function subWorkflowNode(ref: string, overrides?: Partial<SubWorkflowNodeDef>): SubWorkflowNodeDef {
   return {
-    id: 'sub-wf-node',
-    type: 'workflow',
+    id: "sub-wf-node",
+    type: "workflow",
     ref,
     ...overrides,
   };
@@ -43,8 +43,8 @@ function subWorkflowNode(ref: string, overrides?: Partial<SubWorkflowNodeDef>): 
 /** 创建带 shell 执行器的注册表 */
 function makeRegistry(): NodeExecutorRegistry {
   const registry = createNodeExecutorRegistry();
-  registry.register('shell', new ProcessExecutor());
-  registry.register('workflow', new SubWorkflowExecutor('test-run-001', registry));
+  registry.register("shell", new ProcessExecutor());
+  registry.register("workflow", new SubWorkflowExecutor("test-run-001", registry));
   return registry;
 }
 
@@ -104,12 +104,12 @@ nodes:
 
 // ========== SubWorkflowExecutor 测试 ==========
 
-describe('SubWorkflowExecutor', () => {
+describe("SubWorkflowExecutor", () => {
   let tmpDir: string;
   let registry: NodeExecutorRegistry;
 
   beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), 'wf-test-'));
+    tmpDir = mkdtempSync(join(tmpdir(), "wf-test-"));
     registry = makeRegistry();
   });
 
@@ -118,63 +118,63 @@ describe('SubWorkflowExecutor', () => {
   });
 
   // 基本子流程执行 → 正确输出
-  test('基本子流程执行返回正确输出', async () => {
-    const subYamlPath = join(tmpDir, 'simple.yaml');
+  test("基本子流程执行返回正确输出", async () => {
+    const subYamlPath = join(tmpDir, "simple.yaml");
     writeFileSync(subYamlPath, SIMPLE_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('simple.yaml');
+    const node = subWorkflowNode("simple.yaml");
 
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toContain('hello from sub');
+    expect(output.stdout).toContain("hello from sub");
   });
 
   // sub_workflow.started 事件
-  test('发射 sub_workflow.started 事件', async () => {
-    const subYamlPath = join(tmpDir, 'simple.yaml');
+  test("发射 sub_workflow.started 事件", async () => {
+    const subYamlPath = join(tmpDir, "simple.yaml");
     writeFileSync(subYamlPath, SIMPLE_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('simple.yaml');
+    const node = subWorkflowNode("simple.yaml");
 
     await executor.execute(node, ctx);
 
     const events = await ctx.storage.getEvents(ctx.runId);
-    const startedEvents = events.filter((e) => e.type === 'sub_workflow.started');
+    const startedEvents = events.filter((e) => e.type === "sub_workflow.started");
     expect(startedEvents.length).toBe(1);
     expect(startedEvents[0].metadata?.sub_run_id).toBeTruthy();
-    expect(startedEvents[0].node_id).toBe('sub-wf-node');
+    expect(startedEvents[0].node_id).toBe("sub-wf-node");
   });
 
   // sub_workflow.completed 事件
-  test('成功时发射 sub_workflow.completed 事件', async () => {
-    const subYamlPath = join(tmpDir, 'simple.yaml');
+  test("成功时发射 sub_workflow.completed 事件", async () => {
+    const subYamlPath = join(tmpDir, "simple.yaml");
     writeFileSync(subYamlPath, SIMPLE_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('simple.yaml');
+    const node = subWorkflowNode("simple.yaml");
 
     await executor.execute(node, ctx);
 
     const events = await ctx.storage.getEvents(ctx.runId);
-    const completedEvents = events.filter((e) => e.type === 'sub_workflow.completed');
+    const completedEvents = events.filter((e) => e.type === "sub_workflow.completed");
     expect(completedEvents.length).toBe(1);
     expect(completedEvents[0].metadata?.sub_run_id).toBeTruthy();
   });
 
   // 子流程失败 → 父节点 FAILED + 错误传播
-  test('子流程失败时抛出 WorkflowError', async () => {
-    const subYamlPath = join(tmpDir, 'failing.yaml');
+  test("子流程失败时抛出 WorkflowError", async () => {
+    const subYamlPath = join(tmpDir, "failing.yaml");
     writeFileSync(subYamlPath, FAILING_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('failing.yaml');
+    const node = subWorkflowNode("failing.yaml");
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
     await expect(executor.execute(node, ctx)).rejects.toMatchObject({
@@ -183,32 +183,32 @@ describe('SubWorkflowExecutor', () => {
   });
 
   // 子流程失败事件包含 status: FAILED
-  test('子流程失败时 completed 事件包含 status FAILED', async () => {
-    const subYamlPath = join(tmpDir, 'failing.yaml');
+  test("子流程失败时 completed 事件包含 status FAILED", async () => {
+    const subYamlPath = join(tmpDir, "failing.yaml");
     writeFileSync(subYamlPath, FAILING_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('failing.yaml');
+    const node = subWorkflowNode("failing.yaml");
 
     try {
       await executor.execute(node, ctx);
     } catch {}
 
     const events = await ctx.storage.getEvents(ctx.runId);
-    const completedEvents = events.filter((e) => e.type === 'sub_workflow.completed');
+    const completedEvents = events.filter((e) => e.type === "sub_workflow.completed");
     expect(completedEvents.length).toBe(1);
-    expect(completedEvents[0].metadata?.status).toBe('FAILED');
+    expect(completedEvents[0].metadata?.status).toBe("FAILED");
   });
 
   // ignore_errors: true → 父节点 COMPLETED
-  test('ignore_errors: true 时子流程失败不传播', async () => {
-    const subYamlPath = join(tmpDir, 'failing.yaml');
+  test("ignore_errors: true 时子流程失败不传播", async () => {
+    const subYamlPath = join(tmpDir, "failing.yaml");
     writeFileSync(subYamlPath, FAILING_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('failing.yaml', { ignore_errors: true });
+    const node = subWorkflowNode("failing.yaml", { ignore_errors: true });
 
     const output = await executor.execute(node, ctx);
 
@@ -217,28 +217,28 @@ describe('SubWorkflowExecutor', () => {
   });
 
   // ignore_errors 时 completed 事件包含 ignore_errors 标记
-  test('ignore_errors: true 时 completed 事件包含 ignore_errors 标记', async () => {
-    const subYamlPath = join(tmpDir, 'failing.yaml');
+  test("ignore_errors: true 时 completed 事件包含 ignore_errors 标记", async () => {
+    const subYamlPath = join(tmpDir, "failing.yaml");
     writeFileSync(subYamlPath, FAILING_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('failing.yaml', { ignore_errors: true });
+    const node = subWorkflowNode("failing.yaml", { ignore_errors: true });
 
     await executor.execute(node, ctx);
 
     const events = await ctx.storage.getEvents(ctx.runId);
-    const completedEvents = events.filter((e) => e.type === 'sub_workflow.completed');
+    const completedEvents = events.filter((e) => e.type === "sub_workflow.completed");
     expect(completedEvents.length).toBe(1);
     expect(completedEvents[0].metadata?.ignore_errors).toBe(true);
-    expect(completedEvents[0].metadata?.status).toBe('FAILED');
+    expect(completedEvents[0].metadata?.status).toBe("FAILED");
   });
 
   // 子工作流文件不存在 → 报错
-  test('子工作流文件不存在时抛出 WorkflowError', async () => {
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+  test("子工作流文件不存在时抛出 WorkflowError", async () => {
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('nonexistent.yaml');
+    const node = subWorkflowNode("nonexistent.yaml");
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
     await expect(executor.execute(node, ctx)).rejects.toMatchObject({
@@ -247,37 +247,37 @@ describe('SubWorkflowExecutor', () => {
   });
 
   // 子工作流 YAML 无效 → 报错
-  test('无效 YAML 抛出 WorkflowError', async () => {
-    const subYamlPath = join(tmpDir, 'invalid.yaml');
-    writeFileSync(subYamlPath, 'not: valid: yaml: structure: [');
+  test("无效 YAML 抛出 WorkflowError", async () => {
+    const subYamlPath = join(tmpDir, "invalid.yaml");
+    writeFileSync(subYamlPath, "not: valid: yaml: structure: [");
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('invalid.yaml');
+    const node = subWorkflowNode("invalid.yaml");
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
   });
 
   // 两步子工作流返回最后一个节点的输出
-  test('两步子工作流返回最后节点输出', async () => {
-    const subYamlPath = join(tmpDir, 'two-step.yaml');
+  test("两步子工作流返回最后节点输出", async () => {
+    const subYamlPath = join(tmpDir, "two-step.yaml");
     writeFileSync(subYamlPath, TWO_STEP_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('two-step.yaml');
+    const node = subWorkflowNode("two-step.yaml");
 
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toContain('second');
+    expect(output.stdout).toContain("second");
   });
 
   // 非 workflow 节点 → 报错
-  test('非 workflow 节点类型抛出 WorkflowError', async () => {
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+  test("非 workflow 节点类型抛出 WorkflowError", async () => {
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = { id: 'bad', type: 'shell', command: 'echo hi' } as NodeDef;
+    const node = { id: "bad", type: "shell", command: "echo hi" } as NodeDef;
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
     await expect(executor.execute(node, ctx)).rejects.toMatchObject({
@@ -286,14 +286,14 @@ describe('SubWorkflowExecutor', () => {
   });
 
   // 嵌套 2 层子工作流
-  test('嵌套 2 层子工作流正确执行', async () => {
-    const nestedDir = join(tmpDir, 'nested');
+  test("嵌套 2 层子工作流正确执行", async () => {
+    const nestedDir = join(tmpDir, "nested");
     mkdirSync(nestedDir, { recursive: true });
 
     // 写入内层子工作流
-    writeFileSync(join(nestedDir, 'nested-sub.yaml'), NESTED_SUB_WORKFLOW_YAML);
+    writeFileSync(join(nestedDir, "nested-sub.yaml"), NESTED_SUB_WORKFLOW_YAML);
     // 写入外层子工作流（引用内层）
-    writeFileSync(join(nestedDir, 'nested-parent.yaml'), NESTED_PARENT_YAML);
+    writeFileSync(join(nestedDir, "nested-parent.yaml"), NESTED_PARENT_YAML);
     // 写入最外层子工作流（引用外层）
     const outerYaml = `\
 schema_version: "1"
@@ -303,41 +303,44 @@ nodes:
     type: workflow
     ref: nested-parent.yaml
 `;
-    writeFileSync(join(nestedDir, 'outer.yaml'), outerYaml);
+    writeFileSync(join(nestedDir, "outer.yaml"), outerYaml);
 
     // 创建嵌套注册表：需要递归注册 SubWorkflowExecutor
     // 外层 executor 的 baseDir 是 nestedDir
-    const outerExecutor = new SubWorkflowExecutor('parent-run', registry, nestedDir);
-    registry.register('workflow', outerExecutor);
+    const outerExecutor = new SubWorkflowExecutor("parent-run", registry, nestedDir);
+    registry.register("workflow", outerExecutor);
 
     const ctx = makeCtx();
-    const node = subWorkflowNode('outer.yaml');
+    const node = subWorkflowNode("outer.yaml");
 
     const output = await outerExecutor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toContain('inner hello');
+    expect(output.stdout).toContain("inner hello");
   });
 
   // 父级取消传播到子工作流
-  test('父级取消时子工作流被取消', async () => {
-    const subYamlPath = join(tmpDir, 'slow.yaml');
+  test("父级取消时子工作流被取消", async () => {
+    const subYamlPath = join(tmpDir, "slow.yaml");
     // 创建一个会运行较长时间的子工作流
-    writeFileSync(subYamlPath, `\
+    writeFileSync(
+      subYamlPath,
+      `\
 schema_version: "1"
 name: slow-sub
 nodes:
   - id: slow-step
     type: shell
     command: sleep 10
-`);
+`,
+    );
 
     const abortController = new AbortController();
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx({
       signal: abortController.signal,
     });
-    const node = subWorkflowNode('slow.yaml');
+    const node = subWorkflowNode("slow.yaml");
 
     // 启动执行后立即取消
     const executePromise = executor.execute(node, ctx);
@@ -349,9 +352,11 @@ nodes:
   });
 
   // 参数传递
-  test('参数传递到子工作流', async () => {
-    const subYamlPath = join(tmpDir, 'param-sub.yaml');
-    writeFileSync(subYamlPath, `\
+  test("参数传递到子工作流", async () => {
+    const subYamlPath = join(tmpDir, "param-sub.yaml");
+    writeFileSync(
+      subYamlPath,
+      `\
 schema_version: "1"
 name: param-sub
 params:
@@ -364,39 +369,41 @@ nodes:
     inputs:
       MSG: params.message
     command: 'printf "%s" "$MSG"'
-`);
+`,
+    );
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx({
       resolvedInputs: {
-        ref: 'param-sub.yaml',
-        params: { message: 'hello-param' },
+        ref: "param-sub.yaml",
+        params: { message: "hello-param" },
       },
     });
-    const node = subWorkflowNode('param-sub.yaml', {
-      params: { message: '${{ params.message }}' },
+    const node = subWorkflowNode("param-sub.yaml", {
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional test input for expression parser
+      params: { message: "${{ params.message }}" },
     });
 
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toContain('hello-param');
+    expect(output.stdout).toContain("hello-param");
   });
 
   // 子工作流的事件存储在同一个 storage 中
-  test('子工作流事件存储在父级 storage 中', async () => {
-    const subYamlPath = join(tmpDir, 'simple.yaml');
+  test("子工作流事件存储在父级 storage 中", async () => {
+    const subYamlPath = join(tmpDir, "simple.yaml");
     writeFileSync(subYamlPath, SIMPLE_SUB_WORKFLOW_YAML);
 
-    const executor = new SubWorkflowExecutor('parent-run', registry, tmpDir);
+    const executor = new SubWorkflowExecutor("parent-run", registry, tmpDir);
     const ctx = makeCtx();
-    const node = subWorkflowNode('simple.yaml');
+    const node = subWorkflowNode("simple.yaml");
 
     await executor.execute(node, ctx);
 
     // 检查父级 run 的事件
     const parentEvents = await ctx.storage.getEvents(ctx.runId);
-    const subStarted = parentEvents.find((e) => e.type === 'sub_workflow.started');
+    const subStarted = parentEvents.find((e) => e.type === "sub_workflow.started");
     expect(subStarted).toBeTruthy();
 
     // 检查子工作流 run 的事件也存在
@@ -404,7 +411,7 @@ nodes:
     const subEvents = await ctx.storage.getEvents(subRunId);
     expect(subEvents.length).toBeGreaterThan(0);
 
-    const dagStarted = subEvents.find((e) => e.type === 'dag.started');
+    const dagStarted = subEvents.find((e) => e.type === "dag.started");
     expect(dagStarted).toBeTruthy();
   });
 });

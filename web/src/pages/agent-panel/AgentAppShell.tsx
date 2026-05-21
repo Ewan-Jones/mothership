@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { PanelRight } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ThreadEntry } from "../../../src/lib/types";
+import { StatusHeader } from "../../components/agent-panel/StatusHeader";
 import { AgentCreateDialog } from "./AgentCreateDialog";
 import { AgentSidebar } from "./AgentSidebar";
-import { ChatPanel } from "./ChatPanel";
 import { ArtifactsPanel } from "./ArtifactsPanel";
-import { StatusHeader } from "../../components/agent-panel/StatusHeader";
-import type { ThreadEntry } from "../../../src/lib/types";
+import { ChatPanel } from "./ChatPanel";
 import "./agent-panel.css";
 
 interface AgentAppShellProps {
@@ -92,11 +92,7 @@ export function AgentAppShell({ agentId, sessionId }: AgentAppShellProps) {
         onCreateAgent={() => setCreateDialogOpen(true)}
       />
       <div className="agent-panel-body">
-        <StatusHeader
-          agentName={stats.agentName}
-          modelName={stats.modelName}
-          entries={stats.entries}
-        />
+        <StatusHeader agentName={stats.agentName} modelName={stats.modelName} entries={stats.entries} />
         <div className="agent-panel-content">
           <div className="agent-chat-area">
             <ChatPanel agentId={selectedAgentId} sessionId={currentSessionId} />

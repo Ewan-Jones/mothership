@@ -1,7 +1,7 @@
-import { type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import type { FileTreeContextMenuItem, FileTreeContextMenuOpenContext } from "@pierre/trees";
-import { Trash2, FolderPlus, Pencil, MessageSquareQuote } from "lucide-react";
+import { FolderPlus, MessageSquareQuote, Pencil, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 interface FileTreeContextMenuProps {
   item: FileTreeContextMenuItem;
@@ -71,9 +71,7 @@ export function FileTreeContextMenu({
           key={item.label}
           type="button"
           className={`flex w-full items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors ${
-            item.danger
-              ? "text-status-error hover:bg-status-error/10"
-              : "text-text-primary hover:bg-surface-2"
+            item.danger ? "text-status-error hover:bg-status-error/10" : "text-text-primary hover:bg-surface-2"
           }`}
           onClick={() => {
             item.action();

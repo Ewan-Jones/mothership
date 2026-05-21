@@ -26,8 +26,8 @@ export function isValidAgentNameInput(name: string): boolean {
 }
 
 export function isValidStepsInput(steps: string): boolean {
-  const n = parseInt(steps);
-  return !isNaN(n) && n >= 1 && n <= 200;
+  const n = parseInt(steps, 10);
+  return !Number.isNaN(n) && n >= 1 && n <= 200;
 }
 
 export function filterSubagents(agents: AgentInfo[]): AgentInfo[] {
@@ -59,7 +59,7 @@ export function buildSubagentFormData(params: {
   return {
     mode: "subagent",
     model: params.model || undefined,
-    steps: parseInt(params.steps),
+    steps: parseInt(params.steps, 10),
     prompt: params.prompt || undefined,
     description: params.description || undefined,
     disable: params.disable,
@@ -111,7 +111,7 @@ export function buildAgentPayload(input: {
   return {
     model: input.model || undefined,
     mode: input.mode,
-    steps: parseInt(input.steps),
+    steps: parseInt(input.steps, 10),
     prompt: input.prompt || undefined,
     description: input.description || undefined,
     variant: input.variant || undefined,
@@ -345,20 +345,20 @@ export function AgentsPage() {
     }
     if (formTemperature !== "") {
       const tv = parseFloat(formTemperature);
-      if (isNaN(tv) || tv < 0 || tv > 2) {
+      if (Number.isNaN(tv) || tv < 0 || tv > 2) {
         toast.error(t("form.temperatureValidationError"));
         return;
       }
     }
     if (formTopP !== "") {
       const p = parseFloat(formTopP);
-      if (isNaN(p) || p < 0 || p > 1) {
+      if (Number.isNaN(p) || p < 0 || p > 1) {
         toast.error(t("form.topPValidationError"));
         return;
       }
     }
-    const knowledgeMaxResults = parseInt(formKnowledgeMaxResults);
-    if (isNaN(knowledgeMaxResults) || knowledgeMaxResults < 1 || knowledgeMaxResults > 20) {
+    const knowledgeMaxResults = parseInt(formKnowledgeMaxResults, 10);
+    if (Number.isNaN(knowledgeMaxResults) || knowledgeMaxResults < 1 || knowledgeMaxResults > 20) {
       toast.error(t("knowledge.maxResultsValidationError"));
       return;
     }
@@ -473,6 +473,7 @@ export function AgentsPage() {
         <div className="rounded-md border">
           <Skeleton className="h-10 w-full rounded-t-md" />
           {Array.from({ length: 5 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Skeleton key={i} className="h-12 w-full rounded-none border-t" />
           ))}
         </div>
@@ -785,9 +786,7 @@ export function AgentsPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-text-bright">{t("skills.tabTitle")}</p>
-                  <p className="text-xs text-text-muted">
-                    {t("skills.selectedCount", { count: formSkillIds.length })}
-                  </p>
+                  <p className="text-xs text-text-muted">{t("skills.selectedCount", { count: formSkillIds.length })}</p>
                 </div>
               </div>
               <div className="mt-3 space-y-2">

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { RelayConnectionManager } from "../transport/relay/connection-manager";
 
 describe("RelayConnectionManager", () => {
@@ -34,7 +34,9 @@ describe("RelayConnectionManager", () => {
     const entry = {
       agentId: "agent-1",
       userId: "user-1",
-      unsub: () => { unsubCalled = true; },
+      unsub: () => {
+        unsubCalled = true;
+      },
       keepalive: null,
       ws: { readyState: 1 } as any,
       openTime: Date.now(),
@@ -56,8 +58,30 @@ describe("RelayConnectionManager", () => {
 
   // clearAll 移除所有连接
   test("clearAll removes all connections", () => {
-    manager.add("a", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: null, relayHandle: null, relayUnsub: null, outboundBuffer: [] });
-    manager.add("b", { agentId: "b", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: null, relayHandle: null, relayUnsub: null, outboundBuffer: [] });
+    manager.add("a", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: null,
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
+    manager.add("b", {
+      agentId: "b",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: null,
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
     manager.clear();
     expect(manager.get("a")).toBeUndefined();
     expect(manager.get("b")).toBeUndefined();
@@ -65,25 +89,102 @@ describe("RelayConnectionManager", () => {
 
   // findByInstance 返回匹配 instanceId 的连接
   test("findByInstance returns connection matching instanceId", () => {
-    manager.add("r1", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: "inst-1", relayHandle: null, relayUnsub: null, outboundBuffer: [] });
-    manager.add("r2", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: "inst-2", relayHandle: null, relayUnsub: null, outboundBuffer: [] });
+    manager.add("r1", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: "inst-1",
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
+    manager.add("r2", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: "inst-2",
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
     const found = manager.findByInstance("inst-1");
     expect(found?.wsId).toBe("r1");
   });
 
   // findByAgentId 返回所有匹配的连接
   test("findByAgentId returns all matching connections", () => {
-    manager.add("r1", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: null, relayHandle: null, relayUnsub: null, outboundBuffer: [] });
-    manager.add("r2", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: null, relayHandle: null, relayUnsub: null, outboundBuffer: [] });
-    manager.add("r3", { agentId: "b", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: null, relayHandle: null, relayUnsub: null, outboundBuffer: [] });
+    manager.add("r1", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: null,
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
+    manager.add("r2", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: null,
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
+    manager.add("r3", {
+      agentId: "b",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: null,
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
     const found = manager.findByAgentId("a");
     expect(found).toHaveLength(2);
   });
 
   // hasOtherRelayForInstance 排除指定 wsId
   test("hasOtherRelayForInstance excludes given wsId", () => {
-    manager.add("r1", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: "inst-1", relayHandle: null, relayUnsub: null, outboundBuffer: [] });
-    manager.add("r2", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: "inst-1", relayHandle: null, relayUnsub: null, outboundBuffer: [] });
+    manager.add("r1", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: "inst-1",
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
+    manager.add("r2", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: "inst-1",
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
     expect(manager.hasOtherRelayForInstance("inst-1", "r1")).toBe(true);
     expect(manager.hasOtherRelayForInstance("inst-1", "r1")).toBe(true);
     manager.remove("r2");
@@ -93,7 +194,18 @@ describe("RelayConnectionManager", () => {
   // size 返回连接数
   test("size returns connection count", () => {
     expect(manager.size).toBe(0);
-    manager.add("a", { agentId: "a", userId: "u", unsub: null, keepalive: null, ws: {} as any, openTime: 0, instanceId: null, relayHandle: null, relayUnsub: null, outboundBuffer: [] });
+    manager.add("a", {
+      agentId: "a",
+      userId: "u",
+      unsub: null,
+      keepalive: null,
+      ws: {} as any,
+      openTime: 0,
+      instanceId: null,
+      relayHandle: null,
+      relayUnsub: null,
+      outboundBuffer: [],
+    });
     expect(manager.size).toBe(1);
   });
 });

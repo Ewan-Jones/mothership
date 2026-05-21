@@ -2,9 +2,9 @@
  * Inputs 解析器 — 解析 inputs 表达式并生成 Shell 环境变量 / Python 变量注入代码。
  */
 
-import { parseExpression, evaluateExpression } from "./expression-parser";
-import type { EvalContext } from "../types/expression";
 import { WorkflowError, WorkflowErrorCode } from "../types/errors";
+import type { EvalContext } from "../types/expression";
+import { evaluateExpression, parseExpression } from "./expression-parser";
 
 /** 解析后的单个 input */
 export interface ResolvedInput {
@@ -15,10 +15,7 @@ export interface ResolvedInput {
 /**
  * 解析 inputs 映射中的所有表达式，返回解析结果。
  */
-export function resolveInputs(
-  inputs: Record<string, string>,
-  context: EvalContext,
-): Record<string, ResolvedInput> {
+export function resolveInputs(inputs: Record<string, string>, context: EvalContext): Record<string, ResolvedInput> {
   const resolved: Record<string, ResolvedInput> = {};
   for (const [key, expr] of Object.entries(inputs)) {
     try {
@@ -41,9 +38,7 @@ export function resolveInputs(
  * 将解析后的 inputs 转为 Shell 环境变量映射。
  * 所有值统一转为字符串。
  */
-export function generateShellEnvVars(
-  resolved: Record<string, ResolvedInput>,
-): Record<string, string> {
+export function generateShellEnvVars(resolved: Record<string, ResolvedInput>): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, { value }] of Object.entries(resolved)) {
     if (value === null || value === undefined) {
@@ -62,9 +57,7 @@ export function generateShellEnvVars(
  * - 简单值（字符串/数字/布尔/null）用 Python 字面量
  * - 复杂值（对象/数组）用 json.loads()
  */
-export function generatePythonPreamble(
-  resolved: Record<string, ResolvedInput>,
-): string {
+export function generatePythonPreamble(resolved: Record<string, ResolvedInput>): string {
   const entries = Object.entries(resolved);
   if (entries.length === 0) return "";
 

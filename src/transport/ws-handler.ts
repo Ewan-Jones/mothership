@@ -33,7 +33,7 @@ const CLIENT_ACTIVITY_TIMEOUT_MS = SERVER_KEEPALIVE_INTERVAL_MS * 3;
 function toSDKMessage(event: SessionEvent): string {
   // NDJSON format: each message MUST end with \n so the child process's
   // line-based parser can split messages correctly.
-  return JSON.stringify(toClientPayload(event)) + "\n";
+  return `${JSON.stringify(toClientPayload(event))}\n`;
 }
 
 /** Called from onOpen — subscribes to event bus, forwards outbound events to bridge WS */
@@ -110,7 +110,7 @@ export function handleWebSocketOpen(ws: WsConnection, sessionId: string) {
 /**
  * Called from onMessage — bridge sends newline-delimited JSON.
  */
-export function handleWebSocketMessage(ws: WsConnection, sessionId: string, data: string) {
+export function handleWebSocketMessage(_ws: WsConnection, sessionId: string, data: string) {
   // Track client activity for dead-connection detection
   const entry = cleanupBySession.get(sessionId);
   if (entry) {
@@ -228,7 +228,7 @@ export function closeAllConnections(): void {
   if (count === 0) return;
 
   log(`[WS] Gracefully closing ${count} active connection(s)...`);
-  for (const [sessionId, entry] of cleanupBySession) {
+  for (const [_sessionId, entry] of cleanupBySession) {
     try {
       entry.unsub();
       clearInterval(entry.keepalive);

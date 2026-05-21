@@ -118,7 +118,7 @@
 
 /* ── Node Palette (Panel overlay) ── */
 .wf-panel-palette {
-  margin: 0 !important;
+  margin: 0;
 }
 
 .wf-palette {
@@ -177,7 +177,7 @@
 
 /* ── Toolbar (Panel overlay) ── */
 .wf-panel-toolbar {
-  margin: 0 !important;
+  margin: 0;
 }
 
 .wf-toolbar {
@@ -297,18 +297,18 @@
 
 /* ── React Flow Overrides ── */
 .react-flow__controls {
-  border-radius: 8px !important;
+  border-radius: 8px;
   box-shadow:
     0 1px 4px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.05) !important;
-  border: none !important;
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: none;
   overflow: hidden;
 }
 
 .react-flow__controls-button {
-  border-bottom: 1px solid #f3f4f6 !important;
-  width: 28px !important;
-  height: 28px !important;
+  border-bottom: 1px solid #f3f4f6;
+  width: 28px;
+  height: 28px;
 }
 
 .react-flow__controls-button svg {
@@ -317,11 +317,11 @@
 }
 
 .react-flow__minimap {
-  border-radius: 8px !important;
+  border-radius: 8px;
   box-shadow:
     0 1px 4px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.05) !important;
-  border: none !important;
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: none;
 }
 
 .react-flow__edge-path {

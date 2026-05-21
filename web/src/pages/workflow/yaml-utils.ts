@@ -1,5 +1,5 @@
+import type { Edge, Node } from "@xyflow/react";
 import yaml from "js-yaml";
-import type { Node, Edge } from "@xyflow/react";
 
 export const START_NODE_ID = "__start__";
 

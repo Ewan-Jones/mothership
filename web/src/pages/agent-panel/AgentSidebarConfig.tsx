@@ -1,7 +1,19 @@
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, Clock, Cpu, KeyRound, Menu, MessageSquare, Monitor, Plug, Radio, Settings, Users, Workflow } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  Cpu,
+  KeyRound,
+  Menu,
+  MessageSquare,
+  Monitor,
+  Plug,
+  Radio,
+  Settings,
+  Users,
+  Workflow,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { NS } from "../../i18n";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu";
+import { NS } from "../../i18n";
 
 interface NavEntry {
   id: string;

@@ -5,23 +5,23 @@
  * shell 的 echo 默认在 stdout 末尾加 \n，stdout 值会包含换行。
  */
 
-import { describe, expect, test } from 'bun:test';
-import { createWorkflowEngine } from '../../engine/workflow-engine';
-import { createInMemoryStorage } from '../../storage/in-memory-storage';
+import { describe, expect, test } from "bun:test";
+import { createWorkflowEngine } from "../../engine/workflow-engine";
+import { createInMemoryStorage } from "../../storage/in-memory-storage";
 
 function makeEngine() {
   const storage = createInMemoryStorage();
   const engine = createWorkflowEngine({
     storage,
-    hmacSecret: 'test-hmac-secret-for-e2e',
+    hmacSecret: "test-hmac-secret-for-e2e",
   });
   return { engine, storage };
 }
 
 // ========== shell → shell 传递 ==========
 
-describe('inputs 端到端：shell → shell', () => {
-  test('上游 shell 输出通过 inputs 环境变量传递给下游', async () => {
+describe("inputs 端到端：shell → shell", () => {
+  test("上游 shell 输出通过 inputs 环境变量传递给下游", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -40,17 +40,17 @@ nodes:
 `;
 
     const result = await engine.run(yaml);
-    expect(result.status).toBe('SUCCESS');
+    expect(result.status).toBe("SUCCESS");
 
-    const output = await engine.getOutput(result.runId, 'use_greeting');
-    expect(output?.stdout).toBe('hello world');
+    const output = await engine.getOutput(result.runId, "use_greeting");
+    expect(output?.stdout).toBe("hello world");
   });
 });
 
 // ========== shell → python 传递 ==========
 
-describe('inputs 端到端：shell → python', () => {
-  test('上游 shell JSON 输出通过 inputs 变量注入传递给 python', async () => {
+describe("inputs 端到端：shell → python", () => {
+  test("上游 shell JSON 输出通过 inputs 变量注入传递给 python", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -69,17 +69,17 @@ nodes:
 `;
 
     const result = await engine.run(yaml);
-    expect(result.status).toBe('SUCCESS');
+    expect(result.status).toBe("SUCCESS");
 
-    const output = await engine.getOutput(result.runId, 'use_data');
-    expect(output?.stdout.trim()).toBe('alice');
+    const output = await engine.getOutput(result.runId, "use_data");
+    expect(output?.stdout.trim()).toBe("alice");
   });
 });
 
 // ========== params 通过 inputs 注入 ==========
 
-describe('inputs 端到端：params 注入', () => {
-  test('params 通过 inputs 注入到 shell 环境变量', async () => {
+describe("inputs 端到端：params 注入", () => {
+  test("params 通过 inputs 注入到 shell 环境变量", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -98,13 +98,13 @@ nodes:
 `;
 
     const result = await engine.run(yaml);
-    expect(result.status).toBe('SUCCESS');
+    expect(result.status).toBe("SUCCESS");
 
-    const output = await engine.getOutput(result.runId, 'greet');
-    expect(output?.stdout).toBe('hello world');
+    const output = await engine.getOutput(result.runId, "greet");
+    expect(output?.stdout).toBe("hello world");
   });
 
-  test('运行时 params 覆盖默认值', async () => {
+  test("运行时 params 覆盖默认值", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -122,14 +122,14 @@ nodes:
     command: printf "hello %s" "$NAME"
 `;
 
-    const result = await engine.run(yaml, { name: 'Alice' });
-    expect(result.status).toBe('SUCCESS');
+    const result = await engine.run(yaml, { name: "Alice" });
+    expect(result.status).toBe("SUCCESS");
 
-    const output = await engine.getOutput(result.runId, 'greet');
-    expect(output?.stdout).toBe('hello Alice');
+    const output = await engine.getOutput(result.runId, "greet");
+    expect(output?.stdout).toBe("hello Alice");
   });
 
-  test('params 通过 inputs 注入到 python 变量', async () => {
+  test("params 通过 inputs 注入到 python 变量", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -148,18 +148,18 @@ nodes:
 `;
 
     const result = await engine.run(yaml);
-    expect(result.status).toBe('SUCCESS');
+    expect(result.status).toBe("SUCCESS");
 
-    const output = await engine.getOutput(result.runId, 'compute');
-    expect(output?.stdout.trim()).toBe('10');
+    const output = await engine.getOutput(result.runId, "compute");
+    expect(output?.stdout.trim()).toBe("10");
   });
 });
 
 // ========== secrets 通过 inputs 注入 ==========
 
-describe('inputs 端到端：secrets 注入', () => {
-  test('secrets 通过 inputs 注入到 shell 环境变量', async () => {
-    process.env.API_KEY = 'test-secret-key';
+describe("inputs 端到端：secrets 注入", () => {
+  test("secrets 通过 inputs 注入到 shell 环境变量", async () => {
+    process.env.API_KEY = "test-secret-key";
 
     try {
       const { engine } = makeEngine();
@@ -178,10 +178,10 @@ nodes:
 `;
 
       const result = await engine.run(yaml);
-      expect(result.status).toBe('SUCCESS');
+      expect(result.status).toBe("SUCCESS");
 
-      const output = await engine.getOutput(result.runId, 'use_key');
-      expect(output?.stdout).toBe('key=test-secret-key');
+      const output = await engine.getOutput(result.runId, "use_key");
+      expect(output?.stdout).toBe("key=test-secret-key");
     } finally {
       delete process.env.API_KEY;
     }
@@ -190,8 +190,8 @@ nodes:
 
 // ========== 多级链式传递 ==========
 
-describe('inputs 端到端：多级链式传递', () => {
-  test('shell → shell → shell 三级传递', async () => {
+describe("inputs 端到端：多级链式传递", () => {
+  test("shell → shell → shell 三级传递", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -216,17 +216,17 @@ nodes:
 `;
 
     const result = await engine.run(yaml);
-    expect(result.status).toBe('SUCCESS');
+    expect(result.status).toBe("SUCCESS");
 
-    const output = await engine.getOutput(result.runId, 'step3');
-    expect(output?.stdout).toBe('first->second->third');
+    const output = await engine.getOutput(result.runId, "step3");
+    expect(output?.stdout).toBe("first->second->third");
   });
 });
 
 // ========== 并行节点独立 inputs ==========
 
-describe('inputs 端到端：并行节点', () => {
-  test('多个下游节点从同一上游获取不同 inputs', async () => {
+describe("inputs 端到端：并行节点", () => {
+  test("多个下游节点从同一上游获取不同 inputs", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -251,20 +251,20 @@ nodes:
 `;
 
     const result = await engine.run(yaml);
-    expect(result.status).toBe('SUCCESS');
+    expect(result.status).toBe("SUCCESS");
 
-    const outputX = await engine.getOutput(result.runId, 'use_x');
-    expect(outputX?.stdout.trim()).toBe('20');
+    const outputX = await engine.getOutput(result.runId, "use_x");
+    expect(outputX?.stdout.trim()).toBe("20");
 
-    const outputY = await engine.getOutput(result.runId, 'use_y');
-    expect(outputY?.stdout.trim()).toBe('25');
+    const outputY = await engine.getOutput(result.runId, "use_y");
+    expect(outputY?.stdout.trim()).toBe("25");
   });
 });
 
 // ========== inputs + env 共存 ==========
 
-describe('inputs 端到端：inputs + env 共存', () => {
-  test('shell 节点 inputs 和 env 同时生效', async () => {
+describe("inputs 端到端：inputs + env 共存", () => {
+  test("shell 节点 inputs 和 env 同时生效", async () => {
     const { engine } = makeEngine();
 
     const yaml = `
@@ -285,9 +285,9 @@ nodes:
 `;
 
     const result = await engine.run(yaml);
-    expect(result.status).toBe('SUCCESS');
+    expect(result.status).toBe("SUCCESS");
 
-    const output = await engine.getOutput(result.runId, 'step2');
-    expect(output?.stdout).toBe('data + constant');
+    const output = await engine.getOutput(result.runId, "step2");
+    expect(output?.stdout).toBe("data + constant");
   });
 });

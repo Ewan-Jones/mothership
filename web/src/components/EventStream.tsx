@@ -220,18 +220,27 @@ export function EventStream({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, []);
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
       <div className="mx-auto max-w-5xl space-y-3">
-        {messages.map((msg, i) => (
-          <MessageRow
-            key={i}
-            message={msg}
-            {...{ onApprovePermission, onRejectPermission, onSubmitAnswers, onSubmitPlanResponse }}
-          />
-        ))}
+        {messages.map((msg, i) => {
+          const msgKey =
+            "requestId" in msg
+              ? (msg as { requestId: string }).requestId
+              : "traceId" in msg
+                ? (msg as { traceId: string }).traceId
+                : // biome-ignore lint/suspicious/noArrayIndexKey: fallback for messages without unique id
+                  i;
+          return (
+            <MessageRow
+              key={msgKey}
+              message={msg}
+              {...{ onApprovePermission, onRejectPermission, onSubmitAnswers, onSubmitPlanResponse }}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -328,6 +337,7 @@ function AssistantBubble({ content, traceEntries }: { content: string; traceEntr
         {content && (
           <div
             className="rounded-2xl rounded-bl-md bg-surface-2 px-4 py-2.5 text-sm text-text-primary"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: rendering sanitized assistant content
             dangerouslySetInnerHTML={{ __html: formatAssistantContent(content) }}
           />
         )}
@@ -343,7 +353,8 @@ function AssistantBubble({ content, traceEntries }: { content: string; traceEntr
             {expanded && (
               <div className="mt-1 space-y-1 pl-2">
                 {traceEntries.map((entry, i) => (
-                  <ToolCard key={i} entry={entry} />
+                  // biome-ignore lint/suspicious/noArrayIndexKey: entries may lack unique id
+                  <ToolCard key={`${entry.entryKind}-${entry.toolName ?? ""}-${i}`} entry={entry} />
                 ))}
               </div>
             )}
@@ -469,6 +480,7 @@ function AskUserPanel({
   const { t } = useTranslation("sessions");
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [otherTexts, setOtherTexts] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState(0);
 
   const handleSelect = (qIdx: number, oIdx: number, multiSelect: boolean) => {
     if (multiSelect) {
@@ -518,6 +530,7 @@ function AskUserPanel({
             const isSelected = multiSelect ? ((answers[0] as number[]) || []).includes(j) : selectedIdx === j;
             return (
               <button
+                // biome-ignore lint/suspicious/noArrayIndexKey: static option list, position is stable
                 key={j}
                 onClick={() => handleSelect(0, j, multiSelect)}
                 className={cn(
@@ -536,7 +549,7 @@ function AskUserPanel({
             <Input
               type="text"
               value={otherTexts[0] || ""}
-              onChange={(e) => setOtherTexts({ ...otherTexts, [0]: e.target.value })}
+              onChange={(e) => setOtherTexts({ ...otherTexts, 0: e.target.value })}
               placeholder={t("askUser.otherPlaceholder")}
               className="flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-brand focus:outline-none"
               onKeyDown={(e) => e.key === "Enter" && handleOtherSubmit(0)}
@@ -568,15 +581,13 @@ function AskUserPanel({
   }
 
   // Multiple questions — tab layout
-  const [activeTab, setActiveTab] = useState(0);
-
   return (
     <div className="rounded-xl border border-brand/30 bg-surface-1 p-4">
       <div className="mb-3 text-sm font-semibold text-text-primary">{esc(description || t("askUser.questions"))}</div>
       <div className="mb-3 flex gap-1 overflow-x-auto">
         {questions.map((q, i) => (
           <button
-            key={i}
+            key={q.header || `Q${i + 1}`}
             onClick={() => setActiveTab(i)}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs whitespace-nowrap transition-colors",
@@ -649,6 +660,7 @@ function QuestionTab({
           const isSelected = multiSelect ? ((answers[qIdx] as number[]) || []).includes(j) : answers[qIdx] === j;
           return (
             <button
+              // biome-ignore lint/suspicious/noArrayIndexKey: static option list, position is stable
               key={j}
               onClick={() => onSelect(qIdx, j, multiSelect)}
               className={cn(
@@ -686,7 +698,7 @@ function QuestionTab({
 
 function PlanPanel({
   planContent,
-  description,
+  description: _description,
   onSubmit,
 }: {
   requestId: string;
@@ -697,7 +709,7 @@ function PlanPanel({
   const { t } = useTranslation("sessions");
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
-  const isEmpty = !planContent || !planContent.trim();
+  const isEmpty = !planContent?.trim();
 
   const handleSubmit = () => {
     if (!selected) return;
@@ -712,6 +724,7 @@ function PlanPanel({
       {!isEmpty && (
         <div
           className="mb-4 max-h-64 overflow-auto rounded-lg bg-tool-card p-4 text-sm text-text-secondary prose prose-invert"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: rendering sanitized plan content
           dangerouslySetInnerHTML={{ __html: formatPlanContent(planContent) }}
         />
       )}
@@ -917,7 +930,7 @@ export function useEventProcessor() {
         const text = extractEventText(payload as Record<string, unknown>);
         const toolUseBlocks = getEmbeddedToolBlocks(payload, "tool_use");
 
-        if (text && text.trim()) {
+        if (text?.trim()) {
           const result = addAssistantHost(traceStateRef.current, text);
           traceStateRef.current = result.state;
           setMessages((prev) => [
@@ -1042,7 +1055,7 @@ export function useEventProcessor() {
     }
   };
 
-  function processReplayEvent(type: string, payload: EventPayload, direction: string, event: SessionEvent) {
+  function processReplayEvent(type: string, payload: EventPayload, _direction: string, _event: SessionEvent) {
     switch (type) {
       case "user": {
         const text = extractEventText(payload as Record<string, unknown>);
@@ -1054,7 +1067,7 @@ export function useEventProcessor() {
       }
       case "assistant": {
         const text = extractEventText(payload as Record<string, unknown>);
-        if (text && text.trim()) {
+        if (text?.trim()) {
           const result = addAssistantHost(traceStateRef.current, text);
           traceStateRef.current = result.state;
           setMessages((prev) => [

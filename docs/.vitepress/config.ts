@@ -29,9 +29,7 @@ export default defineConfig({
       "/user/": [
         {
           text: "首页",
-          items: [
-            { text: "产品介绍", link: "/user/" },
-          ],
+          items: [{ text: "产品介绍", link: "/user/" }],
         },
         {
           text: "配置",
@@ -52,17 +50,13 @@ export default defineConfig({
         },
         {
           text: "帮助",
-          items: [
-            { text: "故障排查", link: "/user/troubleshooting/" },
-          ],
+          items: [{ text: "故障排查", link: "/user/troubleshooting/" }],
         },
       ],
       "/developer/": [
         {
           text: "首页",
-          items: [
-            { text: "开发者指南", link: "/developer/" },
-          ],
+          items: [{ text: "开发者指南", link: "/developer/" }],
         },
         {
           text: "使用指南",
@@ -76,9 +70,7 @@ export default defineConfig({
         },
       ],
     },
-    socialLinks: [
-      { icon: "github", link: "https://github.com/konghayao/remote-control-server" },
-    ],
+    socialLinks: [{ icon: "github", link: "https://github.com/konghayao/remote-control-server" }],
     search: {
       provider: "local",
       options: {

@@ -6,30 +6,30 @@
  * 等完整生命周期管理。
  */
 
-import { nanoid } from 'nanoid';
-import type { StorageAdapter } from '../storage/storage-adapter';
-import type { Transport } from '../transport/transport';
-import type { WorkflowDef, NodeDef } from '../types/dag';
-import type { DAGEvent, DAGSnapshot, DAGStatus, NodeOutput } from '../types/execution';
-import type { ValidationIssue, ValidationResult } from '../parser/dag-validator';
-import { validateDAG } from '../parser/dag-validator';
-import { parseWorkflowYaml } from '../parser/yaml-parser';
-import { topologicalSort, identifyParallelGroups } from '../scheduler/topological-sort';
-import type { DAGRunResult, NodeExecutor, SchedulerContext } from '../scheduler/dag-scheduler';
-import { DAGScheduler } from '../scheduler/dag-scheduler';
-import { CancellationManager } from '../scheduler/cancellation';
-import { recoverRun } from '../recovery/snapshot-recovery';
-import { NodeExecutorRegistry } from '../executor/node-executor';
-import { ProcessExecutor } from '../executor/process-executor';
-import { PythonExecutor } from '../executor/python-executor';
-import { ApiExecutor } from '../executor/api-executor';
-import { AgentExecutor } from '../executor/agent-executor';
-import { AuditExecutor, verifyApprovalToken } from '../executor/awaitable-executor';
-import type { PendingApproval } from '../executor/awaitable-executor';
-import { SubWorkflowExecutor } from '../executor/sub-workflow-executor';
-import { LoopExecutor } from '../executor/loop-executor';
-import { SecretsResolver } from '../secrets/secrets-resolver';
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
+import { nanoid } from "nanoid";
+import { AgentExecutor } from "../executor/agent-executor";
+import { ApiExecutor } from "../executor/api-executor";
+import type { PendingApproval } from "../executor/awaitable-executor";
+import { AuditExecutor, verifyApprovalToken } from "../executor/awaitable-executor";
+import { LoopExecutor } from "../executor/loop-executor";
+import { NodeExecutorRegistry } from "../executor/node-executor";
+import { ProcessExecutor } from "../executor/process-executor";
+import { PythonExecutor } from "../executor/python-executor";
+import { SubWorkflowExecutor } from "../executor/sub-workflow-executor";
+import type { ValidationIssue, ValidationResult } from "../parser/dag-validator";
+import { validateDAG } from "../parser/dag-validator";
+import { parseWorkflowYaml } from "../parser/yaml-parser";
+import { recoverRun } from "../recovery/snapshot-recovery";
+import { CancellationManager } from "../scheduler/cancellation";
+import type { DAGRunResult, SchedulerContext } from "../scheduler/dag-scheduler";
+import { DAGScheduler } from "../scheduler/dag-scheduler";
+import { identifyParallelGroups, topologicalSort } from "../scheduler/topological-sort";
+import { SecretsResolver } from "../secrets/secrets-resolver";
+import type { StorageAdapter } from "../storage/storage-adapter";
+import type { Transport } from "../transport/transport";
+import type { WorkflowDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
+import type { DAGEvent, DAGSnapshot, NodeOutput } from "../types/execution";
 
 // ---------- 公开类型 ----------
 
@@ -44,7 +44,7 @@ export interface WorkflowEngineOptions {
   /** 默认工作目录（子流程 ref 解析基准） */
   defaultCwd?: string;
   /** Agent 配置解析回调（方案 A：注入依赖，不耦合数据库） */
-  resolveAgentConfig?: (agentName: string) => Promise<import('../executor/agent-executor').AgentResolvedConfig | null>;
+  resolveAgentConfig?: (agentName: string) => Promise<import("../executor/agent-executor").AgentResolvedConfig | null>;
 }
 
 /** dryRun 结果 */
@@ -125,17 +125,20 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
 
   function buildRegistry(runId: string, baseDir: string): NodeExecutorRegistry {
     const registry = new NodeExecutorRegistry();
-    registry.register('shell', new ProcessExecutor());
-    registry.register('python', new PythonExecutor());
-    registry.register('api', new ApiExecutor());
+    registry.register("shell", new ProcessExecutor());
+    registry.register("python", new PythonExecutor());
+    registry.register("api", new ApiExecutor());
     if (transport) {
-      registry.register('agent', new AgentExecutor(transport, {
-        resolveAgentConfig: options.resolveAgentConfig,
-      }));
+      registry.register(
+        "agent",
+        new AgentExecutor(transport, {
+          resolveAgentConfig: options.resolveAgentConfig,
+        }),
+      );
     }
-    registry.register('audit', new AuditExecutor(hmacSecret));
-    registry.register('workflow', new SubWorkflowExecutor(runId, registry, baseDir));
-    registry.register('loop', new LoopExecutor(runId, registry));
+    registry.register("audit", new AuditExecutor(hmacSecret));
+    registry.register("workflow", new SubWorkflowExecutor(runId, registry, baseDir));
+    registry.register("loop", new LoopExecutor(runId, registry));
     return registry;
   }
 
@@ -155,14 +158,12 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     const validation = validate(def);
     if (!validation.valid) {
       const errors = validation.issues
-        .filter((i) => i.type === 'error')
+        .filter((i) => i.type === "error")
         .map((i) => i.message)
-        .join('; ');
-      throw new WorkflowError(
-        `Workflow validation failed: ${errors}`,
-        WorkflowErrorCode.VALIDATION_ERROR,
-        { issues: validation.issues },
-      );
+        .join("; ");
+      throw new WorkflowError(`Workflow validation failed: ${errors}`, WorkflowErrorCode.VALIDATION_ERROR, {
+        issues: validation.issues,
+      });
     }
 
     // 2. 生成 runId
@@ -211,7 +212,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       return result;
     } finally {
       // SUSPENDED 状态保留 activeRun，等待 approveNode 恢复
-      if (result?.status !== 'SUSPENDED') {
+      if (result?.status !== "SUSPENDED") {
         activeRuns.delete(runId);
       }
     }
@@ -240,36 +241,21 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
   async function cancel(runId: string): Promise<void> {
     const activeRun = activeRuns.get(runId);
     if (!activeRun) {
-      throw new WorkflowError(
-        `Run '${runId}' not found or already completed`,
-        WorkflowErrorCode.RUN_NOT_FOUND,
-        { runId },
-      );
+      throw new WorkflowError(`Run '${runId}' not found or already completed`, WorkflowErrorCode.RUN_NOT_FOUND, {
+        runId,
+      });
     }
     activeRun.cancellation.cancel();
   }
 
-  async function approveNode(
-    runId: string,
-    nodeId: string,
-    token: string,
-    data?: unknown,
-  ): Promise<void> {
+  async function approveNode(runId: string, nodeId: string, token: string, data?: unknown): Promise<void> {
     // 1. 验证 token
     const { valid, expired } = verifyApprovalToken(token, runId, nodeId, hmacSecret);
     if (!valid) {
       if (expired) {
-        throw new WorkflowError(
-          'Approval token has expired',
-          WorkflowErrorCode.VALIDATION_ERROR,
-          { runId, nodeId },
-        );
+        throw new WorkflowError("Approval token has expired", WorkflowErrorCode.VALIDATION_ERROR, { runId, nodeId });
       }
-      throw new WorkflowError(
-        'Invalid approval token',
-        WorkflowErrorCode.VALIDATION_ERROR,
-        { runId, nodeId },
-      );
+      throw new WorkflowError("Invalid approval token", WorkflowErrorCode.VALIDATION_ERROR, { runId, nodeId });
     }
 
     // 2. 查找活跃运行
@@ -288,30 +274,26 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     // 从 storage 获取最新快照重建状态
     const snapshot = await storage.getLatestSnapshot(runId);
     if (!snapshot) {
-      throw new WorkflowError(
-        `No snapshot found for run ${runId}`,
-        WorkflowErrorCode.RECOVERY_ERROR,
-        { runId },
-      );
+      throw new WorkflowError(`No snapshot found for run ${runId}`, WorkflowErrorCode.RECOVERY_ERROR, { runId });
     }
 
     // 重建节点状态
-    const nodeStates = new Map<string, import('../types/execution').NodeStatus>();
+    const nodeStates = new Map<string, import("../types/execution").NodeStatus>();
     const nodeOutputs = new Map<string, NodeOutput>();
     for (const [id, state] of Object.entries(snapshot.node_states)) {
       nodeStates.set(id, state.status);
-      if (state.status === 'COMPLETED') {
+      if (state.status === "COMPLETED") {
         const output = await storage.getOutput(runId, id);
         if (output) nodeOutputs.set(id, output);
       }
     }
 
     // 将审批节点标记为 COMPLETED
-    nodeStates.set(nodeId, 'COMPLETED');
+    nodeStates.set(nodeId, "COMPLETED");
     if (data !== undefined) {
       nodeOutputs.set(nodeId, {
-        stdout: typeof data === 'string' ? data : JSON.stringify(data),
-        json: typeof data === 'object' && data !== null ? data as Record<string, unknown> : { approved: data },
+        stdout: typeof data === "string" ? data : JSON.stringify(data),
+        json: typeof data === "object" && data !== null ? (data as Record<string, unknown>) : { approved: data },
         exit_code: 0,
       });
     }
@@ -321,9 +303,9 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       event_id: `evt_${nanoid(10)}`,
       run_id: runId,
       timestamp: new Date().toISOString(),
-      type: 'audit.approved',
+      type: "audit.approved",
       node_id: nodeId,
-      node_type: 'audit',
+      node_type: "audit",
       metadata: data !== undefined ? { data } : {},
     };
     await storage.appendEvent(approvedEvent);
@@ -345,24 +327,16 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     const result = await scheduler.run();
 
     // 恢复执行后，若非再次 SUSPENDED 则清理活跃记录
-    if (result.status !== 'SUSPENDED') {
+    if (result.status !== "SUSPENDED") {
       activeRuns.delete(runId);
     }
   }
 
   /** 非活跃运行的审批恢复 */
-  async function recoverFromApproval(
-    runId: string,
-    nodeId: string,
-    data?: unknown,
-  ): Promise<void> {
+  async function recoverFromApproval(runId: string, nodeId: string, data?: unknown): Promise<void> {
     const snapshot = await storage.getLatestSnapshot(runId);
     if (!snapshot) {
-      throw new WorkflowError(
-        `No snapshot found for run ${runId}`,
-        WorkflowErrorCode.RECOVERY_ERROR,
-        { runId },
-      );
+      throw new WorkflowError(`No snapshot found for run ${runId}`, WorkflowErrorCode.RECOVERY_ERROR, { runId });
     }
 
     // 发射 audit.approved 事件
@@ -370,28 +344,28 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       event_id: `evt_${nanoid(10)}`,
       run_id: runId,
       timestamp: new Date().toISOString(),
-      type: 'audit.approved',
+      type: "audit.approved",
       node_id: nodeId,
-      node_type: 'audit',
+      node_type: "audit",
       metadata: data !== undefined ? { data } : {},
     };
     await storage.appendEvent(approvedEvent);
 
     // 重建状态并标记审批节点为 COMPLETED
-    const nodeStates = new Map<string, import('../types/execution').NodeStatus>();
+    const nodeStates = new Map<string, import("../types/execution").NodeStatus>();
     const nodeOutputs = new Map<string, NodeOutput>();
     for (const [id, state] of Object.entries(snapshot.node_states)) {
       nodeStates.set(id, state.status);
-      if (state.status === 'COMPLETED') {
+      if (state.status === "COMPLETED") {
         const output = await storage.getOutput(runId, id);
         if (output) nodeOutputs.set(id, output);
       }
     }
-    nodeStates.set(nodeId, 'COMPLETED');
+    nodeStates.set(nodeId, "COMPLETED");
     if (data !== undefined) {
       nodeOutputs.set(nodeId, {
-        stdout: typeof data === 'string' ? data : JSON.stringify(data),
-        json: typeof data === 'object' && data !== null ? data as Record<string, unknown> : { approved: data },
+        stdout: typeof data === "string" ? data : JSON.stringify(data),
+        json: typeof data === "object" && data !== null ? (data as Record<string, unknown>) : { approved: data },
         exit_code: 0,
       });
     }
@@ -423,7 +397,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
 
     // 先收集所有已审批的节点 ID
     for (const event of events) {
-      if (event.type === 'audit.approved' && event.node_id) {
+      if (event.type === "audit.approved" && event.node_id) {
         approvedNodeIds.add(event.node_id);
       }
     }
@@ -431,18 +405,14 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     // 收集所有待审批请求（排除已审批的）
     const pending: PendingApproval[] = [];
     for (const event of events) {
-      if (
-        event.type === 'audit.requested' &&
-        event.node_id &&
-        !approvedNodeIds.has(event.node_id)
-      ) {
+      if (event.type === "audit.requested" && event.node_id && !approvedNodeIds.has(event.node_id)) {
         const metadata = event.metadata ?? {};
         const displayData = metadata.display_data as Record<string, unknown> | undefined;
         pending.push({
           runId,
           nodeId: event.node_id,
-          approvalToken: (displayData?.approvalToken as string) ?? '',
-          expiresAt: (displayData?.expiresAt as string) ?? '',
+          approvalToken: (displayData?.approvalToken as string) ?? "",
+          expiresAt: (displayData?.expiresAt as string) ?? "",
           displayData: displayData?.display_data,
         });
       }
@@ -456,14 +426,12 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     const validation = validate(def);
     if (!validation.valid) {
       const errors = validation.issues
-        .filter((i) => i.type === 'error')
+        .filter((i) => i.type === "error")
         .map((i) => i.message)
-        .join('; ');
-      throw new WorkflowError(
-        `Workflow validation failed: ${errors}`,
-        WorkflowErrorCode.VALIDATION_ERROR,
-        { issues: validation.issues },
-      );
+        .join("; ");
+      throw new WorkflowError(`Workflow validation failed: ${errors}`, WorkflowErrorCode.VALIDATION_ERROR, {
+        issues: validation.issues,
+      });
     }
 
     // Secrets 解析
@@ -495,7 +463,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       return result;
     } finally {
       // SUSPENDED 状态保留 activeRun，等待 approveNode 恢复
-      if (result?.status !== 'SUSPENDED') {
+      if (result?.status !== "SUSPENDED") {
         activeRuns.delete(runId);
       }
     }
@@ -506,24 +474,20 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     const validation = validate(def);
     if (!validation.valid) {
       const errors = validation.issues
-        .filter((i) => i.type === 'error')
+        .filter((i) => i.type === "error")
         .map((i) => i.message)
-        .join('; ');
-      throw new WorkflowError(
-        `Workflow validation failed: ${errors}`,
-        WorkflowErrorCode.VALIDATION_ERROR,
-        { issues: validation.issues },
-      );
+        .join("; ");
+      throw new WorkflowError(`Workflow validation failed: ${errors}`, WorkflowErrorCode.VALIDATION_ERROR, {
+        issues: validation.issues,
+      });
     }
 
     // 获取上一次运行的快照
     const snapshot = await storage.getLatestSnapshot(prevRunId);
     if (!snapshot) {
-      throw new WorkflowError(
-        `No snapshot found for run ${prevRunId}`,
-        WorkflowErrorCode.RECOVERY_ERROR,
-        { runId: prevRunId },
-      );
+      throw new WorkflowError(`No snapshot found for run ${prevRunId}`, WorkflowErrorCode.RECOVERY_ERROR, {
+        runId: prevRunId,
+      });
     }
 
     // BFS 找 fromNodeId 的所有下游节点
@@ -548,7 +512,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     }
 
     // 构建初始状态：上游 COMPLETED（保留输出），fromNodeId 及下游 PENDING
-    const nodeStates = new Map<string, import('../types/execution').NodeStatus>();
+    const nodeStates = new Map<string, import("../types/execution").NodeStatus>();
     const nodeOutputs = new Map<string, NodeOutput>();
 
     for (const node of validation.def.nodes) {
@@ -556,16 +520,16 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       const isDownstream = id === fromNodeId || downstream.has(id);
 
       if (isDownstream) {
-        nodeStates.set(id, 'PENDING');
+        nodeStates.set(id, "PENDING");
       } else {
         const prevStatus = snapshot.node_states[id];
-        if (prevStatus?.status === 'COMPLETED') {
-          nodeStates.set(id, 'COMPLETED');
+        if (prevStatus?.status === "COMPLETED") {
+          nodeStates.set(id, "COMPLETED");
           const output = await storage.getOutput(prevRunId, id);
           if (output) nodeOutputs.set(id, output);
         } else {
           throw new WorkflowError(
-            `Cannot rerun from '${fromNodeId}': upstream node '${id}' was not COMPLETED (status: ${prevStatus?.status ?? 'unknown'})`,
+            `Cannot rerun from '${fromNodeId}': upstream node '${id}' was not COMPLETED (status: ${prevStatus?.status ?? "unknown"})`,
             WorkflowErrorCode.VALIDATION_ERROR,
             { fromNodeId, upstreamNodeId: id },
           );
@@ -606,7 +570,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
       return result;
     } finally {
       // SUSPENDED 状态保留 activeRun，等待 approveNode 恢复
-      if (result?.status !== 'SUSPENDED') {
+      if (result?.status !== "SUSPENDED") {
         activeRuns.delete(newRunId);
       }
     }

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { client, fetchUpload } from "../api/client";
+import { client } from "../api/client";
 
 interface TaskInfo {
   id: string;
@@ -448,6 +448,7 @@ export function TasksPage() {
         <div className="rounded-md border">
           <Skeleton className="h-10 w-full rounded-t-md" />
           {Array.from({ length: 5 }).map((_, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Skeleton key={index} className="h-12 w-full rounded-none border-t" />
           ))}
         </div>
@@ -645,6 +646,7 @@ export function TasksPage() {
                   {logsLoading ? (
                     <div className="space-y-2">
                       {Array.from({ length: 3 }).map((_, index) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                         <Skeleton key={index} className="h-20 w-full" />
                       ))}
                     </div>

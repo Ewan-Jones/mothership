@@ -134,7 +134,7 @@ async function handleTest(ctx: AuthContext, name: string) {
           const body = await res.text();
           detail = body.slice(0, 200);
         } catch {}
-        return configError("CONFIG_READ_ERROR", `认证失败 (HTTP ${res.status})${detail ? ": " + detail : ""}`);
+        return configError("CONFIG_READ_ERROR", `认证失败 (HTTP ${res.status})${detail ? `: ${detail}` : ""}`);
       }
       return configSuccess({ models: [], warning: `API 可达，但模型列表接口返回 HTTP ${res.status}` });
     }
@@ -204,7 +204,7 @@ async function handleRemoveModel(ctx: AuthContext, providerName: string, modelId
 
 app.post(
   "/config/providers",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error }: any) => {
     const authCtx = store.authContext!;
     const b = body as ConfigBody;
     const payload: ProviderBody = { action: b.action ?? "", name: b.name, modelId: b.modelId, data: b.data };

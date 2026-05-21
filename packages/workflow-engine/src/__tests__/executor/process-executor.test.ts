@@ -2,13 +2,13 @@
  * ProcessExecutor + NodeExecutorRegistry 测试
  */
 
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
-import { ProcessExecutor } from '../../executor/process-executor';
-import { NodeExecutorRegistry, createNodeExecutorRegistry } from '../../executor/node-executor';
-import type { ShellNodeDef } from '../../types/dag';
-import type { NodeExecutor, NodeExecutionContext } from '../../scheduler/dag-scheduler';
-import { createInMemoryStorage } from '../../storage/in-memory-storage';
-import { WorkflowError, WorkflowErrorCode } from '../../types/errors';
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createNodeExecutorRegistry } from "../../executor/node-executor";
+import { ProcessExecutor } from "../../executor/process-executor";
+import type { NodeExecutionContext, NodeExecutor } from "../../scheduler/dag-scheduler";
+import { createInMemoryStorage } from "../../storage/in-memory-storage";
+import type { ShellNodeDef } from "../../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../../types/errors";
 
 // ---------- 辅助工具 ----------
 
@@ -16,7 +16,7 @@ import { WorkflowError, WorkflowErrorCode } from '../../types/errors';
 function makeCtx(overrides?: Partial<NodeExecutionContext>): NodeExecutionContext {
   const storage = createInMemoryStorage();
   return {
-    runId: 'test-run-001',
+    runId: "test-run-001",
     params: {},
     secrets: {},
     resolvedInputs: {},
@@ -29,8 +29,8 @@ function makeCtx(overrides?: Partial<NodeExecutionContext>): NodeExecutionContex
 /** 创建简单的 shell 节点定义 */
 function shellNode(command: string, overrides?: Partial<ShellNodeDef>): ShellNodeDef {
   return {
-    id: 'test-node',
-    type: 'shell',
+    id: "test-node",
+    type: "shell",
     command,
     ...overrides,
   };
@@ -38,7 +38,7 @@ function shellNode(command: string, overrides?: Partial<ShellNodeDef>): ShellNod
 
 // ========== ProcessExecutor 测试 ==========
 
-describe('ProcessExecutor', () => {
+describe("ProcessExecutor", () => {
   let executor: ProcessExecutor;
 
   beforeEach(() => {
@@ -46,20 +46,20 @@ describe('ProcessExecutor', () => {
   });
 
   // echo "hello" → 正确输出
-  test('echo 命令返回正确 stdout 和 exit_code 0', async () => {
+  test("echo 命令返回正确 stdout 和 exit_code 0", async () => {
     const ctx = makeCtx();
     const node = shellNode('echo "hello"');
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toBe('hello\n');
+    expect(output.stdout).toBe("hello\n");
     expect(output.size).toBeGreaterThan(0);
   });
 
   // exit 1 → WorkflowError
-  test('非零退出码抛出 WorkflowError', async () => {
+  test("非零退出码抛出 WorkflowError", async () => {
     const ctx = makeCtx();
-    const node = shellNode('exit 1');
+    const node = shellNode("exit 1");
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
     await expect(executor.execute(node, ctx)).rejects.toMatchObject({
@@ -68,124 +68,124 @@ describe('ProcessExecutor', () => {
   });
 
   // node.failed 事件
-  test('非零退出码产生 node.failed 事件', async () => {
+  test("非零退出码产生 node.failed 事件", async () => {
     const ctx = makeCtx();
-    const node = shellNode('exit 42');
+    const node = shellNode("exit 42");
 
     try {
       await executor.execute(node, ctx);
     } catch {}
 
-    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: 'test-node' });
-    const failedEvents = events.filter((e) => e.type === 'node.failed');
+    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: "test-node" });
+    const failedEvents = events.filter((e) => e.type === "node.failed");
     expect(failedEvents.length).toBe(1);
     expect(failedEvents[0].metadata?.exit_code).toBe(42);
   });
 
   // node.started 事件
-  test('执行产生 node.started 事件', async () => {
+  test("执行产生 node.started 事件", async () => {
     const ctx = makeCtx();
-    const node = shellNode('echo ok');
+    const node = shellNode("echo ok");
     await executor.execute(node, ctx);
 
-    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: 'test-node' });
-    const startedEvents = events.filter((e) => e.type === 'node.started');
+    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: "test-node" });
+    const startedEvents = events.filter((e) => e.type === "node.started");
     expect(startedEvents.length).toBe(1);
     expect(startedEvents[0].metadata?.pid).toBeGreaterThan(0);
   });
 
   // node.completed 事件
-  test('成功执行产生 node.completed 事件', async () => {
+  test("成功执行产生 node.completed 事件", async () => {
     const ctx = makeCtx();
-    const node = shellNode('echo done');
+    const node = shellNode("echo done");
     await executor.execute(node, ctx);
 
-    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: 'test-node' });
-    const completedEvents = events.filter((e) => e.type === 'node.completed');
+    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: "test-node" });
+    const completedEvents = events.filter((e) => e.type === "node.completed");
     expect(completedEvents.length).toBe(1);
     expect(completedEvents[0].metadata?.exit_code).toBe(0);
   });
 
   // inputs 注入 params 为环境变量
-  test('inputs 注入 params 为环境变量', async () => {
+  test("inputs 注入 params 为环境变量", async () => {
     const ctx = makeCtx({
-      params: { input: 'world' },
+      params: { input: "world" },
       resolvedInputs: {
         command: 'echo "hello $input"',
-        inputs: { input: { value: 'world', rawExpression: 'params.input' } },
+        inputs: { input: { value: "world", rawExpression: "params.input" } },
       },
     });
     const node = shellNode('echo "hello $input"', {
-      inputs: { input: 'params.input' },
+      inputs: { input: "params.input" },
     });
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toBe('hello world\n');
+    expect(output.stdout).toBe("hello world\n");
   });
 
   // inputs 注入 secrets 为环境变量
-  test('inputs 注入 secrets 为环境变量', async () => {
+  test("inputs 注入 secrets 为环境变量", async () => {
     const ctx = makeCtx({
-      secrets: { MY_SECRET: 's3cret' },
+      secrets: { MY_SECRET: "s3cret" },
       resolvedInputs: {
         command: 'echo "$MY_SECRET"',
-        inputs: { MY_SECRET: { value: 's3cret', rawExpression: 'secrets.MY_SECRET' } },
+        inputs: { MY_SECRET: { value: "s3cret", rawExpression: "secrets.MY_SECRET" } },
       },
     });
     const node = shellNode('echo "$MY_SECRET"', {
-      inputs: { MY_SECRET: 'secrets.MY_SECRET' },
+      inputs: { MY_SECRET: "secrets.MY_SECRET" },
     });
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toBe('s3cret\n');
+    expect(output.stdout).toBe("s3cret\n");
   });
 
   // 环境变量注入
-  test('node.env 注入为子进程环境变量', async () => {
+  test("node.env 注入为子进程环境变量", async () => {
     const ctx = makeCtx();
     const node = shellNode('echo "$MY_VAR"', {
-      env: { MY_VAR: 'from_node_env' },
+      env: { MY_VAR: "from_node_env" },
     });
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout.trim()).toBe('from_node_env');
+    expect(output.stdout.trim()).toBe("from_node_env");
   });
 
   // secrets 注入为环境变量
-  test('secrets 注入为子进程环境变量', async () => {
-    const ctx = makeCtx({ secrets: { API_KEY: 'key123' } });
+  test("secrets 注入为子进程环境变量", async () => {
+    const ctx = makeCtx({ secrets: { API_KEY: "key123" } });
     const node = shellNode('echo "$API_KEY"');
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout.trim()).toBe('key123');
+    expect(output.stdout.trim()).toBe("key123");
   });
 
   // stdout JSON 解析
-  test('stdout 为合法 JSON 时 json 字段被解析', async () => {
+  test("stdout 为合法 JSON 时 json 字段被解析", async () => {
     const ctx = makeCtx();
-    const node = shellNode("echo '{\"key\":\"value\"}'");
+    const node = shellNode('echo \'{"key":"value"}\'');
     const output = await executor.execute(node, ctx);
 
-    expect(output.json).toEqual({ key: 'value' });
+    expect(output.json).toEqual({ key: "value" });
   });
 
   // stdout 非法 JSON 时 json 为 undefined
-  test('stdout 非法 JSON 时 json 为 undefined', async () => {
+  test("stdout 非法 JSON 时 json 为 undefined", async () => {
     const ctx = makeCtx();
-    const node = shellNode('echo not-json');
+    const node = shellNode("echo not-json");
     const output = await executor.execute(node, ctx);
 
     expect(output.json).toBeUndefined();
   });
 
   // 超时
-  test('超时后节点失败', async () => {
+  test("超时后节点失败", async () => {
     const ctx = makeCtx();
-    const node = shellNode('sleep 10', { timeout: 1 });
+    const node = shellNode("sleep 10", { timeout: 1 });
     const start = Date.now();
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
@@ -199,10 +199,10 @@ describe('ProcessExecutor', () => {
   });
 
   // 外部取消
-  test('外部 AbortSignal 取消后节点失败', async () => {
+  test("外部 AbortSignal 取消后节点失败", async () => {
     const controller = new AbortController();
     const ctx = makeCtx({ signal: controller.signal });
-    const node = shellNode('sleep 10');
+    const node = shellNode("sleep 10");
 
     // 100ms 后取消
     setTimeout(() => controller.abort(), 100);
@@ -219,9 +219,9 @@ describe('ProcessExecutor', () => {
   });
 
   // 非法节点类型
-  test('非 shell 节点抛出错误', async () => {
+  test("非 shell 节点抛出错误", async () => {
     const ctx = makeCtx();
-    const node = { id: 'bad', type: 'agent' } as any;
+    const node = { id: "bad", type: "agent" } as any;
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
   });
@@ -229,7 +229,7 @@ describe('ProcessExecutor', () => {
 
 // ========== 重试测试 ==========
 
-describe('ProcessExecutor retry', () => {
+describe("ProcessExecutor retry", () => {
   let executor: ProcessExecutor;
   const tempFiles: string[] = [];
 
@@ -241,14 +241,14 @@ describe('ProcessExecutor retry', () => {
     // 清理临时文件
     for (const f of tempFiles) {
       try {
-        await Bun.file(f).exists() && require('fs').unlinkSync(f);
+        (await Bun.file(f).exists()) && require("node:fs").unlinkSync(f);
       } catch {}
     }
     tempFiles.length = 0;
   });
 
   // 重试：第一次失败，第二次成功
-  test('重试机制：第一次失败、第二次成功 → COMPLETED', async () => {
+  test("重试机制：第一次失败、第二次成功 → COMPLETED", async () => {
     const markerFile = `/tmp/_wf_test_retry_${process.pid}_${Date.now()}`;
     tempFiles.push(markerFile);
 
@@ -257,37 +257,37 @@ describe('ProcessExecutor retry', () => {
 
     const ctx = makeCtx();
     const node = shellNode(command, {
-      retry: { count: 1, delay: 100, backoff: 'fixed' },
+      retry: { count: 1, delay: 100, backoff: "fixed" },
     });
 
     const output = await executor.execute(node, ctx);
     expect(output.exit_code).toBe(0);
-    expect(output.stdout.trim()).toBe('ok');
+    expect(output.stdout.trim()).toBe("ok");
 
     // 验证事件：应该有 node.started, node.failed（第一次）, node.retrying, node.started, node.completed
-    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: 'test-node' });
-    const retryEvents = events.filter((e) => e.type === 'node.retrying');
+    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: "test-node" });
+    const retryEvents = events.filter((e) => e.type === "node.retrying");
     expect(retryEvents.length).toBe(1);
     expect(retryEvents[0].metadata?.attempt).toBe(2);
     expect(retryEvents[0].metadata?.max_attempts).toBe(2);
   });
 
   // 重试耗尽仍失败
-  test('重试耗尽后仍然失败', async () => {
+  test("重试耗尽后仍然失败", async () => {
     const ctx = makeCtx();
-    const node = shellNode('exit 1', {
-      retry: { count: 2, delay: 50, backoff: 'fixed' },
+    const node = shellNode("exit 1", {
+      retry: { count: 2, delay: 50, backoff: "fixed" },
     });
 
     await expect(executor.execute(node, ctx)).rejects.toThrow(WorkflowError);
 
-    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: 'test-node' });
-    const retryEvents = events.filter((e) => e.type === 'node.retrying');
+    const events = await ctx.storage.getEvents(ctx.runId, { nodeId: "test-node" });
+    const retryEvents = events.filter((e) => e.type === "node.retrying");
     expect(retryEvents.length).toBe(2); // 2 次重试
   });
 
   // 指数退避
-  test('指数退避模式重试', async () => {
+  test("指数退避模式重试", async () => {
     const markerFile = `/tmp/_wf_test_exp_backoff_${process.pid}_${Date.now()}`;
     tempFiles.push(markerFile);
 
@@ -295,7 +295,7 @@ describe('ProcessExecutor retry', () => {
 
     const ctx = makeCtx();
     const node = shellNode(command, {
-      retry: { count: 2, delay: 100, backoff: 'exponential' },
+      retry: { count: 2, delay: 100, backoff: "exponential" },
     });
 
     const start = Date.now();
@@ -310,23 +310,23 @@ describe('ProcessExecutor retry', () => {
 
 // ========== stderr 测试 ==========
 
-describe('ProcessExecutor stderr', () => {
-  test('stderr 不影响正常输出', async () => {
+describe("ProcessExecutor stderr", () => {
+  test("stderr 不影响正常输出", async () => {
     const executor = new ProcessExecutor();
     const ctx = makeCtx();
     // 同时写 stdout 和 stderr
-    const node = shellNode('echo stdout_msg; echo stderr_msg >&2');
+    const node = shellNode("echo stdout_msg; echo stderr_msg >&2");
     const output = await executor.execute(node, ctx);
 
     expect(output.exit_code).toBe(0);
-    expect(output.stdout).toBe('stdout_msg\n');
+    expect(output.stdout).toBe("stdout_msg\n");
   });
 });
 
 // ========== NodeExecutorRegistry 测试 ==========
 
-describe('NodeExecutorRegistry', () => {
-  test('注册并执行对应类型的执行器', async () => {
+describe("NodeExecutorRegistry", () => {
+  test("注册并执行对应类型的执行器", async () => {
     const registry = createNodeExecutorRegistry();
     const ctx = makeCtx();
 
@@ -336,18 +336,18 @@ describe('NodeExecutorRegistry', () => {
       },
     };
 
-    registry.register('shell', mockExecutor);
+    registry.register("shell", mockExecutor);
 
-    const node = shellNode('echo test');
+    const node = shellNode("echo test");
     const output = await registry.execute(node, ctx);
 
-    expect(output.stdout).toBe('mock-test-node');
+    expect(output.stdout).toBe("mock-test-node");
   });
 
-  test('未注册类型抛出 WorkflowError', async () => {
+  test("未注册类型抛出 WorkflowError", async () => {
     const registry = createNodeExecutorRegistry();
     const ctx = makeCtx();
-    const node = shellNode('echo test');
+    const node = shellNode("echo test");
 
     await expect(registry.execute(node, ctx)).rejects.toThrow(WorkflowError);
     await expect(registry.execute(node, ctx)).rejects.toMatchObject({
@@ -355,31 +355,31 @@ describe('NodeExecutorRegistry', () => {
     });
   });
 
-  test('注册多种类型分别分发', async () => {
+  test("注册多种类型分别分发", async () => {
     const registry = createNodeExecutorRegistry();
     const ctx = makeCtx();
 
     const shellExec: NodeExecutor = {
       async execute() {
-        return { stdout: 'shell-output', exit_code: 0 };
+        return { stdout: "shell-output", exit_code: 0 };
       },
     };
     const apiExec: NodeExecutor = {
       async execute() {
-        return { stdout: 'api-output', exit_code: 0 };
+        return { stdout: "api-output", exit_code: 0 };
       },
     };
 
-    registry.register('shell', shellExec);
-    registry.register('api', apiExec);
+    registry.register("shell", shellExec);
+    registry.register("api", apiExec);
 
-    const shellNode_ = { id: 's1', type: 'shell' as const, command: 'echo hi' };
-    const apiNode = { id: 'a1', type: 'api' as const, url: 'http://example.com' };
+    const shellNode_ = { id: "s1", type: "shell" as const, command: "echo hi" };
+    const apiNode = { id: "a1", type: "api" as const, url: "http://example.com" };
 
     const shellOutput = await registry.execute(shellNode_, ctx);
-    expect(shellOutput.stdout).toBe('shell-output');
+    expect(shellOutput.stdout).toBe("shell-output");
 
     const apiOutput = await registry.execute(apiNode, ctx);
-    expect(apiOutput.stdout).toBe('api-output');
+    expect(apiOutput.stdout).toBe("api-output");
   });
 });

@@ -148,7 +148,6 @@ import {
   listInstances,
   listInstancesByEnvironment,
   spawnInstanceFromEnvironment,
-  stopAllInstances,
   stopInstance,
 } from "../services/instance";
 

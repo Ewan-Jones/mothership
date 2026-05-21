@@ -3,10 +3,8 @@ import {
   Bot,
   Clock,
   Cpu,
-  Layers,
   type LucideIcon,
   MessageSquare,
-  Plug,
   Radio,
   Server,
   ShieldCheck,
@@ -441,7 +439,7 @@ function AgentTopology({ agents, t }: { agents: TopoNode[]; t: (key: string) => 
               fontSize="11.5"
               fontWeight="600"
             >
-              {a.name.length > 12 ? a.name.slice(0, 12) + "…" : a.name}
+              {a.name.length > 12 ? `${a.name.slice(0, 12)}…` : a.name}
             </text>
             <text x={nx} y={ny + 30} textAnchor="middle" fill={sc} fontSize="10">
               ● {statusLabel(a.status)}
@@ -523,11 +521,11 @@ export function Dashboard() {
 
   const timeline = buildTimeline(stats, t);
 
-  const sparkAgents = generateSparkData(activeEnvs.length, stats.environments.length);
-  const sparkSessions = generateSparkData(activeSessions.length, stats.sessions.length);
-  const sparkModels = generateSparkData(modelCount, modelCount);
-  const sparkTasks = generateSparkData(enabledTasks.length, stats.tasks.length);
-  const sparkHealth = generateSparkData(healthPct / 100, healthPct / 100, 0.7, 1);
+  const _sparkAgents = generateSparkData(activeEnvs.length, stats.environments.length);
+  const _sparkSessions = generateSparkData(activeSessions.length, stats.sessions.length);
+  const _sparkModels = generateSparkData(modelCount, modelCount);
+  const _sparkTasks = generateSparkData(enabledTasks.length, stats.tasks.length);
+  const _sparkHealth = generateSparkData(healthPct / 100, healthPct / 100, 0.7, 1);
 
   return (
     <div
@@ -683,7 +681,13 @@ export function Dashboard() {
             <div className="space-y-2">
               {timeline.length > 0 ? (
                 timeline.map((item, i) => (
-                  <TimelineItem key={i} dotColor={item.dotColor} title={item.title} time={item.time} />
+                  <TimelineItem
+                    // biome-ignore lint/suspicious/noArrayIndexKey: timeline items may lack unique id
+                    key={`${item.title}-${item.time}-${i}`}
+                    dotColor={item.dotColor}
+                    title={item.title}
+                    time={item.time}
+                  />
                 ))
               ) : (
                 <div className="text-sm text-text-muted py-2">{t("recent.no_activity")}</div>

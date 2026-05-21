@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 
 const elapsed = ref(0);
 let timer: ReturnType<typeof setInterval>;
@@ -14,7 +14,7 @@ onUnmounted(() => {
   clearInterval(timer);
 });
 
-function formatTime(s: number) {
+function _formatTime(s: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;

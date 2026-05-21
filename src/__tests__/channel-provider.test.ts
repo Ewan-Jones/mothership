@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { getChannelProvider, listChannelProviders, setHermesClientGetter } from "../services/channel-provider";
 
 describe("channel provider registry", () => {

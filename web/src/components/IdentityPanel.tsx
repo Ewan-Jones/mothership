@@ -42,7 +42,7 @@ export function IdentityPanel({ open, onClose }: IdentityPanelProps) {
       });
     });
     return () => cancelAnimationFrame(rafId);
-  }, [open, uuid, resolvedTheme]);
+  }, [open, uuid, qrColors]);
 
   // Cleanup scanner on close
   useEffect(() => {

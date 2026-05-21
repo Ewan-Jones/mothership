@@ -5,7 +5,6 @@ import { sessionRepo } from "../../repositories/session";
 import { SessionHistorySchema } from "../../schemas/session.schema";
 import { eventService } from "../../services/event-service";
 
-
 const app = new Elysia({ name: "web-sessions", prefix: "/web" }).use(authGuardPlugin).model({
   "session-history": SessionHistorySchema,
 });
@@ -13,7 +12,7 @@ const app = new Elysia({ name: "web-sessions", prefix: "/web" }).use(authGuardPl
 /** GET /web/sessions — List sessions for the current team */
 app.get(
   "/sessions",
-  async ({ store, request }) => {
+  async ({ store, request: _request }) => {
     const authCtx = store.authContext!;
     // 获取团队所有 environmentId，再过滤 session
     const teamEnvs = await environmentRepo.listByOrganizationId(authCtx.organizationId);
@@ -37,7 +36,7 @@ app.get(
 /** GET /web/sessions/:id — Get session detail */
 app.get(
   "/sessions/:id",
-  async ({ store, params, error, request }) => {
+  async ({ store, params, error, request: _request }) => {
     const authCtx = store.authContext!;
     const row = await sessionRepo.getById(params.id);
     if (!row) {
@@ -68,7 +67,7 @@ app.get(
  *  Session 元数据已下沉到 Agent，此处仅保留事件流查询 */
 app.get(
   "/sessions/:id/history",
-  async ({ store, params, error, request }) => {
+  async ({ store, params, error, request: _request }) => {
     const authCtx = store.authContext!;
     const sessionId = params.id;
     // 验证 session 属于当前团队

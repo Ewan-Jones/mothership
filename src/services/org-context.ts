@@ -73,7 +73,7 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
         query: { organizationId: org.id },
         headers: request.headers,
       });
-      const memberList: any[] = Array.isArray(memberRes) ? (memberRes as any)?.members ?? [] : [];
+      const memberList: any[] = Array.isArray(memberRes) ? ((memberRes as any)?.members ?? []) : [];
       const me = memberList.find((m: any) => m.userId === user.id);
       if (me) {
         const result: AuthContext = {

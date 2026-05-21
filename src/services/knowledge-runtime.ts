@@ -1,8 +1,5 @@
 import { agentKnowledgeBindingRepo, knowledgeResourceRepo } from "../repositories/knowledge-base";
-import {
-  getKnowledgeProvider as getKnowledgeRuntimeProvider,
-  setKnowledgeProviderForTesting as setKnowledgeRuntimeProviderForTesting,
-} from "./knowledge-provider/registry";
+import { getKnowledgeProvider as getKnowledgeRuntimeProvider } from "./knowledge-provider/registry";
 import type { KnowledgeResourceContent, KnowledgeSearchResult } from "./knowledge-provider/types";
 
 export interface BoundKnowledgeBase {

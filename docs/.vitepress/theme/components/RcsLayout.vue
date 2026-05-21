@@ -1,9 +1,8 @@
 <script setup>
-import DefaultTheme from "vitepress/theme";
 import { useData } from "vitepress";
 
 const { frontmatter, isDark } = useData();
-const isHome = frontmatter.value.layout === "page" && frontmatter.value.home !== false;
+const _isHome = frontmatter.value.layout === "page" && frontmatter.value.home !== false;
 </script>
 
 <template>

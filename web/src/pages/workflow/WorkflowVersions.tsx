@@ -1,7 +1,7 @@
-import { useTranslation } from "react-i18next";
+import { AlertTriangle, Clock, Inbox, Loader, RefreshCw, RotateCcw, Star } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Inbox, Loader, RefreshCw, RotateCcw, Star, Clock } from "lucide-react";
-import { workflowDefApi, type WorkflowVersionItem, type WorkflowDefItem } from "../../api/workflow-defs";
+import { useTranslation } from "react-i18next";
+import { type WorkflowDefItem, type WorkflowVersionItem, workflowDefApi } from "../../api/workflow-defs";
 
 interface WorkflowVersionsProps {
   workflowId: string;
@@ -47,7 +47,7 @@ export function WorkflowVersions({ workflowId }: WorkflowVersionsProps) {
         loadData();
       } catch (err) {
         console.error(err);
-        alert(t("versions.operation_failed") + ": " + (err as Error).message);
+        alert(`${t("versions.operation_failed")}: ${(err as Error).message}`);
       }
     },
     [workflowId, loadData, t],
@@ -61,7 +61,7 @@ export function WorkflowVersions({ workflowId }: WorkflowVersionsProps) {
         alert(t("versions.restore_success"));
       } catch (err) {
         console.error(err);
-        alert(t("versions.restore_failed") + ": " + (err as Error).message);
+        alert(`${t("versions.restore_failed")}: ${(err as Error).message}`);
       }
     },
     [workflowId, t],
@@ -80,7 +80,7 @@ export function WorkflowVersions({ workflowId }: WorkflowVersionsProps) {
         setViewingYaml(result.yaml);
       } catch (err) {
         console.error(err);
-        alert(t("versions.yaml_load_failed") + ": " + (err as Error).message);
+        alert(`${t("versions.yaml_load_failed")}: ${(err as Error).message}`);
       }
     },
     [workflowId, viewingVersion, t],

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { client } from "../api/client";
-import type { PermissionAction, PermissionObjectConfig } from "../types/config";
+import type { PermissionAction } from "../types/config";
 
 // ── 常量定义 ──
 
@@ -74,7 +74,7 @@ function parsePermission(permission: Record<string, unknown> | null | undefined)
   }
   let skillPerm: SkillPermState = { global: "", rules: [] };
   const skillValues: Record<string, ToggleValue> = {};
-  const skillVal = perm["skill"];
+  const skillVal = perm.skill;
   if (skillVal === "ask" || skillVal === "allow" || skillVal === "deny") {
     skillPerm = { global: skillVal, rules: [] };
   } else if (skillVal && typeof skillVal === "object") {
@@ -101,7 +101,7 @@ interface PermissionTabProps {
   onPermissionChange: (permission: Record<string, unknown> | null) => void;
 }
 
-export function PermissionTab({ agentName, permission, onPermissionChange }: PermissionTabProps) {
+export function PermissionTab({ agentName: _agentName, permission, onPermissionChange }: PermissionTabProps) {
   const { t } = useTranslation("components");
 
   // Permission options built from translations
@@ -162,7 +162,7 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
     return () => {
       cancelled = true;
     };
-  }, [agentName]);
+  }, []);
 
   // ── 通用通知辅助：状态更新后通知父组件 ──
   const notifyParent = useCallback(
@@ -178,7 +178,7 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
         const result: Record<string, unknown> = {};
         for (const tool of TOGGLE_TOOLS) result[tool] = nextGlobal;
         for (const tool of RULE_TOOLS) result[tool] = nextGlobal;
-        result["skill"] = nextGlobal;
+        result.skill = nextGlobal;
         onPermissionChange(result);
         return;
       }
@@ -208,9 +208,9 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
         if (r.pattern) skillEntries[r.pattern] = r.action;
       }
       if (nextSkillPerm.global) {
-        result["skill"] = nextSkillPerm.global;
+        result.skill = nextSkillPerm.global;
       } else if (Object.keys(skillEntries).length > 0) {
-        result["skill"] = skillEntries;
+        result.skill = skillEntries;
       }
       onPermissionChange(Object.keys(result).length > 0 ? result : null);
     },
@@ -423,7 +423,7 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
               <CollapsibleContent>
                 <div className="ml-40 mt-1 space-y-2 border-l-2 border-muted pl-3">
                   {ruleTools[tool]?.rules.map((rule, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+                    <div key={rule.pattern} className="flex items-center gap-2">
                       <Input
                         value={rule.pattern}
                         onChange={(e) => handleRulePatternChange(tool, idx, e.target.value)}
@@ -510,7 +510,8 @@ export function PermissionTab({ agentName, permission, onPermissionChange }: Per
           {/* 自定义规则 */}
           <div className="text-xs text-muted-foreground mt-3 pt-2 border-t">{t("permission.customRules")}</div>
           {skillPerm.rules.map((rule, idx) => (
-            <div key={idx} className="flex items-center gap-2">
+            // biome-ignore lint/suspicious/noArrayIndexKey: pattern may be empty during editing
+            <div key={rule.pattern || `rule-${idx}`} className="flex items-center gap-2">
               <Input
                 value={rule.pattern}
                 onChange={(e) => handleSkillRulePatternChange(idx, e.target.value)}

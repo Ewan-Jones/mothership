@@ -1,23 +1,12 @@
 "use client";
 
-import { Badge } from "../ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../ui/collapsible";
-import { cn } from "../../src/lib/utils";
 import type { ToolUIPart } from "ai";
-import {
-  CheckCircleIcon,
-  ChevronDownIcon,
-  CircleIcon,
-  ClockIcon,
-  WrenchIcon,
-  XCircleIcon,
-} from "lucide-react";
+import { CheckCircleIcon, ChevronDownIcon, CircleIcon, ClockIcon, WrenchIcon, XCircleIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
+import { cn } from "../../src/lib/utils";
+import { Badge } from "../ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { CodeBlock } from "./code-block";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
@@ -49,7 +38,7 @@ const getStatusBadge = (status: ExtendedToolState) => {
     "output-error": "Error",
     "output-denied": "Denied",
     "waiting-for-confirmation": "Awaiting Approval",
-    "rejected": "Rejected",
+    rejected: "Rejected",
   };
 
   const icons: Record<ExtendedToolState, ReactNode> = {
@@ -61,7 +50,7 @@ const getStatusBadge = (status: ExtendedToolState) => {
     "output-error": <XCircleIcon className="size-4 text-red-600" />,
     "output-denied": <XCircleIcon className="size-4 text-orange-600" />,
     "waiting-for-confirmation": <ClockIcon className="size-4 text-yellow-600" />,
-    "rejected": <XCircleIcon className="size-4 text-orange-600" />,
+    rejected: <XCircleIcon className="size-4 text-orange-600" />,
   };
 
   return (
@@ -72,25 +61,11 @@ const getStatusBadge = (status: ExtendedToolState) => {
   );
 };
 
-export const ToolHeader = ({
-  className,
-  title,
-  type,
-  state,
-  ...props
-}: ToolHeaderProps) => (
-  <CollapsibleTrigger
-    className={cn(
-      "flex w-full items-center justify-between gap-4 p-3",
-      className
-    )}
-    {...props}
-  >
+export const ToolHeader = ({ className, title, type, state, ...props }: ToolHeaderProps) => (
+  <CollapsibleTrigger className={cn("flex w-full items-center justify-between gap-4 p-3", className)} {...props}>
     <div className="flex min-w-0 items-center gap-2">
       <WrenchIcon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="truncate font-medium text-sm">
-        {title ?? type.split("-").slice(1).join("-")}
-      </span>
+      <span className="truncate font-medium text-sm">{title ?? type.split("-").slice(1).join("-")}</span>
       {getStatusBadge(state)}
     </div>
     <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
@@ -103,7 +78,7 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className
+      className,
     )}
     {...props}
   />
@@ -115,9 +90,7 @@ export type ToolInputProps = ComponentProps<"div"> & {
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-2 overflow-hidden p-4 max-w-full", className)} {...props}>
-    <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-      Parameters
-    </h4>
+    <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Parameters</h4>
     <div className="rounded-md bg-muted/50 overflow-hidden">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
@@ -129,12 +102,7 @@ export type ToolOutputProps = ComponentProps<"div"> & {
   errorText: ToolUIPart["errorText"];
 };
 
-export const ToolOutput = ({
-  className,
-  output,
-  errorText,
-  ...props
-}: ToolOutputProps) => {
+export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutputProps) => {
   if (!(output || errorText)) {
     return null;
   }
@@ -142,9 +110,7 @@ export const ToolOutput = ({
   let Output = <div>{output as ReactNode}</div>;
 
   if (typeof output === "object" && !isValidElement(output)) {
-    Output = (
-      <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
-    );
+    Output = <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />;
   } else if (typeof output === "string") {
     Output = <CodeBlock code={output} language="json" />;
   }
@@ -157,9 +123,7 @@ export const ToolOutput = ({
       <div
         className={cn(
           "overflow-hidden rounded-md text-xs [&_table]:w-full",
-          errorText
-            ? "bg-destructive/10 text-destructive"
-            : "bg-muted/50 text-foreground"
+          errorText ? "bg-destructive/10 text-destructive" : "bg-muted/50 text-foreground",
         )}
       >
         {errorText && <div className="p-2">{errorText}</div>}
@@ -168,4 +132,3 @@ export const ToolOutput = ({
     </div>
   );
 };
-

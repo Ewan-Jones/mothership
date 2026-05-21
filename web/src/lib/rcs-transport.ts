@@ -152,7 +152,7 @@ export class RCSTransport implements ChatTransport<UIMessage> {
             // ---- Assistant text ----
             case "assistant": {
               const content = typeof payload.content === "string" ? payload.content : "";
-              if (content && content.trim()) {
+              if (content?.trim()) {
                 ensureStarted();
                 controller.enqueue({ type: "text-start", id: textId });
                 controller.enqueue({ type: "text-delta", id: textId, delta: content });

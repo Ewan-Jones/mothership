@@ -146,8 +146,6 @@ describe("createCoreRuntime", () => {
     expect(runtime.getInstance("inst_isolated")).toMatchObject({
       status: "running",
     });
-    expect(runtime.getInstance("inst_isolated")?.launchSpec.workspace).toBe(
-      "/tmp/mothership-core-runtime",
-    );
+    expect(runtime.getInstance("inst_isolated")?.launchSpec.workspace).toBe("/tmp/mothership-core-runtime");
   });
 });

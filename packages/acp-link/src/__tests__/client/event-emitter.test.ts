@@ -1,9 +1,9 @@
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { EventEmitter } from "../../client/emitter.js";
 
 // EventEmitter 类型安全事件系统测试
 describe("EventEmitter", () => {
-  let emitter: EventEmitter<{ greet: string; count: number; void: void }>;
+  let emitter: EventEmitter<{ greet: string; count: number; void: undefined }>;
 
   beforeEach(() => {
     emitter = new EventEmitter();
@@ -20,7 +20,9 @@ describe("EventEmitter", () => {
   // 测试 void 事件
   test("void event — no payload", () => {
     let called = false;
-    emitter.on("void", () => { called = true; });
+    emitter.on("void", () => {
+      called = true;
+    });
     emitter.emit("void");
     expect(called).toBe(true);
   });
@@ -49,7 +51,7 @@ describe("EventEmitter", () => {
   test("removeAllListeners(event) — removes listeners for specific event", () => {
     const results: string[] = [];
     emitter.on("greet", (name) => results.push(name));
-    emitter.on("greet", (name) => results.push(name + "!"));
+    emitter.on("greet", (name) => results.push(`${name}!`));
     emitter.removeAllListeners("greet");
     emitter.emit("greet", "hello");
     expect(results).toEqual([]);
@@ -59,8 +61,12 @@ describe("EventEmitter", () => {
   test("removeAllListeners() — removes all listeners", () => {
     let greetCalled = false;
     let countCalled = false;
-    emitter.on("greet", () => { greetCalled = true; });
-    emitter.on("count", () => { countCalled = true; });
+    emitter.on("greet", () => {
+      greetCalled = true;
+    });
+    emitter.on("count", () => {
+      countCalled = true;
+    });
     emitter.removeAllListeners();
     emitter.emit("greet", "hello");
     emitter.emit("count", 1);

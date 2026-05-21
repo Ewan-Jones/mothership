@@ -79,7 +79,7 @@ describe("environment-acp nullish coalescing (|| → ??)", () => {
 
   // registerBridge: undefined worker_type + metadata 回退到 "acp"
   test("registerBridge falls back to 'acp' when both undefined", async () => {
-    const result = await registerBridge({
+    const _result = await registerBridge({
       userId: "user_3",
     });
 

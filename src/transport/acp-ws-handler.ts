@@ -33,7 +33,7 @@ const CLIENT_ACTIVITY_TIMEOUT_MS = SERVER_KEEPALIVE_INTERVAL_MS * 3;
 function sendToWs(ws: WsConnection, msg: object): void {
   if (ws.readyState !== 1) return;
   try {
-    ws.send(JSON.stringify(msg) + "\n");
+    ws.send(`${JSON.stringify(msg)}\n`);
   } catch (err) {
     logError("[ACP-WS] send error:", err);
   }
@@ -214,7 +214,7 @@ async function handleIdentify(wsId: string, msg: Record<string, unknown>): Promi
 }
 
 /** Called from onMessage — processes NDJSON lines or pre-parsed objects */
-export function handleAcpWsMessage(ws: WsConnection, wsId: string, data: string | Record<string, unknown>): void {
+export function handleAcpWsMessage(_ws: WsConnection, wsId: string, data: string | Record<string, unknown>): void {
   const entry = connections.get(wsId);
   if (!entry) return;
 
@@ -275,7 +275,7 @@ export function handleAcpWsMessage(ws: WsConnection, wsId: string, data: string 
 }
 
 /** Called from onClose — marks agent offline and cleans up */
-export function handleAcpWsClose(ws: WsConnection, wsId: string, code?: number, reason?: string): void {
+export function handleAcpWsClose(_ws: WsConnection, wsId: string, code?: number, reason?: string): void {
   const entry = connections.get(wsId);
   if (!entry) return;
 
@@ -326,7 +326,7 @@ export function closeAllAcpConnections(): void {
   if (connections.size === 0) return;
 
   log(`[ACP-WS] Gracefully closing ${connections.size} ACP connection(s)...`);
-  for (const [wsId, entry] of connections) {
+  for (const [_wsId, entry] of connections) {
     try {
       if (entry.unsub) entry.unsub();
       if (entry.keepalive) clearInterval(entry.keepalive);

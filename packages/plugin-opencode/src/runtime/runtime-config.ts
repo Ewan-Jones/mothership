@@ -59,7 +59,6 @@ function toProviderPackage(protocol: AgentLaunchSpec["model"]["protocol"]): stri
   switch (protocol) {
     case "anthropic":
       return "@ai-sdk/anthropic";
-    case "openai":
     default:
       return "@ai-sdk/openai";
   }

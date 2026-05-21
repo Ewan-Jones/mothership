@@ -9,12 +9,12 @@
  * - 事件发射：node.started / node.completed / node.failed / node.retrying
  */
 
-import { nanoid } from 'nanoid';
-import type { AgentNodeDef, NodeDef } from '../types/dag';
-import type { NodeExecutor, NodeExecutionContext } from '../scheduler/dag-scheduler';
-import type { NodeOutput } from '../types/execution';
-import type { Transport, AgentRequest } from '../transport/transport';
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
+import { nanoid } from "nanoid";
+import type { NodeExecutionContext, NodeExecutor } from "../scheduler/dag-scheduler";
+import type { AgentRequest, Transport } from "../transport/transport";
+import type { AgentNodeDef, NodeDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
+import type { NodeOutput } from "../types/execution";
 
 /** 从宿主层获取的 agent 配置 */
 export interface AgentResolvedConfig {
@@ -45,7 +45,7 @@ export class AgentExecutor implements NodeExecutor {
   ) {}
 
   async execute(node: NodeDef, ctx: NodeExecutionContext): Promise<NodeOutput> {
-    if (node.type !== 'agent') {
+    if (node.type !== "agent") {
       throw new WorkflowError(
         `AgentExecutor only handles 'agent' nodes, got '${node.type}'`,
         WorkflowErrorCode.NODE_FAILED,
@@ -63,7 +63,7 @@ export class AgentExecutor implements NodeExecutor {
     const mergedConfig = await this.resolveAndMergeConfig(agentNode);
 
     // 重试配置：默认 2 次（ShellNode 默认 0 次）
-    const retryConfig = agentNode.retry ?? { count: 2, delay: DEFAULT_RETRY_DELAY_MS, backoff: 'exponential' };
+    const retryConfig = agentNode.retry ?? { count: 2, delay: DEFAULT_RETRY_DELAY_MS, backoff: "exponential" };
     const maxAttempts = (retryConfig.count ?? 2) + 1;
     let lastError: Error | null = null;
 
@@ -71,11 +71,11 @@ export class AgentExecutor implements NodeExecutor {
       // 重试时发射 node.retrying 事件
       if (attempt > 0) {
         const baseDelay = retryConfig.delay ?? DEFAULT_RETRY_DELAY_MS;
-        const multiplier = retryConfig.backoff === 'exponential' ? Math.pow(2, attempt - 1) : 1;
+        const multiplier = retryConfig.backoff === "exponential" ? 2 ** (attempt - 1) : 1;
         const jitter = 0.5 + Math.random() * 0.5;
         const delay = Math.round(baseDelay * multiplier * jitter);
 
-        await this.emitEvent(ctx, 'node.retrying', agentNode, {
+        await this.emitEvent(ctx, "node.retrying", agentNode, {
           attempt: attempt + 1,
           max_attempts: maxAttempts,
           next_delay_ms: delay,
@@ -90,12 +90,8 @@ export class AgentExecutor implements NodeExecutor {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         // AbortError（取消）不重试
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          throw new WorkflowError(
-            'Node cancelled',
-            WorkflowErrorCode.DAG_CANCELLED,
-            { node_id: node.id },
-          );
+        if (error instanceof DOMException && error.name === "AbortError") {
+          throw new WorkflowError("Node cancelled", WorkflowErrorCode.DAG_CANCELLED, { node_id: node.id });
         }
 
         // 最后一次失败直接抛出
@@ -105,7 +101,7 @@ export class AgentExecutor implements NodeExecutor {
       }
     }
 
-    throw lastError ?? new WorkflowError('All retry attempts exhausted', WorkflowErrorCode.NODE_FAILED);
+    throw lastError ?? new WorkflowError("All retry attempts exhausted", WorkflowErrorCode.NODE_FAILED);
   }
 
   /** 单次执行：connect → execute → 收集输出 */
@@ -118,14 +114,14 @@ export class AgentExecutor implements NodeExecutor {
     mergedConfig: Partial<AgentResolvedConfig>,
   ): Promise<NodeOutput> {
     // 发射 node.started 事件
-    await this.emitEvent(ctx, 'node.started', node, {
+    await this.emitEvent(ctx, "node.started", node, {
       inputs: ctx.resolvedInputs,
       agent: resolvedAgent,
       skill: resolvedSkill,
     });
 
     // 连接 Transport
-    const session = await this.transport.connect(resolvedAgent ?? 'default');
+    const session = await this.transport.connect(resolvedAgent ?? "default");
 
     // 构建请求
     const request: AgentRequest = {
@@ -147,15 +143,15 @@ export class AgentExecutor implements NodeExecutor {
 
     // 非零退出码 → 失败
     if (response.exit_code !== 0) {
-      await this.emitEvent(ctx, 'node.failed', node, {
+      await this.emitEvent(ctx, "node.failed", node, {
         error: `Agent exited with code ${response.exit_code}`,
         exit_code: response.exit_code,
       });
-      throw new WorkflowError(
-        `Agent exited with code ${response.exit_code}`,
-        WorkflowErrorCode.NODE_FAILED,
-        { node_id: node.id, exit_code: response.exit_code, stdout: response.stdout },
-      );
+      throw new WorkflowError(`Agent exited with code ${response.exit_code}`, WorkflowErrorCode.NODE_FAILED, {
+        node_id: node.id,
+        exit_code: response.exit_code,
+        stdout: response.stdout,
+      });
     }
 
     // 尝试解析 JSON
@@ -167,7 +163,7 @@ export class AgentExecutor implements NodeExecutor {
     }
 
     // 发射 node.completed 事件（含 token 统计）
-    await this.emitEvent(ctx, 'node.completed', node, {
+    await this.emitEvent(ctx, "node.completed", node, {
       exit_code: response.exit_code,
       output_size: outputSize,
       tokens: response.tokens,
@@ -219,11 +215,11 @@ export class AgentExecutor implements NodeExecutor {
   /** 发射事件到 storage */
   private async emitEvent(
     ctx: NodeExecutionContext,
-    type: import('../types/execution').EventType,
+    type: import("../types/execution").EventType,
     node: AgentNodeDef,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
-    const event: import('../types/execution').DAGEvent = {
+    const event: import("../types/execution").DAGEvent = {
       event_id: `evt_${nanoid(10)}`,
       run_id: ctx.runId,
       node_id: node.id,

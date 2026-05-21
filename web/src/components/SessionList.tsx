@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { esc, formatTime } from "../lib/utils";
+import { formatTime } from "../lib/utils";
 import type { Session } from "../types";
 import { StatusBadge } from "./Navbar";
 

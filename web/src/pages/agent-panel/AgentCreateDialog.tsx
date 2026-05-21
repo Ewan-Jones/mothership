@@ -11,8 +11,12 @@ import { unwrapConfigData } from "../../api/config-response";
 import { PermissionTab } from "../../components/PermissionTab";
 import { dispatchConfigChange } from "../../lib/config-events";
 import type { KnowledgeBaseInfo } from "../../types/knowledge";
-import { DEFAULT_AGENT_MODE, isValidAgentNameInput, isValidStepsInput } from "../AgentsPage";
-import { buildKnowledgeFormState, getDefaultKnowledgeFormState } from "../AgentsPage";
+import {
+  DEFAULT_AGENT_MODE,
+  getDefaultKnowledgeFormState,
+  isValidAgentNameInput,
+  isValidStepsInput,
+} from "../AgentsPage";
 
 interface AgentCreateDialogProps {
   open: boolean;
@@ -67,25 +71,34 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
     setFormSkillIds([]);
     setActiveTab("basic");
 
-    client.web.config.models.post({ action: "get" }).then(({ data: modelsData }) => {
-      const data = unwrapConfigData(modelsData) ?? modelsData;
-      const models = Array.isArray(data?.available) ? data.available.map((m: { fullId: string }) => m.fullId) : [];
-      setModelOptions(models);
-      setFormModel(models[0] || "");
-    }).catch(() => {});
+    client.web.config.models
+      .post({ action: "get" })
+      .then(({ data: modelsData }) => {
+        const data = unwrapConfigData(modelsData) ?? modelsData;
+        const models = Array.isArray(data?.available) ? data.available.map((m: { fullId: string }) => m.fullId) : [];
+        setModelOptions(models);
+        setFormModel(models[0] || "");
+      })
+      .catch(() => {});
 
-    client.web.knowledgeBases.get().then(({ data: kbData }) => {
-      setKnowledgeOptions(kbData as unknown as KnowledgeBaseInfo[]);
-    }).catch(() => {});
+    client.web.knowledgeBases
+      .get()
+      .then(({ data: kbData }) => {
+        setKnowledgeOptions(kbData as unknown as KnowledgeBaseInfo[]);
+      })
+      .catch(() => {});
 
-    client.web.config.skills.post({ action: "list" }).then(({ data: skillsData }) => {
-      const data = unwrapConfigData(skillsData) ?? skillsData;
-      setSkillOptions(
-        Array.isArray(data?.skills)
-          ? data.skills.map((s: any) => ({ id: s.id, name: s.name, description: s.description ?? "" }))
-          : [],
-      );
-    }).catch(() => {});
+    client.web.config.skills
+      .post({ action: "list" })
+      .then(({ data: skillsData }) => {
+        const data = unwrapConfigData(skillsData) ?? skillsData;
+        setSkillOptions(
+          Array.isArray(data?.skills)
+            ? data.skills.map((s: any) => ({ id: s.id, name: s.name, description: s.description ?? "" }))
+            : [],
+        );
+      })
+      .catch(() => {});
   }, [open, defaultName]);
 
   const handleSave = useCallback(async () => {
@@ -100,20 +113,20 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
     }
     if (formTemperature !== "") {
       const tv = parseFloat(formTemperature);
-      if (isNaN(tv) || tv < 0 || tv > 2) {
+      if (Number.isNaN(tv) || tv < 0 || tv > 2) {
         toast.error(t("form.temperatureValidationError"));
         return;
       }
     }
     if (formTopP !== "") {
       const p = parseFloat(formTopP);
-      if (isNaN(p) || p < 0 || p > 1) {
+      if (Number.isNaN(p) || p < 0 || p > 1) {
         toast.error(t("form.topPValidationError"));
         return;
       }
     }
-    const knowledgeMaxResults = parseInt(formKnowledgeMaxResults);
-    if (isNaN(knowledgeMaxResults) || knowledgeMaxResults < 1 || knowledgeMaxResults > 20) {
+    const knowledgeMaxResults = parseInt(formKnowledgeMaxResults, 10);
+    if (Number.isNaN(knowledgeMaxResults) || knowledgeMaxResults < 1 || knowledgeMaxResults > 20) {
       toast.error(t("knowledge.maxResultsValidationError"));
       return;
     }
@@ -125,7 +138,7 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
         data: {
           model: formModel || undefined,
           mode: formMode,
-          steps: parseInt(formSteps),
+          steps: parseInt(formSteps, 10),
           prompt: formPrompt || undefined,
           description: formDescription || undefined,
           variant: formVariant || undefined,
@@ -154,10 +167,26 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
       setFormSaving(false);
     }
   }, [
-    formName, formModel, formMode, formSteps, formPrompt, formDescription,
-    formVariant, formTemperature, formTopP, formColor, formHidden, formDisable,
-    formPermission, formKnowledgeBaseIds, formKnowledgeSearchFirst,
-    formKnowledgeMaxResults, formSkillIds, t, onOpenChange, onSuccess,
+    formName,
+    formModel,
+    formMode,
+    formSteps,
+    formPrompt,
+    formDescription,
+    formVariant,
+    formTemperature,
+    formTopP,
+    formColor,
+    formHidden,
+    formDisable,
+    formPermission,
+    formKnowledgeBaseIds,
+    formKnowledgeSearchFirst,
+    formKnowledgeMaxResults,
+    formSkillIds,
+    t,
+    onOpenChange,
+    onSuccess,
   ]);
 
   if (!open) return null;
@@ -215,15 +244,23 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
             <div className="space-y-4">
               <div>
                 <Label>{t("form.name")}</Label>
-                <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder={t("form.namePlaceholder")} />
+                <Input
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder={t("form.namePlaceholder")}
+                />
               </div>
               <div>
                 <Label>{t("form.model")}</Label>
                 <Select value={formModel} onValueChange={setFormModel}>
-                  <SelectTrigger><SelectValue placeholder={t("form.modelPlaceholder")} /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("form.modelPlaceholder")} />
+                  </SelectTrigger>
                   <SelectContent>
                     {modelOptions.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -232,7 +269,9 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
                 <div>
                   <Label>{t("form.mode")}</Label>
                   <Select value={formMode} onValueChange={setFormMode}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="primary">primary</SelectItem>
                       <SelectItem value="subagent">subagent</SelectItem>
@@ -242,39 +281,84 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
                 </div>
                 <div>
                   <Label>{t("form.steps")}</Label>
-                  <Input type="number" value={formSteps} onChange={(e) => setFormSteps(e.target.value)} min={1} max={200} />
+                  <Input
+                    type="number"
+                    value={formSteps}
+                    onChange={(e) => setFormSteps(e.target.value)}
+                    min={1}
+                    max={200}
+                  />
                   <p className="text-xs text-text-muted mt-1">{t("form.stepsHint")}</p>
                 </div>
               </div>
               <div>
                 <Label>{t("form.prompt")}</Label>
-                <Textarea value={formPrompt} onChange={(e) => setFormPrompt(e.target.value)} rows={4} placeholder={t("form.promptPlaceholder")} />
+                <Textarea
+                  value={formPrompt}
+                  onChange={(e) => setFormPrompt(e.target.value)}
+                  rows={4}
+                  placeholder={t("form.promptPlaceholder")}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>{t("form.description")}</Label>
-                  <Input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder={t("form.descriptionPlaceholder")} />
+                  <Input
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder={t("form.descriptionPlaceholder")}
+                  />
                 </div>
                 <div>
                   <Label>{t("form.variant")}</Label>
-                  <Input value={formVariant} onChange={(e) => setFormVariant(e.target.value)} placeholder={t("form.variantPlaceholder")} />
+                  <Input
+                    value={formVariant}
+                    onChange={(e) => setFormVariant(e.target.value)}
+                    placeholder={t("form.variantPlaceholder")}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>{t("form.temperature")}</Label>
-                  <Input type="number" value={formTemperature} onChange={(e) => setFormTemperature(e.target.value)} min={0} max={2} step={0.1} placeholder={t("form.temperaturePlaceholder")} />
+                  <Input
+                    type="number"
+                    value={formTemperature}
+                    onChange={(e) => setFormTemperature(e.target.value)}
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    placeholder={t("form.temperaturePlaceholder")}
+                  />
                 </div>
                 <div>
                   <Label>{t("form.topP")}</Label>
-                  <Input type="number" value={formTopP} onChange={(e) => setFormTopP(e.target.value)} min={0} max={1} step={0.1} placeholder={t("form.topPPPlaceholder")} />
+                  <Input
+                    type="number"
+                    value={formTopP}
+                    onChange={(e) => setFormTopP(e.target.value)}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    placeholder={t("form.topPPPlaceholder")}
+                  />
                 </div>
               </div>
               <div>
                 <Label>{t("form.color")}</Label>
                 <div className="flex gap-2">
-                  <Input type="color" value={formColor || "#000000"} onChange={(e) => setFormColor(e.target.value)} className="w-12 h-9 p-1 cursor-pointer" />
-                  <Input value={formColor} onChange={(e) => setFormColor(e.target.value)} placeholder={t("form.colorPlaceholder")} className="flex-1" />
+                  <Input
+                    type="color"
+                    value={formColor || "#000000"}
+                    onChange={(e) => setFormColor(e.target.value)}
+                    className="w-12 h-9 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={formColor}
+                    onChange={(e) => setFormColor(e.target.value)}
+                    placeholder={t("form.colorPlaceholder")}
+                    className="flex-1"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-6">
@@ -295,7 +379,9 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-text-bright">{t("knowledge.bindTitle")}</p>
-                    <p className="text-xs text-text-muted">{t("knowledge.selectedCount", { count: formKnowledgeBaseIds.length })}</p>
+                    <p className="text-xs text-text-muted">
+                      {t("knowledge.selectedCount", { count: formKnowledgeBaseIds.length })}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 space-y-2">
@@ -305,14 +391,23 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
                     knowledgeOptions.map((item) => {
                       const checked = formKnowledgeBaseIds.includes(item.id);
                       return (
-                        <label key={item.id} className="flex items-center justify-between gap-3 rounded-md border border-border-subtle px-3 py-2 text-sm">
+                        <label
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 rounded-md border border-border-subtle px-3 py-2 text-sm"
+                        >
                           <div>
                             <p className="font-medium text-text-bright">{item.name}</p>
                             <p className="text-xs text-text-muted">{item.slug}</p>
                           </div>
-                          <input type="checkbox" checked={checked} onChange={(e) => {
-                            setFormKnowledgeBaseIds((current) => e.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id));
-                          }} />
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setFormKnowledgeBaseIds((current) =>
+                                e.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id),
+                              );
+                            }}
+                          />
                         </label>
                       );
                     })
@@ -321,12 +416,22 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={formKnowledgeSearchFirst} onChange={(e) => setFormKnowledgeSearchFirst(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={formKnowledgeSearchFirst}
+                    onChange={(e) => setFormKnowledgeSearchFirst(e.target.checked)}
+                  />
                   {t("knowledge.searchFirst")}
                 </label>
                 <div>
                   <Label>{t("knowledge.maxResults")}</Label>
-                  <Input type="number" min={1} max={20} value={formKnowledgeMaxResults} onChange={(e) => setFormKnowledgeMaxResults(e.target.value)} />
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={formKnowledgeMaxResults}
+                    onChange={(e) => setFormKnowledgeMaxResults(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
@@ -345,7 +450,9 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-text-bright">{t("skills.tabTitle")}</p>
-                    <p className="text-xs text-text-muted">{t("skills.selectedCount", { count: formSkillIds.length })}</p>
+                    <p className="text-xs text-text-muted">
+                      {t("skills.selectedCount", { count: formSkillIds.length })}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 space-y-2">
@@ -355,14 +462,23 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
                     skillOptions.map((item) => {
                       const checked = formSkillIds.includes(item.id);
                       return (
-                        <label key={item.id} className="flex items-center justify-between gap-3 rounded-md border border-border-subtle px-3 py-2 text-sm">
+                        <label
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 rounded-md border border-border-subtle px-3 py-2 text-sm"
+                        >
                           <div>
                             <p className="font-medium text-text-bright">{item.name}</p>
                             {item.description && <p className="text-xs text-text-muted">{item.description}</p>}
                           </div>
-                          <input type="checkbox" checked={checked} onChange={(e) => {
-                            setFormSkillIds((current) => e.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id));
-                          }} />
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setFormSkillIds((current) =>
+                                e.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id),
+                              );
+                            }}
+                          />
                         </label>
                       );
                     })
@@ -375,8 +491,12 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
 
         {/* 底部 */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-border-subtle flex-shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("dialog.cancel")}</Button>
-          <Button onClick={handleSave} disabled={formSaving}>{formSaving ? "..." : t("dialog.createConfirm")}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("dialog.cancel")}
+          </Button>
+          <Button onClick={handleSave} disabled={formSaving}>
+            {formSaving ? "..." : t("dialog.createConfirm")}
+          </Button>
         </div>
       </div>
     </div>

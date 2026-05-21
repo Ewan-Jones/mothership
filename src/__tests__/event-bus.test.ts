@@ -78,7 +78,7 @@ describe("EventBus", () => {
       expect(bus.subscriberCount()).toBe(0);
       const unsub1 = bus.subscribe(() => {});
       expect(bus.subscriberCount()).toBe(1);
-      const unsub2 = bus.subscribe(() => {});
+      const _unsub2 = bus.subscribe(() => {});
       expect(bus.subscriberCount()).toBe(2);
       unsub1();
       expect(bus.subscriberCount()).toBe(1);

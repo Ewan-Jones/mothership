@@ -37,8 +37,14 @@ bun run build:web
 # 启动生产服务器
 bun run start
 
-# 类型检查
+# ⚠️ 提交前必须通过的检查（类型 + Biome lint，一步完成）
+bun run precheck
+
+# 类型检查（仅后端 src/）
 bun run typecheck
+
+# 类型检查（前端 web/）
+bun run typecheck:web
 
 # Biome lint 检查
 bun run lint
@@ -60,6 +66,7 @@ bun run db:migrate
 ```
 
 **重要**：
+- **`bun run precheck` 是代码质量的第一标准**，提交前必须通过。该命令同时运行 TypeScript 类型检查（后端 + 前端）和 Biome lint 检查，任何 error 都会阻断。0 error / 0 warning 是目标
 - 后端通过 `serveStatic` 挂载 `web/dist/` 目录（见 `src/index.ts`）。修改任何前端代码后，**必须**执行 `bun run build:web` 重新构建，否则更改不会生效。
 - `initDb()` 不再包含手写 SQL，只验证数据库连接。所有 schema 变更通过 `bun run db:push`（开发）或 `bun run db:migrate`（生产）同步。**严禁在 `src/db/index.ts` 中添加手写建表 SQL。**
 - **环境变量校验**：`src/env.ts` 使用 Zod（`zod/v4`）在启动时校验所有环境变量。`src/config.ts` 的 `buildConfig(env)` 函数接收校验后的 env 对象。新增环境变量必须先在 `src/env.ts` 的 `envSchema` 中声明

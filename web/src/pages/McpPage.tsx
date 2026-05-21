@@ -53,6 +53,7 @@ export function parseCommandString(input: string): string[] {
   const tokens: string[] = [];
   const regex = /(?:[^\s"]+|"[^"]*")+/g;
   let match: RegExpExecArray | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard regex iteration pattern
   while ((match = regex.exec(input)) !== null) {
     tokens.push(match[0].replace(/^"|"$/g, ""));
   }
@@ -197,7 +198,7 @@ export function McpPage() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, toolsCache]);
 
   useEffect(() => {
     loadServers();
@@ -553,6 +554,7 @@ export function McpPage() {
         <div className="rounded-md border">
           <Skeleton className="h-10 w-full rounded-t-md" />
           {Array.from({ length: 5 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Skeleton key={i} className="h-12 w-full rounded-none border-t" />
           ))}
         </div>
@@ -731,7 +733,8 @@ export function McpPage() {
                 </div>
                 <div className="space-y-2">
                   {formEnvironment.map((entry, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
+                    // biome-ignore lint/suspicious/noArrayIndexKey: key-value pairs may be empty during editing
+                    <div key={entry.key || `env-${idx}`} className="flex gap-2 items-center">
                       <Input
                         placeholder="KEY"
                         value={entry.key}
@@ -803,7 +806,8 @@ export function McpPage() {
                 </div>
                 <div className="space-y-2">
                   {formHeaders.map((entry, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
+                    // biome-ignore lint/suspicious/noArrayIndexKey: key-value pairs may be empty during editing
+                    <div key={entry.key || `header-${idx}`} className="flex gap-2 items-center">
                       <Input
                         placeholder="Header Name"
                         value={entry.key}

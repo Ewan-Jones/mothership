@@ -20,7 +20,7 @@ app.get(
     // Support Last-Event-ID / from_sequence_num for reconnection
     const lastEventId = request.headers.get("Last-Event-ID");
     const fromSeq = (query as any)?.from_sequence_num;
-    const fromSeqNum = fromSeq ? parseInt(fromSeq) : lastEventId ? parseInt(lastEventId) : 0;
+    const fromSeqNum = fromSeq ? parseInt(fromSeq, 10) : lastEventId ? parseInt(lastEventId, 10) : 0;
 
     return createWorkerEventStream(request, sessionId, fromSeqNum);
   },

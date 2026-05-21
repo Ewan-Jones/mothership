@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 import type { RuntimeInstanceSnapshot } from "@mothership/core";
 import { AppError, NotFoundError } from "../errors";
 import { log, error as logError } from "../logger";
-import type { AuthContext } from "../plugins/auth";
 import type { EnvironmentRecord } from "../repositories";
 import { environmentRepo } from "../repositories";
 import type { AgentFullConfig } from "./config-pg";

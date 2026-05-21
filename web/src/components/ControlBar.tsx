@@ -13,7 +13,13 @@ interface ControlBarProps {
   onInterrupt: () => Promise<void>;
 }
 
-export function ControlBar({ sessionId, sessionStatus, activityMode, onSend, onInterrupt }: ControlBarProps) {
+export function ControlBar({
+  sessionId: _sessionId,
+  sessionStatus,
+  activityMode,
+  onSend,
+  onInterrupt,
+}: ControlBarProps) {
   const { t } = useTranslation("components");
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +46,7 @@ export function ControlBar({ sessionId, sessionStatus, activityMode, onSend, onI
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, [sessionId]);
+  }, []);
 
   return (
     <div className="border-t border-border bg-surface-1 px-4 py-3">

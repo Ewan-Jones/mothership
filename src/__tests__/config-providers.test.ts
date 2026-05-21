@@ -94,7 +94,7 @@ mock.module("../services/config-pg", () => ({
 }));
 
 // Helper to get provider store for assertions
-function getProviderStore() {
+function _getProviderStore() {
   const result: Record<string, any> = {};
   for (const [name, p] of _providers) {
     const provider: Record<string, any> = { name: p.name, npm: p.npm, displayName: p.displayName };

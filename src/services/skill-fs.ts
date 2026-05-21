@@ -257,7 +257,14 @@ export async function buildSkillArchive(sourceDir: string, archivePath: string):
   const centralOffset = offset;
   const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
   await mkdir(dirname(archivePath), { recursive: true });
-  await writeFile(archivePath, Buffer.concat([...parts, ...centralParts, createEndOfCentralDirectory(centralParts.length / 2, centralSize, centralOffset)]));
+  await writeFile(
+    archivePath,
+    Buffer.concat([
+      ...parts,
+      ...centralParts,
+      createEndOfCentralDirectory(centralParts.length / 2, centralSize, centralOffset),
+    ]),
+  );
 }
 
 // ────────────────────────────────────────────

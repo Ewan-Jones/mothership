@@ -1,6 +1,6 @@
-import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import Redis, { type Cluster } from "ioredis";
+import Keyv from "keyv";
 
 /**
  * 缓存模块 — 基于 Keyv，自动选择存储后端：

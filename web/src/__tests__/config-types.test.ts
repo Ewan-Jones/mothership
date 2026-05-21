@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentInfo, ApiResponse, ModelConfig, ModelEntry, ProviderInfo, SkillInfo } from "../types/config";
+import type { AgentInfo, ApiResponse } from "../types/config";
 
 describe("config types", () => {
   test("ApiResponse success structure", () => {
@@ -194,8 +194,6 @@ describe("PermissionConfig types", () => {
     expect(config.current.permission).toBe("ask");
   });
 });
-
-import type { PermissionConfig, PermissionObjectConfig } from "../types/config";
 
 // ── PermissionTab 数据流验证 ──
 

@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
   Bot,
@@ -13,7 +14,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
@@ -181,7 +181,7 @@ export function EnvironmentsPage() {
     } finally {
       setFormSaving(false);
     }
-  }, [editingEnv, formName, formDescription, formAgentConfigId, formAutoStart, loadEnvs]);
+  }, [editingEnv, formName, formDescription, formAgentConfigId, formAutoStart, loadEnvs, t]);
 
   const handleEnterAgent = useCallback(
     async (env: Environment) => {
@@ -201,7 +201,7 @@ export function EnvironmentsPage() {
         setEnteringEnvId(null);
       }
     },
-    [navigateToSession],
+    [navigateToSession, t],
   );
 
   const handleEnterInstance = useCallback(
@@ -224,7 +224,7 @@ export function EnvironmentsPage() {
         setEnteringEnvId(null);
       }
     },
-    [navigateToSession],
+    [navigateToSession, t],
   );
 
   const handleSpawnNewInstance = useCallback(
@@ -246,7 +246,7 @@ export function EnvironmentsPage() {
         setEnteringEnvId(null);
       }
     },
-    [navigateToSession, loadEnvs],
+    [navigateToSession, loadEnvs, t],
   );
 
   const confirmStopInstance = useCallback(async () => {
@@ -263,7 +263,7 @@ export function EnvironmentsPage() {
       setStopConfirmOpen(false);
       setStopTarget(null);
     }
-  }, [stopTarget, loadEnvs]);
+  }, [stopTarget, loadEnvs, t]);
 
   const handleRefresh = useCallback(
     async (env: Environment) => {
@@ -283,7 +283,7 @@ export function EnvironmentsPage() {
         setRefreshingEnvId(null);
       }
     },
-    [instancesMap, handleEnterAgent],
+    [instancesMap, handleEnterAgent, t],
   );
 
   const handleViewSecret = useCallback(async (id: string) => {
@@ -688,9 +688,7 @@ export function EnvironmentsPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-text-bright">{env.name}</div>
-                        <div className="truncate font-mono text-[11px] text-text-dim">
-                          {env.agent_name || "--"}
-                        </div>
+                        <div className="truncate font-mono text-[11px] text-text-dim">{env.agent_name || "--"}</div>
                       </div>
                     </div>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${statusColors.pill}`}>

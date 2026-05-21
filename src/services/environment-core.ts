@@ -14,7 +14,7 @@ export function validateWorkspacePath(p: string): string | null {
   const normalized = resolve(p);
   if (BLOCKED_PATHS.includes(normalized)) return `不允许使用系统目录: ${normalized}`;
   for (const blocked of BLOCKED_PATHS) {
-    if (blocked !== "/" && normalized.startsWith(blocked + "/")) {
+    if (blocked !== "/" && normalized.startsWith(`${blocked}/`)) {
       return `不允许使用系统目录下的路径: ${normalized}`;
     }
   }

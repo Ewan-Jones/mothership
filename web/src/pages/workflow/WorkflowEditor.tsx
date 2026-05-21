@@ -1,80 +1,77 @@
-import { useTranslation } from "react-i18next";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
+  addEdge,
+  Background,
+  BackgroundVariant,
+  type Connection,
+  Controls,
+  type Edge,
+  MiniMap,
+  type Node,
+  type OnSelectionChangeFunc,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
-  Controls,
-  MiniMap,
-  Background,
-  useNodesState,
   useEdgesState,
+  useNodesState,
   useReactFlow,
-  addEdge,
-  type Node,
-  type Edge,
-  type Connection,
-  type OnSelectionChangeFunc,
-  BackgroundVariant,
-  Panel,
 } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "@xyflow/react/dist/style.css";
 import {
-  FilePlus,
-  Upload,
-  Download,
-  LayoutGrid,
-  Code,
-  X,
-  Terminal,
-  Bot,
-  Globe,
-  ShieldCheck,
-  GitBranch,
-  RefreshCw,
-  Eye,
-  Edit3,
-  Lock,
-  Play,
-  CheckCircle,
   AlertTriangle,
-  List,
-  Save,
-  Rocket,
-  Square,
-  Clock,
-  Loader,
-  XCircle,
-  Copy,
+  Bot,
   Check,
+  CheckCircle,
   ChevronRight,
+  Clock,
+  Code,
+  Copy,
+  Download,
+  Edit3,
+  Eye,
+  FilePlus,
+  Globe,
   Inbox,
+  LayoutGrid,
+  List,
+  Loader,
+  Lock,
   MessageSquare,
+  Play,
+  RefreshCw,
+  Rocket,
+  Save,
+  ShieldCheck,
+  Square,
+  Terminal,
+  Upload,
+  X,
+  XCircle,
 } from "lucide-react";
-import { nodeTypes } from "./nodes";
-import { autoLayout } from "./layout";
+import { ensureMetaAgent } from "../../api/meta-agent";
+import { workflowDefApi } from "../../api/workflow-defs";
 import {
-  yamlToFlow,
+  type DAGEvent,
+  type DAGSnapshot,
+  type NodeOutput,
+  type PendingApproval,
+  type RunSummary,
+  workflowEngineApi,
+} from "../../api/workflow-engine";
+import { ChatPanel } from "../agent-panel/ChatPanel";
+import { autoLayout } from "./layout";
+import { nodeTypes } from "./nodes";
+import {
+  createStartNode,
+  defaultMeta,
   flowToYaml,
   nextNodeId,
   resetNodeCounter,
-  defaultMeta,
-  createStartNode,
   START_NODE_ID,
   type WfMeta,
+  yamlToFlow,
 } from "./yaml-utils";
-import { ChatPanel } from "../agent-panel/ChatPanel";
-import { ensureMetaAgent } from "../../api/meta-agent";
-import {
-  workflowEngineApi,
-  type DAGSnapshot,
-  type DAGEvent,
-  type NodeOutput,
-  type PendingApproval,
-  type DAGStatus,
-  type RunSummary,
-} from "../../api/workflow-engine";
-import { workflowDefApi } from "../../api/workflow-defs";
 import "./workflow.css";
 
 const PALETTE_ITEMS = [
@@ -131,7 +128,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
   const [metaAgentId, setMetaAgentId] = useState<string | null>(null);
 
   const scenePrompt = useMemo(() => {
-    if (!workflowId) return undefined;
+    if (!workflowId) return;
     const lines = [
       t("editor.workflow_context"),
       `- ${t("editor.workflow_id")}: ${workflowId}`,
@@ -150,7 +147,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
         .then((res) => setMetaAgentId(res.environmentId))
         .catch((err) => console.error("Meta Agent failed:", err));
     }
-  }, [chatOpen]);
+  }, [chatOpen, metaAgentId]);
 
   // ── Agent 配置联动 ──
   const [agentList, setAgentList] = useState<Array<{ name: string; model: string | null; description: string | null }>>(
@@ -194,7 +191,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
   const didConnect = useRef(false);
 
   // 保存/发布状态
-  const [lastSavedYaml, setLastSavedYaml] = useState("");
+  const [_lastSavedYaml, setLastSavedYaml] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [publishing, setPublishing] = useState(false);
 
@@ -219,7 +216,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
         console.error("Failed to load workflow:", err);
       }
     })();
-  }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workflowId, fitView, setEdges, setNodes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load historical run data (point-in-time replay)
   useEffect(() => {
@@ -246,13 +243,14 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
         }
         if (Array.isArray(evts)) setRunEvents(dedupEvents(evts));
       } catch (err) {
-        console.error(t("editor.load_run_failed") + ":", err);
+        console.error(`${t("editor.load_run_failed")}:`, err);
       }
     })();
     return () => {
       abort = true;
     };
-  }, [runId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/noInvalidUseBeforeDeclaration: updateNodesFromSnapshot defined below via useCallback
+  }, [runId, updateNodesFromSnapshot, t]);
 
   // ── Selection ──
   const onSelectionChange: OnSelectionChangeFunc = useCallback(
@@ -409,13 +407,13 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
         setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50);
       } catch (err) {
         console.error(err);
-        alert(t("editor.import_yaml_failed") + ": " + (err instanceof Error ? err.message : String(err)));
+        alert(`${t("editor.import_yaml_failed")}: ${err instanceof Error ? err.message : String(err)}`);
       }
     } else {
       syncYaml();
       setYamlOpen(true);
     }
-  }, [yamlOpen, yamlText, setNodes, setEdges, syncYaml, fitView]);
+  }, [yamlOpen, yamlText, setNodes, setEdges, syncYaml, fitView, t]);
 
   // ── Export YAML ──
   const handleExportYaml = useCallback(() => {
@@ -448,13 +446,13 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
           setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50);
         } catch (err) {
           console.error(err);
-          alert(t("editor.import_file_failed") + ": " + (err instanceof Error ? err.message : String(err)));
+          alert(`${t("editor.import_file_failed")}: ${err instanceof Error ? err.message : String(err)}`);
         }
       };
       reader.readAsText(file);
       e.target.value = "";
     },
-    [setNodes, setEdges, fitView],
+    [setNodes, setEdges, fitView, t],
   );
 
   // ── Save Draft ──
@@ -469,10 +467,10 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch (err) {
       console.error(err);
-      alert(t("editor.save_failed") + ": " + (err as Error).message);
+      alert(`${t("editor.save_failed")}: ${(err as Error).message}`);
       setSaveStatus("idle");
     }
-  }, [syncYaml, workflowId]);
+  }, [syncYaml, workflowId, t]);
 
   // ── Publish ──
   const handlePublish = useCallback(async () => {
@@ -485,7 +483,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
       setSaveStatus("idle");
     } catch (err) {
       console.error(err);
-      alert(t("editor.save_failed") + ": " + (err as Error).message);
+      alert(`${t("editor.save_failed")}: ${(err as Error).message}`);
       setSaveStatus("idle");
       return;
     }
@@ -496,11 +494,11 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
       alert(t("editor.published_as", { version: result.version }));
     } catch (err) {
       console.error(err);
-      alert(t("editor.publish_failed") + ": " + (err as Error).message);
+      alert(`${t("editor.publish_failed")}: ${(err as Error).message}`);
     } finally {
       setPublishing(false);
     }
-  }, [syncYaml, workflowId]);
+  }, [syncYaml, workflowId, t]);
 
   // ── Cmd+S shortcut ──
   useEffect(() => {
@@ -583,15 +581,15 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
             const snap = await workflowEngineApi.getRunStatus(activeRunId);
             if (snap) updateNodesFromSnapshot(snap);
           } catch (err) {
-            console.error(t("editor.restore_run_failed") + ":", err);
+            console.error(`${t("editor.restore_run_failed")}:`, err);
           }
         }
         setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50);
       }
     } catch (err) {
-      console.error(t("editor.refresh_failed") + ":", err);
+      console.error(`${t("editor.refresh_failed")}:`, err);
     }
-  }, [workflowId, isRunMode, isRunDone, activeRunId, setNodes, setEdges, fitView, updateNodesFromSnapshot]);
+  }, [workflowId, isRunMode, isRunDone, activeRunId, setNodes, setEdges, fitView, updateNodesFromSnapshot, t]);
 
   /** 加载运行快照和事件 */
   const loadRunData = useCallback(
@@ -666,7 +664,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
       try {
         await workflowDefApi.save(workflowId, y);
       } catch (err) {
-        console.error(t("editor.auto_save_failed") + ":", err);
+        console.error(`${t("editor.auto_save_failed")}:`, err);
       }
     }
 
@@ -690,7 +688,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
     } finally {
       setRunning(false);
     }
-  }, [syncYaml, workflowId, setNodes, loadRunData]);
+  }, [syncYaml, workflowId, setNodes, loadRunData, t]);
 
   // ── Cancel run ──
   const handleCancelRun = useCallback(async () => {
@@ -781,12 +779,12 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
         await loadRunData(result.runId);
       } catch (err) {
         console.error(err);
-        alert(t("editor.rerun_failed") + ": " + (err as Error).message);
+        alert(`${t("editor.rerun_failed")}: ${(err as Error).message}`);
       } finally {
         setRunning(false);
       }
     },
-    [activeRunId, syncYaml, workflowId, edges, setNodes, loadRunData],
+    [activeRunId, syncYaml, workflowId, edges, setNodes, loadRunData, t],
   );
 
   // ── View node output (from node button click) ──
@@ -850,7 +848,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
       setEdges(newEdges);
       setSelectedNode(newNode);
     },
-    [selectedNode, nodes, edges, setNodes, setEdges],
+    [selectedNode, nodes, edges, setNodes, setEdges, t],
   );
 
   // ── Update meta ──
@@ -1171,7 +1169,8 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
             {dryRunResult.issues.length > 0 && (
               <ul style={{ margin: 0, paddingLeft: 16 }}>
                 {dryRunResult.issues.map((issue, i) => (
-                  <li key={i}>
+                  // biome-ignore lint/suspicious/noArrayIndexKey: issues may duplicate type+message
+                  <li key={`${issue.type}-${issue.message}-${i}`}>
                     {issue.type === "error" ? "❌" : "⚠️"} {issue.message}
                   </li>
                 ))}
@@ -1767,363 +1766,354 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
         )}
 
         {/* ── 运行 Tab ── */}
-        {rightTab === "run" && (
-          <>
-            {isRunMode ? (
-              <>
-                {/* 运行状态头 */}
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    borderBottom: "1px solid #e5e7eb",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>{t("editor.run_result")}</span>
-                  {runSnapshot && (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
-                        padding: "1px 7px",
-                        borderRadius: 99,
-                        fontSize: 10,
-                        fontWeight: 500,
-                        color: DAG_STATUS_CFG[dagStatus!]?.color ?? "#6b7280",
-                        background: DAG_STATUS_CFG[dagStatus!]?.bg ?? "#f3f4f6",
-                      }}
-                    >
-                      {dagStatus === "RUNNING" && (
-                        <span
-                          style={{
-                            width: 5,
-                            height: 5,
-                            borderRadius: "50%",
-                            background: "#3b82f6",
-                            animation: "wf-pulse 1.5s ease-in-out infinite",
-                          }}
-                        />
-                      )}
-                      {DAG_STATUS_CFG[dagStatus!] ? t(DAG_STATUS_CFG[dagStatus!].labelKey) : dagStatus}
-                    </span>
-                  )}
-                  <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-                    {!isRunDone && (
-                      <button
-                        type="button"
-                        onClick={handleCancelRun}
+        {rightTab === "run" &&
+          (isRunMode ? (
+            <>
+              {/* 运行状态头 */}
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderBottom: "1px solid #e5e7eb",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>{t("editor.run_result")}</span>
+                {runSnapshot && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                      padding: "1px 7px",
+                      borderRadius: 99,
+                      fontSize: 10,
+                      fontWeight: 500,
+                      color: DAG_STATUS_CFG[dagStatus!]?.color ?? "#6b7280",
+                      background: DAG_STATUS_CFG[dagStatus!]?.bg ?? "#f3f4f6",
+                    }}
+                  >
+                    {dagStatus === "RUNNING" && (
+                      <span
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 24,
-                          height: 24,
-                          border: "none",
-                          background: "#fef2f2",
-                          borderRadius: 4,
-                          color: "#ef4444",
-                          cursor: "pointer",
+                          width: 5,
+                          height: 5,
+                          borderRadius: "50%",
+                          background: "#3b82f6",
+                          animation: "wf-pulse 1.5s ease-in-out infinite",
                         }}
-                      >
-                        <Square size={11} />
-                      </button>
+                      />
                     )}
-                    {isRunDone && (
-                      <button
-                        type="button"
-                        onClick={handleBackToEdit}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 24,
-                          height: 24,
-                          border: "none",
-                          background: "#f3f4f6",
-                          borderRadius: 4,
-                          color: "#6b7280",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Edit3 size={11} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 审批卡片 */}
-                {dagStatus === "SUSPENDED" && runApprovals.length > 0 && (
-                  <div style={{ padding: 10, borderBottom: "1px solid #fbbf24", background: "#fffbeb" }}>
-                    <div
+                    {DAG_STATUS_CFG[dagStatus!] ? t(DAG_STATUS_CFG[dagStatus!].labelKey) : dagStatus}
+                  </span>
+                )}
+                <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+                  {!isRunDone && (
+                    <button
+                      type="button"
+                      onClick={handleCancelRun}
                       style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: "#92400e",
-                        marginBottom: 6,
                         display: "flex",
                         alignItems: "center",
-                        gap: 4,
+                        justifyContent: "center",
+                        width: 24,
+                        height: 24,
+                        border: "none",
+                        background: "#fef2f2",
+                        borderRadius: 4,
+                        color: "#ef4444",
+                        cursor: "pointer",
                       }}
                     >
-                      <ShieldCheck size={12} /> {t("editor.waiting_approval")}
-                    </div>
-                    {runApprovals.map((a) => (
-                      <div key={a.nodeId} style={{ fontSize: 10, color: "#78350f", marginBottom: 6 }}>
-                        <div style={{ fontWeight: 500, marginBottom: 2 }}>
-                          {t("editor.approval_node", { nodeId: a.nodeId })}
-                        </div>
-                        {a.displayData && typeof a.displayData === "object" && (
-                          <div style={{ color: "#92400e", marginBottom: 3 }}>
-                            {(a.displayData as Record<string, string>).message ?? ""}
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(a)}
-                          style={{
-                            padding: "2px 8px",
-                            border: "1px solid #f59e0b",
-                            borderRadius: 4,
-                            background: "#f59e0b",
-                            color: "#fff",
-                            fontSize: 10,
-                            fontWeight: 500,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {t("editor.approve")}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      <Square size={11} />
+                    </button>
+                  )}
+                  {isRunDone && (
+                    <button
+                      type="button"
+                      onClick={handleBackToEdit}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 24,
+                        height: 24,
+                        border: "none",
+                        background: "#f3f4f6",
+                        borderRadius: 4,
+                        color: "#6b7280",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Edit3 size={11} />
+                    </button>
+                  )}
+                </div>
+              </div>
 
-                {/* 进度条 */}
-                {runSnapshot && (
+              {/* 审批卡片 */}
+              {dagStatus === "SUSPENDED" && runApprovals.length > 0 && (
+                <div style={{ padding: 10, borderBottom: "1px solid #fbbf24", background: "#fffbeb" }}>
                   <div
                     style={{
-                      padding: "4px 12px",
-                      borderBottom: "1px solid #f3f4f6",
-                      fontSize: 10,
-                      color: "#9ca3af",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#92400e",
+                      marginBottom: 6,
                       display: "flex",
-                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    <span>
-                      {t("editor.progress_nodes", {
-                        completed: Object.values(runSnapshot.node_states).filter((s) => s.status === "COMPLETED")
-                          .length,
-                        total: Object.keys(runSnapshot.node_states).length,
-                      })}
-                    </span>
-                    <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 9 }}>
-                      {activeRunId?.substring(0, 16)}...
-                    </span>
+                    <ShieldCheck size={12} /> {t("editor.waiting_approval")}
                   </div>
-                )}
-
-                {/* 事件/输出子 Tab */}
-                <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb" }}>
-                  <button
-                    type="button"
-                    onClick={() => setRunRightTab("events")}
-                    style={{
-                      flex: 1,
-                      padding: "7px 0",
-                      border: "none",
-                      background: "none",
-                      fontSize: 11,
-                      fontWeight: runRightTab === "events" ? 600 : 400,
-                      color: runRightTab === "events" ? "#111827" : "#9ca3af",
-                      borderBottom: runRightTab === "events" ? "2px solid #3b82f6" : "2px solid transparent",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t("editor.events_tab", {
-                      count: selectedRunNodeId
-                        ? runEvents.filter((e) => e.node_id === selectedRunNodeId).length
-                        : runEvents.length,
-                    })}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRunRightTab("output")}
-                    style={{
-                      flex: 1,
-                      padding: "7px 0",
-                      border: "none",
-                      background: "none",
-                      fontSize: 11,
-                      fontWeight: runRightTab === "output" ? 600 : 400,
-                      color: runRightTab === "output" ? "#111827" : "#9ca3af",
-                      borderBottom: runRightTab === "output" ? "2px solid #3b82f6" : "2px solid transparent",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {selectedRunNodeId
-                      ? t("editor.output_tab_selected", { nodeId: selectedRunNodeId })
-                      : t("editor.output_tab")}
-                  </button>
-                </div>
-
-                {/* 事件列表 */}
-                {runRightTab === "events" && (
-                  <div style={{ flex: 1, overflowY: "auto", fontSize: 11 }}>
-                    {(() => {
-                      const filtered = selectedRunNodeId
-                        ? runEvents.filter((e) => e.node_id === selectedRunNodeId)
-                        : runEvents;
-                      return filtered.length === 0 ? (
-                        <div style={{ padding: 20, textAlign: "center", color: "#d1d5db" }}>
-                          {selectedRunNodeId ? t("editor.no_events_for_node") : t("editor.no_events")}
+                  {runApprovals.map((a) => (
+                    <div key={a.nodeId} style={{ fontSize: 10, color: "#78350f", marginBottom: 6 }}>
+                      <div style={{ fontWeight: 500, marginBottom: 2 }}>
+                        {t("editor.approval_node", { nodeId: a.nodeId })}
+                      </div>
+                      {a.displayData && typeof a.displayData === "object" && (
+                        <div style={{ color: "#92400e", marginBottom: 3 }}>
+                          {(a.displayData as Record<string, string>).message ?? ""}
                         </div>
-                      ) : (
-                        filtered.map((evt) => (
-                          <div
-                            key={evt.event_id}
-                            style={{
-                              padding: "5px 12px",
-                              borderBottom: "1px solid #f3f4f6",
-                              display: "flex",
-                              gap: 5,
-                              alignItems: "flex-start",
-                              cursor: evt.node_id ? "pointer" : "default",
-                            }}
-                            onClick={() => {
-                              if (evt.node_id) setSelectedRunNodeId(evt.node_id);
-                            }}
-                          >
-                            <EventIcon type={evt.type} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 1 }}>
-                                <span style={{ fontWeight: 500, color: "#374151" }}>
-                                  {formatEventType(t, evt.type)}
-                                </span>
-                                <span style={{ color: "#d1d5db", fontSize: 9, flexShrink: 0 }}>
-                                  {new Date(evt.timestamp).toLocaleTimeString("zh-CN", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit",
-                                  })}
-                                </span>
-                              </div>
-                              {evt.node_id && (
-                                <span style={{ color: "#9ca3af", fontFamily: "ui-monospace, monospace", fontSize: 9 }}>
-                                  {evt.node_id}
-                                </span>
-                              )}
-                              {evt.metadata && Object.keys(evt.metadata).length > 0 && (
-                                <div
-                                  style={{
-                                    color: "#9ca3af",
-                                    fontSize: 9,
-                                    marginTop: 1,
-                                    fontFamily: "ui-monospace, monospace",
-                                  }}
-                                >
-                                  {formatMeta(t, evt.type, evt.metadata)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      );
-                    })()}
-                  </div>
-                )}
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(a)}
+                        style={{
+                          padding: "2px 8px",
+                          border: "1px solid #f59e0b",
+                          borderRadius: 4,
+                          background: "#f59e0b",
+                          color: "#fff",
+                          fontSize: 10,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t("editor.approve")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                {/* 节点输出 */}
-                {runRightTab === "output" && (
-                  <div style={{ flex: 1, overflowY: "auto", fontSize: 11 }}>
-                    {!selectedRunNodeId ? (
+              {/* 进度条 */}
+              {runSnapshot && (
+                <div
+                  style={{
+                    padding: "4px 12px",
+                    borderBottom: "1px solid #f3f4f6",
+                    fontSize: 10,
+                    color: "#9ca3af",
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span>
+                    {t("editor.progress_nodes", {
+                      completed: Object.values(runSnapshot.node_states).filter((s) => s.status === "COMPLETED").length,
+                      total: Object.keys(runSnapshot.node_states).length,
+                    })}
+                  </span>
+                  <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 9 }}>
+                    {activeRunId?.substring(0, 16)}...
+                  </span>
+                </div>
+              )}
+
+              {/* 事件/输出子 Tab */}
+              <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb" }}>
+                <button
+                  type="button"
+                  onClick={() => setRunRightTab("events")}
+                  style={{
+                    flex: 1,
+                    padding: "7px 0",
+                    border: "none",
+                    background: "none",
+                    fontSize: 11,
+                    fontWeight: runRightTab === "events" ? 600 : 400,
+                    color: runRightTab === "events" ? "#111827" : "#9ca3af",
+                    borderBottom: runRightTab === "events" ? "2px solid #3b82f6" : "2px solid transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("editor.events_tab", {
+                    count: selectedRunNodeId
+                      ? runEvents.filter((e) => e.node_id === selectedRunNodeId).length
+                      : runEvents.length,
+                  })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRunRightTab("output")}
+                  style={{
+                    flex: 1,
+                    padding: "7px 0",
+                    border: "none",
+                    background: "none",
+                    fontSize: 11,
+                    fontWeight: runRightTab === "output" ? 600 : 400,
+                    color: runRightTab === "output" ? "#111827" : "#9ca3af",
+                    borderBottom: runRightTab === "output" ? "2px solid #3b82f6" : "2px solid transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  {selectedRunNodeId
+                    ? t("editor.output_tab_selected", { nodeId: selectedRunNodeId })
+                    : t("editor.output_tab")}
+                </button>
+              </div>
+
+              {/* 事件列表 */}
+              {runRightTab === "events" && (
+                <div style={{ flex: 1, overflowY: "auto", fontSize: 11 }}>
+                  {(() => {
+                    const filtered = selectedRunNodeId
+                      ? runEvents.filter((e) => e.node_id === selectedRunNodeId)
+                      : runEvents;
+                    return filtered.length === 0 ? (
                       <div style={{ padding: 20, textAlign: "center", color: "#d1d5db" }}>
-                        {t("editor.click_node_output")}
+                        {selectedRunNodeId ? t("editor.no_events_for_node") : t("editor.no_events")}
                       </div>
-                    ) : nodeOutputLoading ? (
-                      <div style={{ padding: 20, textAlign: "center", color: "#9ca3af" }}>
-                        <Loader
-                          size={14}
-                          style={{ animation: "wf-spin 1s linear infinite", display: "inline-block" }}
-                        />
-                      </div>
-                    ) : !selectedNodeOutput ? (
-                      <div style={{ padding: 20, textAlign: "center", color: "#d1d5db" }}>{t("editor.no_output")}</div>
                     ) : (
-                      <>
+                      filtered.map((evt) => (
                         <div
+                          key={evt.event_id}
                           style={{
-                            padding: "6px 12px",
+                            padding: "5px 12px",
                             borderBottom: "1px solid #f3f4f6",
                             display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 6,
+                            gap: 5,
+                            alignItems: "flex-start",
+                            cursor: evt.node_id ? "pointer" : "default",
+                          }}
+                          onClick={() => {
+                            if (evt.node_id) setSelectedRunNodeId(evt.node_id);
                           }}
                         >
-                          <span style={{ fontSize: 10, color: "#6b7280", fontFamily: "ui-monospace, monospace" }}>
-                            {selectedRunNodeId}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRerunFrom(selectedRunNodeId)}
-                            disabled={running}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                              padding: "2px 8px",
-                              border: "1px solid #3b82f6",
-                              borderRadius: 4,
-                              background: "#eff6ff",
-                              color: "#3b82f6",
-                              fontSize: 10,
-                              fontWeight: 500,
-                              cursor: running ? "not-allowed" : "pointer",
-                              opacity: running ? 0.5 : 1,
-                            }}
-                          >
-                            <RefreshCw size={10} /> {t("editor.rerun_from_here")}
-                          </button>
+                          <EventIcon type={evt.type} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 1 }}>
+                              <span style={{ fontWeight: 500, color: "#374151" }}>{formatEventType(t, evt.type)}</span>
+                              <span style={{ color: "#d1d5db", fontSize: 9, flexShrink: 0 }}>
+                                {new Date(evt.timestamp).toLocaleTimeString("zh-CN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            {evt.node_id && (
+                              <span style={{ color: "#9ca3af", fontFamily: "ui-monospace, monospace", fontSize: 9 }}>
+                                {evt.node_id}
+                              </span>
+                            )}
+                            {evt.metadata && Object.keys(evt.metadata).length > 0 && (
+                              <div
+                                style={{
+                                  color: "#9ca3af",
+                                  fontSize: 9,
+                                  marginTop: 1,
+                                  fontFamily: "ui-monospace, monospace",
+                                }}
+                              >
+                                {formatMeta(t, evt.type, evt.metadata)}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <NodeOutputView output={selectedNodeOutput} />
-                      </>
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              /* 历史运行列表 */
-              <RunListPanel
-                onSelect={async (runId) => {
-                  setActiveRunId(runId);
-                  setRunSnapshot(null);
-                  setRunEvents([]);
-                  setRunApprovals([]);
-                  setSelectedRunNodeId(null);
-                  setSelectedNodeOutput(null);
-                  try {
-                    const [snap, evts] = await Promise.all([
-                      workflowEngineApi.getRunStatus(runId),
-                      workflowEngineApi.getEvents(runId),
-                    ]);
-                    if (snap) {
-                      setRunSnapshot(snap);
-                      updateNodesFromSnapshot(snap);
-                    }
-                    if (Array.isArray(evts)) setRunEvents(dedupEvents(evts));
-                  } catch (err) {
-                    console.error(t("editor.load_run_data_failed") + ":", err);
+                      ))
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* 节点输出 */}
+              {runRightTab === "output" && (
+                <div style={{ flex: 1, overflowY: "auto", fontSize: 11 }}>
+                  {!selectedRunNodeId ? (
+                    <div style={{ padding: 20, textAlign: "center", color: "#d1d5db" }}>
+                      {t("editor.click_node_output")}
+                    </div>
+                  ) : nodeOutputLoading ? (
+                    <div style={{ padding: 20, textAlign: "center", color: "#9ca3af" }}>
+                      <Loader size={14} style={{ animation: "wf-spin 1s linear infinite", display: "inline-block" }} />
+                    </div>
+                  ) : !selectedNodeOutput ? (
+                    <div style={{ padding: 20, textAlign: "center", color: "#d1d5db" }}>{t("editor.no_output")}</div>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          padding: "6px 12px",
+                          borderBottom: "1px solid #f3f4f6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 6,
+                        }}
+                      >
+                        <span style={{ fontSize: 10, color: "#6b7280", fontFamily: "ui-monospace, monospace" }}>
+                          {selectedRunNodeId}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRerunFrom(selectedRunNodeId)}
+                          disabled={running}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 3,
+                            padding: "2px 8px",
+                            border: "1px solid #3b82f6",
+                            borderRadius: 4,
+                            background: "#eff6ff",
+                            color: "#3b82f6",
+                            fontSize: 10,
+                            fontWeight: 500,
+                            cursor: running ? "not-allowed" : "pointer",
+                            opacity: running ? 0.5 : 1,
+                          }}
+                        >
+                          <RefreshCw size={10} /> {t("editor.rerun_from_here")}
+                        </button>
+                      </div>
+                      <NodeOutputView output={selectedNodeOutput} />
+                    </>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            /* 历史运行列表 */
+            <RunListPanel
+              onSelect={async (runId) => {
+                setActiveRunId(runId);
+                setRunSnapshot(null);
+                setRunEvents([]);
+                setRunApprovals([]);
+                setSelectedRunNodeId(null);
+                setSelectedNodeOutput(null);
+                try {
+                  const [snap, evts] = await Promise.all([
+                    workflowEngineApi.getRunStatus(runId),
+                    workflowEngineApi.getEvents(runId),
+                  ]);
+                  if (snap) {
+                    setRunSnapshot(snap);
+                    updateNodesFromSnapshot(snap);
                   }
-                }}
-                onClose={() => setRightTab("config")}
-              />
-            )}
-          </>
-        )}
+                  if (Array.isArray(evts)) setRunEvents(dedupEvents(evts));
+                } catch (err) {
+                  console.error(`${t("editor.load_run_data_failed")}:`, err);
+                }
+              }}
+              onClose={() => setRightTab("config")}
+            />
+          ))}
 
         {/* ── 版本 Tab ── */}
         {rightTab === "versions" && (
@@ -2261,7 +2251,7 @@ function VersionPanel({
         loadData();
       } catch (err) {
         console.error(err);
-        alert(t("versions.operation_failed") + ": " + (err as Error).message);
+        alert(`${t("versions.operation_failed")}: ${(err as Error).message}`);
       }
     },
     [workflowId, loadData],
@@ -2275,7 +2265,7 @@ function VersionPanel({
         alert(t("versions.restore_success"));
       } catch (err) {
         console.error(err);
-        alert(t("versions.restore_failed") + ": " + (err as Error).message);
+        alert(`${t("versions.restore_failed")}: ${(err as Error).message}`);
       }
     },
     [workflowId],
@@ -2401,7 +2391,7 @@ function VersionPanel({
           versions.map((v) => {
             const isLatest = wf?.latestVersion === v.version;
             const isViewing = viewingVersion === v.version;
-            const cfg = DAG_STATUS_CFG[v.status === "active" ? "SUCCESS" : "CANCELLED"] ?? DAG_STATUS_CFG.PENDING;
+            const _cfg = DAG_STATUS_CFG[v.status === "active" ? "SUCCESS" : "CANCELLED"] ?? DAG_STATUS_CFG.PENDING;
             return (
               <div key={v.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                 <div

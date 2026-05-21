@@ -61,9 +61,7 @@ export function buildProviderModelRequest(
   modelId: string,
   data: Record<string, unknown>,
 ) {
-  return action === "update_model"
-    ? { action, name: providerId, modelId, data }
-    : { action, name: providerId, data };
+  return action === "update_model" ? { action, name: providerId, modelId, data } : { action, name: providerId, data };
 }
 
 function ModalityBadge({ type, items }: { type: "input" | "output"; items: string[] }) {
@@ -89,7 +87,7 @@ function ModelSubrow({
   onModelChange: (action: "delete" | "save", providerId: string, modelId?: string) => void;
 }) {
   const { t } = useTranslation("models");
-  const [editingModel, setEditingModel] = useState<ProviderModel | null>(null);
+  const [_editingModel, _setEditingModel] = useState<ProviderModel | null>(null);
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const [isNewModel, setIsNewModel] = useState(false);
   const [modelSaving, setModelSaving] = useState(false);
@@ -743,6 +741,7 @@ export function ModelsPage() {
         <div className="rounded-md border">
           <Skeleton className="h-10 w-full rounded-t-md" />
           {Array.from({ length: 5 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Skeleton key={i} className="h-12 w-full rounded-none border-t" />
           ))}
         </div>

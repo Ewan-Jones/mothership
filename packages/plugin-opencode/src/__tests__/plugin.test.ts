@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { createEnginePlugin } from "../plugin";
 import { createEnginePlugin as createEnginePluginFromIndex } from "../index";
+import { createEnginePlugin } from "../plugin";
 
 describe("createEnginePlugin", () => {
   // createEnginePlugin() 返回固定 meta

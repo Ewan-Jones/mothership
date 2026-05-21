@@ -3,12 +3,8 @@
  */
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import type {
-  AgentLaunchSpec,
-  EngineRelayHandle,
-  EngineRelayMessage,
-} from "@mothership/plugin-sdk";
 import { createEnginePlugin } from "@mothership/opencode";
+import type { AgentLaunchSpec, EngineRelayHandle, EngineRelayMessage } from "@mothership/plugin-sdk";
 import { createCoreRuntime } from "../src/index";
 
 interface IntegrationRelayConfig {
@@ -204,11 +200,7 @@ async function sendRequestMessagesInOrder(
 
     if (relayMessage.type === "connect") {
       await runStep("waitForConnectedStatus", () =>
-        waitForExpectedResponse(
-          relay,
-          { type: "status", rawIncludes: "\"connected\":true" },
-          responseTimeoutMs,
-        ),
+        waitForExpectedResponse(relay, { type: "status", rawIncludes: '"connected":true' }, responseTimeoutMs),
       );
     }
 
@@ -226,81 +218,77 @@ const INTEGRATION_TEST_TIMEOUT_MS = 180_000;
 
 describe("core-runtime integration", () => {
   // 真实环境下验证 facade 的 register/launch/relay/stop 全链路
-  integrationTest("runs the real core facade chain with the opencode plugin", async () => {
-    const config = integrationConfig;
-    if (!config) {
-      return;
-    }
+  integrationTest(
+    "runs the real core facade chain with the opencode plugin",
+    async () => {
+      const config = integrationConfig;
+      if (!config) {
+        return;
+      }
 
-    const runtime = createCoreRuntime();
-    const instanceId = config.instanceId!;
-    const nodeId = config.nodeId ?? "local-default";
-    const launchSpec = buildLaunchSpec(config);
-    const launchTimeoutMs = config.launchTimeoutMs ?? 30_000;
-    const relayReadyDelayMs = config.relayReadyDelayMs ?? 1_000;
-    const responseTimeoutMs = config.responseTimeoutMs ?? 120_000;
-    let relay: ObservableRelayHandle | null = null;
+      const runtime = createCoreRuntime();
+      const instanceId = config.instanceId!;
+      const nodeId = config.nodeId ?? "local-default";
+      const launchSpec = buildLaunchSpec(config);
+      const launchTimeoutMs = config.launchTimeoutMs ?? 30_000;
+      const relayReadyDelayMs = config.relayReadyDelayMs ?? 1_000;
+      const responseTimeoutMs = config.responseTimeoutMs ?? 120_000;
+      let relay: ObservableRelayHandle | null = null;
 
-    try {
-      await runStep("registerPlugin", async () => {
-        runtime.registerPlugin(createEnginePlugin());
-      });
-      await runStep("registerNode", async () => {
-        runtime.registerNode({
-          id: nodeId,
-          mode: "local",
-          engineTypes: [config.engineType],
-          status: "online",
+      try {
+        await runStep("registerPlugin", async () => {
+          runtime.registerPlugin(createEnginePlugin());
         });
-      });
-      await runStep("launchInstance", () =>
-        withTimeout(
-          runtime.launchInstance({
-            instanceId,
-            engineType: config.engineType,
-            nodeId,
-            launchSpec,
-          }),
-          launchTimeoutMs,
-          "launchInstance",
-        ),
-      );
-      relay = await runStep("connectRelay", async () =>
-        requireObservableRelay(
-          await runtime.connectInstanceRelay({
-            instanceId,
-          }),
-        ),
-      );
-      const connectedRelay = relay;
+        await runStep("registerNode", async () => {
+          runtime.registerNode({
+            id: nodeId,
+            mode: "local",
+            engineTypes: [config.engineType],
+            status: "online",
+          });
+        });
+        await runStep("launchInstance", () =>
+          withTimeout(
+            runtime.launchInstance({
+              instanceId,
+              engineType: config.engineType,
+              nodeId,
+              launchSpec,
+            }),
+            launchTimeoutMs,
+            "launchInstance",
+          ),
+        );
+        relay = await runStep("connectRelay", async () =>
+          requireObservableRelay(
+            await runtime.connectInstanceRelay({
+              instanceId,
+            }),
+          ),
+        );
+        const connectedRelay = relay;
 
-      if (relayReadyDelayMs > 0) {
-        await Bun.sleep(relayReadyDelayMs);
+        if (relayReadyDelayMs > 0) {
+          await Bun.sleep(relayReadyDelayMs);
+        }
+
+        const responsePromise = runStep("waitForExpectedResponse", () =>
+          waitForExpectedResponse(connectedRelay, config.relay.successMatch, responseTimeoutMs),
+        );
+
+        await runStep("sendRequestMessagesInOrder", () =>
+          sendRequestMessagesInOrder(connectedRelay, config.relay.requestMessages, responseTimeoutMs),
+        );
+
+        const response = await responsePromise;
+        expect(matchesExpectedResponse(response, config.relay.successMatch)).toBe(true);
+      } finally {
+        if (relay?.state === "open") {
+          await relay.close();
+        }
+        await runStep("stopInstance", () => runtime.stopInstance(instanceId));
       }
-
-      const responsePromise = runStep("waitForExpectedResponse", () =>
-        waitForExpectedResponse(
-          connectedRelay,
-          config.relay.successMatch,
-          responseTimeoutMs,
-        ),
-      );
-
-      await runStep("sendRequestMessagesInOrder", () =>
-        sendRequestMessagesInOrder(
-          connectedRelay,
-          config.relay.requestMessages,
-          responseTimeoutMs,
-        ),
-      );
-
-      const response = await responsePromise;
-      expect(matchesExpectedResponse(response, config.relay.successMatch)).toBe(true);
-    } finally {
-      if (relay?.state === "open") {
-        await relay.close();
-      }
-      await runStep("stopInstance", () => runtime.stopInstance(instanceId));
-    }
-  }, INTEGRATION_TEST_TIMEOUT_MS);
+    },
+    INTEGRATION_TEST_TIMEOUT_MS,
+  );
 });

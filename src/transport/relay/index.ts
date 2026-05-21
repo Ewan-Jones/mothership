@@ -1,3 +1,10 @@
-export { handleRelayOpen, handleRelayMessage, handleRelayClose, closeAllRelayConnections, closeInstanceRelay, sendToInstanceRelay } from "./relay-handler";
+export type { ManagedConnection, RelayConnectionEntry } from "./connection-manager";
 export { RelayConnectionManager, sendToRelayWs } from "./connection-manager";
-export type { RelayConnectionEntry, ManagedConnection } from "./connection-manager";
+export {
+  closeAllRelayConnections,
+  closeInstanceRelay,
+  handleRelayClose,
+  handleRelayMessage,
+  handleRelayOpen,
+  sendToInstanceRelay,
+} from "./relay-handler";

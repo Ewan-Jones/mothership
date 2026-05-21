@@ -1,6 +1,6 @@
 import { generateWorkerJwt } from "../auth/jwt";
 import { config, getBaseUrl } from "../config";
-import { log, error as logError } from "../logger";
+import { log } from "../logger";
 import { environmentRepo, sessionRepo, workItemRepo } from "../repositories";
 import type { WorkResponse } from "../types/api";
 

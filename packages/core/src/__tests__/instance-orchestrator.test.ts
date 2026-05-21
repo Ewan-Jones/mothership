@@ -76,12 +76,7 @@ describe("InstanceOrchestrator", () => {
     await orchestrator.stop("inst_flow");
     expect(store.get("inst_flow")?.status).toBe("stopped");
     expect(store.get("inst_flow")?.relayConnected).toBe(false);
-    expect(plugin.runtimeState.calls).toEqual([
-      "prepare",
-      "start",
-      "connectRelay",
-      "stop",
-    ]);
+    expect(plugin.runtimeState.calls).toEqual(["prepare", "start", "connectRelay", "stop"]);
   });
 
   // launch() 会在前置校验失败时返回稳定错误码
@@ -190,9 +185,9 @@ describe("InstanceOrchestrator", () => {
   // relay 只允许 running 态，并会复用已打开的连接
   test("enforces running state for connectRelay and reuses open relays", async () => {
     const notStartedContext = createTestContext();
-    await expect(
-      notStartedContext.orchestrator.connectRelay({ instanceId: "inst_missing" }),
-    ).rejects.toMatchObject({ code: "INSTANCE_NOT_FOUND" });
+    await expect(notStartedContext.orchestrator.connectRelay({ instanceId: "inst_missing" })).rejects.toMatchObject({
+      code: "INSTANCE_NOT_FOUND",
+    });
 
     const preparedContext = createTestContext();
     preparedContext.store.create({
@@ -207,9 +202,9 @@ describe("InstanceOrchestrator", () => {
       runtime: preparedContext.plugin.createRuntime(),
       relay: null,
     });
-    await expect(
-      preparedContext.orchestrator.connectRelay({ instanceId: "inst_prepared" }),
-    ).rejects.toMatchObject({ code: "INVALID_INSTANCE_STATE" });
+    await expect(preparedContext.orchestrator.connectRelay({ instanceId: "inst_prepared" })).rejects.toMatchObject({
+      code: "INVALID_INSTANCE_STATE",
+    });
     expect(preparedContext.store.get("inst_prepared")).toMatchObject({
       status: "error",
     });
@@ -264,9 +259,7 @@ describe("InstanceOrchestrator", () => {
     });
     await stoppedContext.orchestrator.stop("inst_stopped");
     await stoppedContext.orchestrator.stop("inst_stopped");
-    expect(
-      stoppedContext.plugin.runtimeState.calls.filter((call) => call === "stop"),
-    ).toHaveLength(1);
+    expect(stoppedContext.plugin.runtimeState.calls.filter((call) => call === "stop")).toHaveLength(1);
 
     await expect(stoppedContext.orchestrator.stop("missing-instance")).rejects.toMatchObject({
       code: "INSTANCE_NOT_FOUND",
@@ -283,9 +276,7 @@ describe("InstanceOrchestrator", () => {
       nodeId: "local-default",
       launchSpec: createLaunchSpec(),
     });
-    await expect(
-      stopErrorContext.orchestrator.stop("inst_stop_error"),
-    ).rejects.toThrow("stop failed");
+    await expect(stopErrorContext.orchestrator.stop("inst_stop_error")).rejects.toThrow("stop failed");
     expect(stopErrorContext.store.get("inst_stop_error")).toMatchObject({
       status: "error",
       errorMessage: "stop failed",

@@ -1,8 +1,8 @@
 /** DAG 运行状态 */
-export type DAGStatus = 'PENDING' | 'RUNNING' | 'SUSPENDED' | 'FAILED' | 'CANCELLED' | 'ERROR' | 'SUCCESS';
+export type DAGStatus = "PENDING" | "RUNNING" | "SUSPENDED" | "FAILED" | "CANCELLED" | "ERROR" | "SUCCESS";
 
 /** 节点状态 */
-export type NodeStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'SKIPPED';
+export type NodeStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | "SKIPPED";
 
 /** 统一节点输出格式 */
 export interface NodeOutput {
@@ -15,21 +15,21 @@ export interface NodeOutput {
 
 /** 全部 15 种事件类型 */
 export type EventType =
-  | 'dag.started'
-  | 'dag.completed'
-  | 'dag.cancelled'
-  | 'node.started'
-  | 'node.completed'
-  | 'node.failed'
-  | 'node.cancelled'
-  | 'node.retrying'
-  | 'node.skipped'
-  | 'sub_workflow.started'
-  | 'sub_workflow.completed'
-  | 'loop.iteration_started'
-  | 'loop.iteration_completed'
-  | 'audit.requested'
-  | 'audit.approved';
+  | "dag.started"
+  | "dag.completed"
+  | "dag.cancelled"
+  | "node.started"
+  | "node.completed"
+  | "node.failed"
+  | "node.cancelled"
+  | "node.retrying"
+  | "node.skipped"
+  | "sub_workflow.started"
+  | "sub_workflow.completed"
+  | "loop.iteration_started"
+  | "loop.iteration_completed"
+  | "audit.requested"
+  | "audit.approved";
 
 /** DAG 事件 */
 export interface DAGEvent {
@@ -39,7 +39,7 @@ export interface DAGEvent {
   node_id?: string;
   timestamp: string;
   type: EventType;
-  node_type?: import('./dag').NodeType;
+  node_type?: import("./dag").NodeType;
   metadata?: Record<string, unknown>;
 }
 

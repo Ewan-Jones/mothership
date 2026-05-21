@@ -8,10 +8,10 @@
  * - 提供 token 验证函数供 engine facade 使用
  */
 
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { AuditNodeDef, NodeDef } from '../types/dag';
-import type { NodeExecutionContext } from '../scheduler/dag-scheduler';
-import { SuspendedError } from '../scheduler/dag-scheduler';
+import { createHmac, timingSafeEqual } from "node:crypto";
+import type { NodeExecutionContext } from "../scheduler/dag-scheduler";
+import { SuspendedError } from "../scheduler/dag-scheduler";
+import type { AuditNodeDef, NodeDef } from "../types/dag";
 
 // ---------- 常量 ----------
 
@@ -32,7 +32,7 @@ export interface PendingApproval {
 // 格式: <expiresAt_ms_hex>:<hmac_hex>
 // HMAC payload: <runId>:<nodeId>:<expiresAt_ms_hex>
 
-const TOKEN_SEPARATOR = ':';
+const TOKEN_SEPARATOR = ":";
 
 /** 从 token 字符串中提取 expiresAt 时间戳（16进制） */
 function extractExpiresAtHex(token: string): string | null {
@@ -48,7 +48,7 @@ export class AuditExecutor {
   constructor(private hmacSecret: string) {}
 
   async execute(node: NodeDef, ctx: NodeExecutionContext): Promise<never> {
-    if (node.type !== 'audit') {
+    if (node.type !== "audit") {
       throw new TypeError(`AuditExecutor only handles 'audit' nodes, got '${node.type}'`);
     }
 
@@ -62,17 +62,17 @@ export class AuditExecutor {
 
     // 生成 HMAC-SHA256 签名
     const payload = `${runId}${TOKEN_SEPARATOR}${node.id}${TOKEN_SEPARATOR}${expiresAtHex}`;
-    const hmacHex = createHmac('sha256', this.hmacSecret).update(payload).digest('hex');
+    const hmacHex = createHmac("sha256", this.hmacSecret).update(payload).digest("hex");
     const approvalToken = `${expiresAtHex}${TOKEN_SEPARATOR}${hmacHex}`;
 
     const expiresAt = new Date(expiresAtMs).toISOString();
 
     // 抛出 SuspendedError（scheduler 会捕获并设置 SUSPENDED 状态）
-    throw new SuspendedError(
-      `Audit node '${node.id}' requires approval`,
-      node.id,
-      { approvalToken, expiresAt, display_data: auditNode.display_data },
-    );
+    throw new SuspendedError(`Audit node '${node.id}' requires approval`, node.id, {
+      approvalToken,
+      expiresAt,
+      display_data: auditNode.display_data,
+    });
   }
 }
 
@@ -99,7 +99,7 @@ export function verifyApprovalToken(
 
   // 重新计算 HMAC 并比较
   const payload = `${runId}${TOKEN_SEPARATOR}${nodeId}${TOKEN_SEPARATOR}${expiresAtHex}`;
-  const expectedHmacHex = createHmac('sha256', hmacSecret).update(payload).digest('hex');
+  const expectedHmacHex = createHmac("sha256", hmacSecret).update(payload).digest("hex");
 
   // 提取 token 中的 HMAC 部分
   const separatorIdx = token.indexOf(TOKEN_SEPARATOR);
@@ -113,7 +113,7 @@ export function verifyApprovalToken(
 /** 恒定时间字符串比较（hex 字符串） */
 function timingSafeEqualHex(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
-  const bufA = Buffer.from(a, 'utf8');
-  const bufB = Buffer.from(b, 'utf8');
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
   return timingSafeEqual(bufA, bufB);
 }

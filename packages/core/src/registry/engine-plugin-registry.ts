@@ -1,8 +1,5 @@
 import type { EnginePlugin } from "@mothership/plugin-sdk";
-import {
-  CoreRuntimeError,
-  createCoreRuntimeError,
-} from "../errors/core-runtime-error";
+import { CoreRuntimeError, createCoreRuntimeError } from "../errors/core-runtime-error";
 
 /**
  * Engine plugin 注册表的只读访问面。
@@ -31,11 +28,9 @@ export class EnginePluginRegistry implements ReadonlyEnginePluginRegistry {
     const engineType = plugin.meta.id;
 
     if (this.plugins.has(engineType)) {
-      throw createCoreRuntimeError(
-        "DUPLICATE_ENGINE_PLUGIN",
-        `Engine plugin already registered: ${engineType}`,
-        { engineType },
-      );
+      throw createCoreRuntimeError("DUPLICATE_ENGINE_PLUGIN", `Engine plugin already registered: ${engineType}`, {
+        engineType,
+      });
     }
 
     this.plugins.set(engineType, plugin);
@@ -56,11 +51,7 @@ export class EnginePluginRegistry implements ReadonlyEnginePluginRegistry {
     const plugin = this.get(engineType);
 
     if (!plugin) {
-      throw createCoreRuntimeError(
-        "PLUGIN_NOT_FOUND",
-        `Engine plugin not found: ${engineType}`,
-        { engineType },
-      );
+      throw createCoreRuntimeError("PLUGIN_NOT_FOUND", `Engine plugin not found: ${engineType}`, { engineType });
     }
 
     return plugin;

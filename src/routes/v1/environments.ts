@@ -13,7 +13,7 @@ const app = new Elysia({ name: "v1-environments", prefix: "/v1/environments" }).
 /** POST /v1/environments/bridge — REST registration for acp-link compatibility */
 app.post(
   "/bridge",
-  async ({ store, body, error }) => {
+  async ({ store, body, error: _error }) => {
     const user = store.user!;
     const authContext = store.authContext;
     const b = body as BridgeRegistrationRequest;

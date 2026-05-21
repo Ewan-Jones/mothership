@@ -75,7 +75,7 @@ function SessionDetailInner({ sessionId, initialCwd }: { sessionId: string; init
   }, [adapter]);
 
   // Load session data and initialize adapter
-  const [retryKey, setRetryKey] = useState(0);
+  const [_retryKey, setRetryKey] = useState(0);
   useEffect(() => {
     let cancelled = false;
 
@@ -109,7 +109,7 @@ function SessionDetailInner({ sessionId, initialCwd }: { sessionId: string; init
     return () => {
       cancelled = true;
     };
-  }, [sessionId, adapter, retryKey]);
+  }, [sessionId, adapter]);
 
   const closed = isClosedSessionStatus(sessionStatus);
 
@@ -631,7 +631,7 @@ function ACPSessionDetail({
       setClient(null);
       setConnectionState("disconnected");
     };
-  }, [agentId, t]);
+  }, [agentId, t, sessionId]);
 
   const showChat = client && connectionState === "connected";
 

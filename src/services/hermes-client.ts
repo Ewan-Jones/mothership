@@ -1,8 +1,7 @@
 import { log, error as logError } from "../logger";
 import { eventService } from "../services/event-service";
-import { sendToInstanceRelay } from "../transport/relay";
 import { sendToAgentWs } from "../transport/acp-ws-handler";
-import type { ChannelBinding } from "./channel-binding";
+import { sendToInstanceRelay } from "../transport/relay";
 import { findBindingForMessage } from "./channel-binding";
 import { findRunningInstanceByEnvironment } from "./instance";
 
@@ -33,6 +32,7 @@ interface HermesInboundMessage {
   };
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: outbound message type kept for reference
 interface HermesOutboundSend {
   type: "send";
   platform: string;
@@ -102,7 +102,7 @@ export class HermesClient {
       this.ws.close(1000, "shutdown");
     }
     // Clean up all outbound routing subscriptions
-    for (const [bindingId, unsub] of this.bindingUnsubs) {
+    for (const [_bindingId, unsub] of this.bindingUnsubs) {
       try {
         unsub();
       } catch {}
@@ -120,7 +120,7 @@ export class HermesClient {
 
   send(platform: string, chatId: string, text: string, replyTo?: string): void {
     if (!this.ws || this.ws.readyState !== 1) return;
-    const id = "rcs_" + crypto.randomUUID().replace(/-/g, "");
+    const id = `rcs_${crypto.randomUUID().replace(/-/g, "")}`;
     const msg: Record<string, unknown> = { type: "send", id, platform, chat_id: chatId, content: text };
     if (replyTo) msg.reply_to = replyTo;
     this.ws.send(JSON.stringify(msg));

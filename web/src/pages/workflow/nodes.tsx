@@ -1,22 +1,20 @@
-import { useTranslation } from "react-i18next";
-import { useState } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import {
-  Terminal,
-  Bot,
-  Globe,
-  ShieldCheck,
-  GitBranch,
-  RefreshCw,
-  Play,
-  CheckCircle,
-  XCircle,
-  Loader,
-  Clock,
-  Eye,
   ArrowRight,
+  Bot,
+  CheckCircle,
   Code,
+  Eye,
+  GitBranch,
+  Globe,
+  Loader,
+  Play,
+  RefreshCw,
+  ShieldCheck,
+  Terminal,
+  XCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const NODE_COLORS: Record<string, { main: string; light: string; headerText: string }> = {
   start: { main: "#6366f1", light: "#eef2ff", headerText: "#fff" },

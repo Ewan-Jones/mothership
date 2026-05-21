@@ -17,7 +17,11 @@ interface SkillDownloadPayload {
 }
 
 function getSigningKey(): string | null {
-  return process.env.RCS_API_KEYS?.split(",").map((key) => key.trim()).filter(Boolean)[0] ?? null;
+  return (
+    process.env.RCS_API_KEYS?.split(",")
+      .map((key) => key.trim())
+      .filter(Boolean)[0] ?? null
+  );
 }
 
 function signPayload(encodedPayload: string, key: string): string {
@@ -25,10 +29,7 @@ function signPayload(encodedPayload: string, key: string): string {
 }
 
 /** 生成短期 skill zip 下载 token。 */
-export function generateSkillDownloadToken(
-  skill: SkillTokenInput,
-  options?: { expiresInSeconds?: number },
-): string {
+export function generateSkillDownloadToken(skill: SkillTokenInput, options?: { expiresInSeconds?: number }): string {
   const key = getSigningKey();
   if (!key) throw new Error("RCS_API_KEYS is required for skill download token");
 
@@ -61,7 +62,9 @@ export function verifySkillDownloadToken(token: string): SkillDownloadPayload | 
   }
 
   try {
-    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf-8")) as Partial<SkillDownloadPayload>;
+    const payload = JSON.parse(
+      Buffer.from(encodedPayload, "base64url").toString("utf-8"),
+    ) as Partial<SkillDownloadPayload>;
     if (
       payload.type !== "skill-download" ||
       typeof payload.skillId !== "string" ||

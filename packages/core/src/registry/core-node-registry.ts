@@ -1,11 +1,5 @@
-import {
-  createCoreRuntimeError,
-} from "../errors/core-runtime-error";
-import type {
-  CoreNode,
-  CoreNodeStatus,
-  CreateCoreNodeInput,
-} from "../types/core-node";
+import { createCoreRuntimeError } from "../errors/core-runtime-error";
+import type { CoreNode, CoreNodeStatus, CreateCoreNodeInput } from "../types/core-node";
 
 /**
  * Core node 注册表的只读访问面。
@@ -45,11 +39,9 @@ export class CoreNodeRegistry implements ReadonlyCoreNodeRegistry {
    */
   register(input: CreateCoreNodeInput): CoreNode {
     if (this.nodes.has(input.id)) {
-      throw createCoreRuntimeError(
-        "DUPLICATE_CORE_NODE",
-        `Core node already registered: ${input.id}`,
-        { nodeId: input.id },
-      );
+      throw createCoreRuntimeError("DUPLICATE_CORE_NODE", `Core node already registered: ${input.id}`, {
+        nodeId: input.id,
+      });
     }
 
     const node: CoreNode = {

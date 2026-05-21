@@ -10,7 +10,7 @@ import type { Question } from "../types";
 // ============================================================
 
 export function PermissionPromptView({
-  requestId,
+  requestId: _requestId,
   toolName,
   toolInput,
   description,
@@ -125,6 +125,7 @@ export function AskUserPanelView({
             const isSelected = multiSelect ? ((answers[0] as number[]) || []).includes(j) : answers[0] === j;
             return (
               <button
+                // biome-ignore lint/suspicious/noArrayIndexKey: static option list, position is stable
                 key={j}
                 onClick={() => handleSelect(0, j, multiSelect)}
                 className={cn(
@@ -143,7 +144,7 @@ export function AskUserPanelView({
             <Input
               type="text"
               value={otherTexts[0] || ""}
-              onChange={(e) => setOtherTexts({ ...otherTexts, [0]: e.target.value })}
+              onChange={(e) => setOtherTexts({ ...otherTexts, 0: e.target.value })}
               placeholder={t("permissionViews.other")}
               className="flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-brand focus:outline-none"
               onKeyDown={(e) => e.key === "Enter" && handleOtherSubmit(0)}
@@ -185,7 +186,7 @@ export function AskUserPanelView({
       <div className="mb-3 flex gap-1 overflow-x-auto">
         {questions.map((q, i) => (
           <button
-            key={i}
+            key={q.header || `Q${i + 1}`}
             onClick={() => setActiveTab(i)}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs whitespace-nowrap transition-colors",
@@ -262,6 +263,7 @@ function QuestionTab({
           const isSelected = multiSelect ? ((answers[qIdx] as number[]) || []).includes(j) : answers[qIdx] === j;
           return (
             <button
+              // biome-ignore lint/suspicious/noArrayIndexKey: static option list, position is stable
               key={j}
               onClick={() => onSelect(qIdx, j, multiSelect)}
               className={cn(
@@ -303,7 +305,7 @@ function QuestionTab({
 
 export function PlanPanelView({
   planContent,
-  description,
+  description: _description,
   onSubmit,
 }: {
   requestId: string;
@@ -314,7 +316,7 @@ export function PlanPanelView({
   const { t } = useTranslation("components");
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
-  const isEmpty = !planContent || !planContent.trim();
+  const isEmpty = !planContent?.trim();
 
   const handleSubmit = () => {
     if (!selected) return;
@@ -334,6 +336,7 @@ export function PlanPanelView({
       {!isEmpty && (
         <div
           className="mb-4 max-h-64 overflow-auto rounded-lg bg-tool-card p-4 text-sm text-text-secondary"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: rendering sanitized plan content
           dangerouslySetInnerHTML={{ __html: formatPlanContent(planContent) }}
         />
       )}

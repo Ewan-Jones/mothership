@@ -55,7 +55,7 @@ mock.module("../services/agent-knowledge", () => ({
     code = "INVALID_KNOWLEDGE_BINDINGS";
   },
   syncAgentKnowledgeBindingsById: async (
-    organizationId: string,
+    _organizationId: string,
     agentConfigId: string,
     knowledge: { knowledgeBaseIds: string[] } | null | undefined,
   ) => {
@@ -575,7 +575,7 @@ describe("Agents Config Route", () => {
     });
 
     test("set 更新 knowledge 并覆盖旧绑定", async () => {
-      _agentKnowledgeBindings["ac_build"] = [{ knowledgeBaseId: "kb_old", priority: 0, enabled: true }];
+      _agentKnowledgeBindings.ac_build = [{ knowledgeBaseId: "kb_old", priority: 0, enabled: true }];
       const res = await agentsRoute.handle(
         new Request("http://localhost/web/config/agents", {
           method: "POST",
@@ -598,7 +598,7 @@ describe("Agents Config Route", () => {
         knowledgeBaseIds: ["kb_new_a", "kb_new_b"],
         policy: { searchFirst: false, maxResults: 8, defaultNamespaces: [] },
       });
-      expect(_agentKnowledgeBindings["ac_build"]).toEqual([
+      expect(_agentKnowledgeBindings.ac_build).toEqual([
         { knowledgeBaseId: "kb_new_a", priority: 0, enabled: true },
         { knowledgeBaseId: "kb_new_b", priority: 1, enabled: true },
       ]);
@@ -634,7 +634,7 @@ describe("Agents Config Route", () => {
     });
 
     test("list 返回 knowledgeBaseCount", async () => {
-      _agentKnowledgeBindings["ac_build"] = [
+      _agentKnowledgeBindings.ac_build = [
         { knowledgeBaseId: "kb_a", priority: 0, enabled: true },
         { knowledgeBaseId: "kb_b", priority: 1, enabled: true },
       ];

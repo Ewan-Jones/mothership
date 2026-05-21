@@ -5,8 +5,8 @@ import { log, error as logError } from "../../logger";
 import { authGuardPlugin, lookupUserById } from "../../plugins/auth";
 import { environmentRepo } from "../../repositories";
 import { getEnvironmentBySecret } from "../../services/environment";
-import { handleRelayClose, handleRelayMessage, handleRelayOpen } from "../../transport/relay";
 import { handleAcpWsClose, handleAcpWsMessage, handleAcpWsOpen } from "../../transport/acp-ws-handler";
+import { handleRelayClose, handleRelayMessage, handleRelayOpen } from "../../transport/relay";
 import type { WsConnection } from "../../transport/ws-types";
 
 /** Maximum WebSocket message size: 10 MB */

@@ -70,7 +70,7 @@ app.get(
 
 app.get(
   "/channels/bindings",
-  async ({ store, request }) => {
+  async ({ store, request: _request }) => {
     const authCtx = store.authContext!;
     // 获取团队所有 environmentId
     const teamEnvs = await environmentRepo.listByOrganizationId(authCtx.organizationId);
@@ -90,7 +90,7 @@ app.get(
 
 app.post(
   "/channels/bindings",
-  async ({ store, body, error, request }) => {
+  async ({ store, body, error, request: _request }) => {
     const authCtx = store.authContext!;
     const b = body as { platform: string; chatId?: string | null; agentId: string; enabled?: boolean };
     if (!b.platform || !b.agentId) {
@@ -114,7 +114,7 @@ app.post(
 
 app.delete(
   "/channels/bindings/:id",
-  async ({ store, params, error, request }) => {
+  async ({ store, params, error, request: _request }) => {
     const authCtx = store.authContext!;
     const id = params.id;
     // 验证绑定关联的 agent 属于当前团队
@@ -138,7 +138,7 @@ app.delete(
 
 app.patch(
   "/channels/bindings/:id",
-  async ({ store, params, body, error, request }) => {
+  async ({ store, params, body, error, request: _request }) => {
     const authCtx = store.authContext!;
     const id = params.id;
     // 验证绑定关联的 agent 属于当前团队

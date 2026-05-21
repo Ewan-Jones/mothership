@@ -3,8 +3,8 @@
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { homedir } from "node:os";
+import { join } from "node:path";
 
 export const META_SKILL_NAME = "workflow-editor";
 

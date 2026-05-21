@@ -295,9 +295,7 @@ nodes:
 `);
   const result = validateDAG(def);
   expect(result.valid).toBe(false);
-  const inputIssue = result.issues.find(
-    (i) => i.code === "INPUTS_MISSING_DEPENDENCY" && i.nodeId === "step2",
-  );
+  const inputIssue = result.issues.find((i) => i.code === "INPUTS_MISSING_DEPENDENCY" && i.nodeId === "step2");
   expect(inputIssue).toBeDefined();
   expect(inputIssue!.message).toContain("step1");
 });
@@ -339,9 +337,7 @@ nodes:
 `);
   const result = validateDAG(def);
   expect(result.valid).toBe(false);
-  const inputIssue = result.issues.find(
-    (i) => i.code === "INPUTS_MISSING_DEPENDENCY" && i.nodeId === "step2",
-  );
+  const inputIssue = result.issues.find((i) => i.code === "INPUTS_MISSING_DEPENDENCY" && i.nodeId === "step2");
   expect(inputIssue).toBeDefined();
 });
 

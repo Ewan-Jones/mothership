@@ -1,7 +1,7 @@
+import { apiKey } from "@better-auth/api-key";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins/organization";
-import { apiKey } from "@better-auth/api-key";
 import { db } from "../db";
 import * as schema from "../db/schema";
 

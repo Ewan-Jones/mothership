@@ -23,7 +23,7 @@ import {
 } from "../../../services/config-utils";
 
 /** 将 PG 行数据映射为前端兼容的 agent 字段 */
-function pgRowToAgentFields(
+function _pgRowToAgentFields(
   row: typeof configPg extends { listAgentConfigs: (ctx: AuthContext) => Promise<(infer T)[]> } ? T : never,
 ) {
   // tools → permission 兼容转换：PG 中不再有 tools，但保留接口
@@ -123,7 +123,7 @@ async function handleSet(ctx: AuthContext, name: string, data: Record<string, un
     } else if (key === "knowledge" && value == null) {
       updateData[key] = null;
     } else if (key === "top_p") {
-      updateData["topP"] = value;
+      updateData.topP = value;
     } else {
       updateData[key] = value;
     }
@@ -138,7 +138,7 @@ async function handleSet(ctx: AuthContext, name: string, data: Record<string, un
       filtered.knowledge as AgentKnowledgeConfig | null | undefined,
     );
     if (data.skillIds !== undefined) {
-      await configPg.syncAgentSkills(updatedAgent.id, Array.isArray(data.skillIds) ? data.skillIds as string[] : []);
+      await configPg.syncAgentSkills(updatedAgent.id, Array.isArray(data.skillIds) ? (data.skillIds as string[]) : []);
     }
   }
   return configSuccess({ name, ...filtered });
@@ -164,7 +164,7 @@ async function handleCreate(ctx: AuthContext, name: string, data: Record<string,
   const pgData: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(filtered)) {
     if (key === "top_p") {
-      pgData["topP"] = value;
+      pgData.topP = value;
     } else {
       pgData[key] = value;
     }
@@ -183,7 +183,7 @@ async function handleCreate(ctx: AuthContext, name: string, data: Record<string,
       filtered.knowledge as AgentKnowledgeConfig | null | undefined,
     );
     if (data.skillIds !== undefined) {
-      await configPg.syncAgentSkills(createdAgent.id, Array.isArray(data.skillIds) ? data.skillIds as string[] : []);
+      await configPg.syncAgentSkills(createdAgent.id, Array.isArray(data.skillIds) ? (data.skillIds as string[]) : []);
     }
   }
   return configSuccess({ name });
@@ -213,7 +213,7 @@ const app = new Elysia({ name: "web-config-agents", prefix: "/web" }).use(authGu
 
 app.post(
   "/config/agents",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error }: any) => {
     const authCtx = store.authContext!;
     const b = (body as any) ?? {};
     const { action, name, data } = {

@@ -88,7 +88,7 @@ describe("config Eden Treaty client", () => {
     fetchMock.status = 404;
     fetchMock.body = { error: { code: "NOT_FOUND", message: "Not found" } };
     const { client } = await import("../api/client");
-    const { data, error } = await client.web.config.providers.post({ action: "get", name: "xxx" } as any);
+    const { error } = await client.web.config.providers.post({ action: "get", name: "xxx" } as any);
     expect(error).not.toBeNull();
   });
 

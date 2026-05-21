@@ -25,7 +25,7 @@ export function intRangeSchema(opts: { label?: string; min?: number; max?: numbe
     .string()
     .transform((v, ctx) => {
       const n = parseInt(v, 10);
-      if (isNaN(n)) {
+      if (Number.isNaN(n)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `${label} must be an integer`,

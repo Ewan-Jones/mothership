@@ -13,8 +13,8 @@ import {
   ensureWorkflowDir,
   listRecoverable as fsListRecoverable,
   readYamlFile,
-  writeYamlFile,
   WORKFLOW_BASE_DIR,
+  writeYamlFile,
 } from "../services/workflow/workflow-fs";
 
 // ── 类型 ──
@@ -80,7 +80,7 @@ export async function saveDraft(workflowId: string, ctx: AuthCtx, yaml: string):
     .from(workflow)
     .where(and(eq(workflow.id, workflowId), eq(workflow.organizationId, ctx.organizationId)))
     .limit(1);
-  if (!wf || !wf.storagePath) throw new Error("Workflow not found");
+  if (!wf?.storagePath) throw new Error("Workflow not found");
 
   const fileName = "draft.yaml";
   await writeYamlFile(wf.storagePath, fileName, yaml);
@@ -113,7 +113,7 @@ export async function publishVersion(workflowId: string, ctx: AuthCtx): Promise<
     .from(workflow)
     .where(and(eq(workflow.id, workflowId), eq(workflow.organizationId, ctx.organizationId)))
     .limit(1);
-  if (!wf || !wf.storagePath) throw new Error("Workflow not found");
+  if (!wf?.storagePath) throw new Error("Workflow not found");
 
   const draftYaml = await readYamlFile(wf.storagePath, "draft.yaml");
   if (!draftYaml) throw new Error("No draft to publish");

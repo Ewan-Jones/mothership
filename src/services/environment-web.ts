@@ -3,13 +3,7 @@ import type { EnvironmentUpdateParams } from "../repositories";
 import { environmentRepo } from "../repositories";
 import * as configPg from "./config-pg";
 import type { CreateWebEnvironmentParams, UpdateWebEnvironmentParams } from "./environment-core";
-import {
-  deleteEnvironment,
-  generateEnvSecret,
-  getOwnedEnvironment,
-  KEBAB_CASE_RE,
-  sanitizeResponse,
-} from "./environment-core";
+import { generateEnvSecret, getOwnedEnvironment, KEBAB_CASE_RE, sanitizeResponse } from "./environment-core";
 import { groupActiveInstancesByEnvironment } from "./instance";
 import { resolveWorkspacePath } from "./workspace-resolver";
 
@@ -35,7 +29,7 @@ export async function createWebEnvironment(params: CreateWebEnvironmentParams) {
 
   // 创建记录
   const secret = generateEnvSecret();
-  let record;
+  let record: Awaited<ReturnType<typeof environmentRepo.create>>;
   try {
     record = await environmentRepo.create({
       name,

@@ -1,12 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { setConfig } from "../config";
-import {
-  _deps,
-  _resetDeps,
-  deleteSkill,
-  importSkillDirectories,
-  setSkill,
-} from "../services/skill";
+import { _deps, _resetDeps, deleteSkill, importSkillDirectories, setSkill } from "../services/skill";
 import type { UploadSkillFile } from "../services/skill-fs";
 
 const ctx = { organizationId: "org-1", userId: "user-1", role: "owner" } as const;
@@ -58,7 +52,9 @@ function installMocks() {
         skipped: [],
       };
     },
-    writeImportFiles: mock(async (_dir: string, entries: [string, UploadSkillFile[]][]) => entries.map(([name]) => name)),
+    writeImportFiles: mock(async (_dir: string, entries: [string, UploadSkillFile[]][]) =>
+      entries.map(([name]) => name),
+    ),
     buildImportedSkillInfos: mock(async (dir: string, names: string[]) =>
       names.map((name) => ({ name, enabled: true, description: `${name} desc`, path: `${dir}/${name}/SKILL.md` })),
     ),

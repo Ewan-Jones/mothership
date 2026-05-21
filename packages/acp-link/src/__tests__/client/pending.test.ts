@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { ACPPending } from "../../client/pending.js";
 
 // ACPPending request/response 关联测试
@@ -13,7 +13,9 @@ describe("ACPPending", () => {
   test("sendAndWait + tryResolve — resolves on match", async () => {
     let sentRequest: any = null;
     const promise = pending.sendAndWait(
-      (req) => { sentRequest = req; },
+      (req) => {
+        sentRequest = req;
+      },
       "list_sessions",
       { cwd: "/tmp" },
       "session_list",
@@ -32,26 +34,14 @@ describe("ACPPending", () => {
 
   // 测试 tryResolve 不匹配返回 false
   test("tryResolve — no match returns false", () => {
-    pending.sendAndWait(
-      () => {},
-      "list_sessions",
-      {},
-      "session_list",
-      5000,
-    ).catch(() => {});
+    pending.sendAndWait(() => {}, "list_sessions", {}, "session_list", 5000).catch(() => {});
     const matched = pending.tryResolve("session_loaded", "ses_1");
     expect(matched).toBe(false);
   });
 
   // 测试超时自动 reject
   test("sendAndWait — timeout rejects", async () => {
-    const promise = pending.sendAndWait(
-      () => {},
-      "list_sessions",
-      {},
-      "session_list",
-      100,
-    );
+    const promise = pending.sendAndWait(() => {}, "list_sessions", {}, "session_list", 100);
     await expect(promise).rejects.toThrow("list_sessions timed out");
   });
 
@@ -80,7 +70,13 @@ describe("ACPPending", () => {
   test("resendAll — re-sends all pending requests", () => {
     const sent: any[] = [];
     pending.sendAndWait((req) => sent.push({ type: "list", req }), "list_sessions", { a: 1 }, "session_list", 5000);
-    pending.sendAndWait((req) => sent.push({ type: "load", req }), "session_loaded", { id: "s1" }, "session_loaded", 5000);
+    pending.sendAndWait(
+      (req) => sent.push({ type: "load", req }),
+      "session_loaded",
+      { id: "s1" },
+      "session_loaded",
+      5000,
+    );
 
     sent.length = 0;
     pending.resendAll();

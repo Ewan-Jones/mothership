@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { CoreRuntimeError } from "../errors/core-runtime-error";
 import { CoreNodeRegistry } from "../registry/core-node-registry";
 
 describe("CoreNodeRegistry", () => {

@@ -3,8 +3,8 @@ import { getCoreRuntime } from "../../services/core-bootstrap";
 import { findInstanceBySessionId, findRunningInstanceByEnvironment } from "../../services/instance";
 import { findAcpConnectionByAgentId, sendToAgentWs } from "../acp-ws-handler";
 import type { WsConnection } from "../ws-types";
-import { RelayConnectionManager, sendToRelayWs } from "./connection-manager";
 import type { RelayConnectionEntry } from "./connection-manager";
+import { RelayConnectionManager, sendToRelayWs } from "./connection-manager";
 import { flushOutboundBuffer, publishToEventBus } from "./message-router";
 
 const manager = new RelayConnectionManager();
@@ -228,7 +228,7 @@ export async function handleRelayMessage(
 }
 
 /** Called from onClose — cleans up relay connection */
-export function handleRelayClose(ws: WsConnection, relayWsId: string, code?: number, reason?: string): void {
+export function handleRelayClose(_ws: WsConnection, relayWsId: string, code?: number, reason?: string): void {
   const entry = manager.get(relayWsId);
   if (!entry) return;
 

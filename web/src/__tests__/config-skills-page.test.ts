@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
   getInvalidUploadSkillNames,
-  normalizeSkillUploadResult,
   getUploadConflictData,
   getUploadItemSummaries,
   getUploadResultMessage,
+  normalizeSkillUploadResult,
   validateSkillForm,
 } from "../pages/SkillsPage";
 

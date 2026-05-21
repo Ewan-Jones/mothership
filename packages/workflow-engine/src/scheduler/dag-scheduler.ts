@@ -10,16 +10,16 @@
  * - SUSPENDED 处理：审计节点挂起时暂停整个 DAG
  */
 
-import { nanoid } from 'nanoid';
-import type { NodeDef, WorkflowDef } from '../types/dag';
-import type { DAGEvent, DAGSnapshot, DAGStatus, NodeOutput, NodeStatus, RunSummary } from '../types/execution';
-import type { StorageAdapter } from '../storage/storage-adapter';
-import { resolveTemplate } from '../parser/expression-parser';
-import { resolveInputs } from '../parser/inputs-resolver';
-import type { EvalContext } from '../types/expression';
-import { WorkflowError, WorkflowErrorCode } from '../types/errors';
-import { CancellationManager } from './cancellation';
-import { buildReverseAdjacency } from './topological-sort';
+import { nanoid } from "nanoid";
+import { resolveTemplate } from "../parser/expression-parser";
+import { resolveInputs } from "../parser/inputs-resolver";
+import type { StorageAdapter } from "../storage/storage-adapter";
+import type { NodeDef, WorkflowDef } from "../types/dag";
+import { WorkflowError, WorkflowErrorCode } from "../types/errors";
+import type { DAGEvent, DAGSnapshot, DAGStatus, NodeOutput, NodeStatus, RunSummary } from "../types/execution";
+import type { EvalContext } from "../types/expression";
+import type { CancellationManager } from "./cancellation";
+import { buildReverseAdjacency } from "./topological-sort";
 
 // ---------- 节点执行器接口（Task 5+ 实现） ----------
 
@@ -48,7 +48,7 @@ export class SuspendedError extends WorkflowError {
     public readonly displayData?: unknown,
   ) {
     super(message, WorkflowErrorCode.RECOVERY_ERROR, { nodeId, displayData });
-    this.name = 'SuspendedError';
+    this.name = "SuspendedError";
   }
 }
 
@@ -85,8 +85,8 @@ export class DAGScheduler {
   private readonly reverseAdj: Map<string, string[]>;
   private readonly nodeStates: Map<string, NodeStatus>;
   private readonly nodeOutputs: Map<string, NodeOutput>;
-  private lastEventId = '';
-  private dagStartTime = '';
+  private lastEventId = "";
+  private dagStartTime = "";
 
   constructor(context: SchedulerContext) {
     this.ctx = context;
@@ -125,12 +125,12 @@ export class DAGScheduler {
       // 未在初始状态中的节点标记为 PENDING（恢复后继续执行）
       for (const node of this.nodes) {
         if (!this.nodeStates.has(node.id)) {
-          this.nodeStates.set(node.id, 'PENDING');
+          this.nodeStates.set(node.id, "PENDING");
         }
       }
     } else {
       for (const node of this.nodes) {
-        this.nodeStates.set(node.id, 'PENDING');
+        this.nodeStates.set(node.id, "PENDING");
       }
     }
 
@@ -141,14 +141,18 @@ export class DAGScheduler {
     let timeoutSignal: AbortSignal | undefined;
     if (dagTimeout) {
       timeoutSignal = AbortSignal.timeout(dagTimeout * 1000);
-      timeoutSignal.addEventListener('abort', () => {
-        this.ctx.cancellation.cancel();
-      }, { once: true });
+      timeoutSignal.addEventListener(
+        "abort",
+        () => {
+          this.ctx.cancellation.cancel();
+        },
+        { once: true },
+      );
     }
 
     // 发射 dag.started 事件
-    const startEventId = await this.emitEvent('dag.started');
-    await this.createSnapshot('RUNNING', startEventId);
+    const startEventId = await this.emitEvent("dag.started");
+    await this.createSnapshot("RUNNING", startEventId);
 
     try {
       // 主调度循环
@@ -167,7 +171,7 @@ export class DAGScheduler {
         const readyNodes = this.findReadyNodes();
 
         // 检查是否有 RUNNING 节点
-        const hasRunning = this.hasStatus('RUNNING');
+        const hasRunning = this.hasStatus("RUNNING");
 
         if (readyNodes.length === 0 && !hasRunning) {
           // DAG 完成
@@ -181,7 +185,7 @@ export class DAGScheduler {
 
           // 从 allSettled 结果中提取 SuspendedError
           for (const r of results) {
-            if (r.status === 'rejected' && r.reason instanceof SuspendedError) {
+            if (r.status === "rejected" && r.reason instanceof SuspendedError) {
               this.suspendedError = r.reason;
               break;
             }
@@ -197,19 +201,19 @@ export class DAGScheduler {
       const completedAt = new Date().toISOString();
 
       // 发射 dag.completed 或 dag.cancelled 事件
-      if (finalStatus === 'CANCELLED') {
-        await this.emitEvent('dag.cancelled');
+      if (finalStatus === "CANCELLED") {
+        await this.emitEvent("dag.cancelled");
         // 标记所有 RUNNING 节点为 CANCELLED
         for (const [id, status] of this.nodeStates) {
-          if (status === 'RUNNING') {
-            this.nodeStates.set(id, 'CANCELLED');
-            await this.emitEvent('node.cancelled', id);
+          if (status === "RUNNING") {
+            this.nodeStates.set(id, "CANCELLED");
+            await this.emitEvent("node.cancelled", id);
           }
         }
-      } else if (finalStatus === 'SUSPENDED') {
+      } else if (finalStatus === "SUSPENDED") {
         // SUSPENDED 事件已在 executeNode 中发射
       } else {
-        await this.emitEvent('dag.completed');
+        await this.emitEvent("dag.completed");
       }
 
       const snapshotEventId = this.lastEventId;
@@ -217,12 +221,12 @@ export class DAGScheduler {
 
       const summary = this.buildSummary(finalStatus, completedAt);
       return { runId: this.ctx.runId, status: finalStatus, summary };
-    } catch (error) {
+    } catch (_error) {
       // 未预期的异常 → ERROR 状态
       const completedAt = new Date().toISOString();
-      await this.emitEvent('dag.cancelled');
-      const summary = this.buildSummary('ERROR', completedAt);
-      return { runId: this.ctx.runId, status: 'ERROR', summary };
+      await this.emitEvent("dag.cancelled");
+      const summary = this.buildSummary("ERROR", completedAt);
+      return { runId: this.ctx.runId, status: "ERROR", summary };
     }
   }
 
@@ -233,12 +237,10 @@ export class DAGScheduler {
     const ready: NodeDef[] = [];
     for (const node of this.nodes) {
       const status = this.nodeStates.get(node.id);
-      if (status !== 'PENDING') continue;
+      if (status !== "PENDING") continue;
 
       const deps = node.depends_on ?? [];
-      const allDepsCompleted = deps.every(
-        (depId) => this.nodeStates.get(depId) === 'COMPLETED',
-      );
+      const allDepsCompleted = deps.every((depId) => this.nodeStates.get(depId) === "COMPLETED");
       if (allDepsCompleted) {
         ready.push(node);
       }
@@ -260,13 +262,13 @@ export class DAGScheduler {
 
     // 再次检查取消
     if (this.ctx.cancellation.cancelled) {
-      this.nodeStates.set(nodeId, 'CANCELLED');
-      await this.emitEvent('node.cancelled', nodeId);
+      this.nodeStates.set(nodeId, "CANCELLED");
+      await this.emitEvent("node.cancelled", nodeId);
       return;
     }
 
     // 设置 RUNNING（执行器内部会发射 node.started 事件）
-    this.nodeStates.set(nodeId, 'RUNNING');
+    this.nodeStates.set(nodeId, "RUNNING");
 
     try {
       // 解析 ${{ }} 表达式
@@ -286,15 +288,15 @@ export class DAGScheduler {
       const output = await this.ctx.nodeExecutor.execute(node, execCtx);
 
       // 成功 → COMPLETED + 快照（不再发射额外的 node.completed 事件）
-      this.nodeStates.set(nodeId, 'COMPLETED');
+      this.nodeStates.set(nodeId, "COMPLETED");
       this.nodeOutputs.set(nodeId, output);
       this.lastEventId = `evt_${nanoid(10)}`;
       await this.saveSnapshotAfterNode(nodeId, output);
     } catch (error) {
       // 处理 SUSPENDED
       if (error instanceof SuspendedError) {
-        this.nodeStates.set(nodeId, 'SUSPENDED' as NodeStatus);
-        await this.emitEvent('audit.requested', nodeId, {
+        this.nodeStates.set(nodeId, "SUSPENDED" as NodeStatus);
+        await this.emitEvent("audit.requested", nodeId, {
           display_data: error.displayData,
         });
         // 重新抛出让 run() 通过 allSettled 捕获
@@ -302,14 +304,14 @@ export class DAGScheduler {
       }
 
       // 处理 AbortError（取消）
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        this.nodeStates.set(nodeId, 'CANCELLED');
-        await this.emitEvent('node.cancelled', nodeId);
+      if (error instanceof DOMException && error.name === "AbortError") {
+        this.nodeStates.set(nodeId, "CANCELLED");
+        await this.emitEvent("node.cancelled", nodeId);
         return;
       }
 
       // 节点失败（执行器内部已发射 node.failed 事件，此处不再重复）
-      this.nodeStates.set(nodeId, 'FAILED');
+      this.nodeStates.set(nodeId, "FAILED");
 
       // BFS 错误传播：标记下游为 SKIPPED
       await this.propagateFailure(nodeId);
@@ -324,7 +326,7 @@ export class DAGScheduler {
 
     // 解析各节点类型特有的字段
     switch (node.type) {
-      case 'shell': {
+      case "shell": {
         // Shell 节点：command 不做模板解析，通过 inputs 注入环境变量
         resolved.command = node.command;
         if (node.cwd) resolved.cwd = node.cwd;
@@ -333,7 +335,7 @@ export class DAGScheduler {
         }
         break;
       }
-      case 'agent': {
+      case "agent": {
         resolved.prompt = resolveTemplate(node.prompt, evalContext);
         if (node.agent) resolved.agent = resolveTemplate(node.agent, evalContext);
         if (node.skill) resolved.skill = resolveTemplate(node.skill, evalContext);
@@ -342,7 +344,7 @@ export class DAGScheduler {
         if (node.steps !== undefined) resolved.steps = node.steps;
         break;
       }
-      case 'api': {
+      case "api": {
         resolved.url = resolveTemplate(node.url, evalContext);
         if (node.body) resolved.body = resolveTemplate(node.body, evalContext);
         if (node.headers) {
@@ -352,11 +354,11 @@ export class DAGScheduler {
         }
         break;
       }
-      case 'audit': {
+      case "audit": {
         resolved.display_data = node.display_data;
         break;
       }
-      case 'python': {
+      case "python": {
         // Python 节点：code 不做模板解析，通过 inputs 注入变量
         resolved.code = node.code;
         if (node.requirements) resolved.requirements = node.requirements;
@@ -366,19 +368,19 @@ export class DAGScheduler {
         }
         break;
       }
-      case 'workflow': {
+      case "workflow": {
         resolved.ref = resolveTemplate(node.ref, evalContext);
         if (node.params) {
           resolved.params = Object.fromEntries(
             Object.entries(node.params).map(([k, v]) => {
-              if (typeof v === 'string') return [k, resolveTemplate(v, evalContext)];
+              if (typeof v === "string") return [k, resolveTemplate(v, evalContext)];
               return [k, v];
             }),
           );
         }
         break;
       }
-      case 'loop': {
+      case "loop": {
         resolved.condition = resolveTemplate(node.condition, evalContext);
         resolved.max_iterations = node.max_iterations;
         break;
@@ -390,7 +392,7 @@ export class DAGScheduler {
       resolved.condition = resolveTemplate(node.condition, evalContext);
     }
     if (node.env) {
-      if (node.type === 'shell' || node.type === 'python') {
+      if (node.type === "shell" || node.type === "python") {
         resolved.env = node.env;
       } else {
         resolved.env = Object.fromEntries(
@@ -408,7 +410,7 @@ export class DAGScheduler {
     for (const [id, status] of this.nodeStates) {
       const output = this.nodeOutputs.get(id);
       nodes[id] = {
-        output: (output?.json ?? { stdout: output?.stdout ?? '' }) as Record<string, unknown>,
+        output: (output?.json ?? { stdout: output?.stdout ?? "" }) as Record<string, unknown>,
         status,
       };
     }
@@ -431,10 +433,10 @@ export class DAGScheduler {
 
       const status = this.nodeStates.get(nodeId);
       // 只标记 PENDING 的节点，不影响 RUNNING/COMPLETED 节点
-      if (status === 'PENDING') {
-        this.nodeStates.set(nodeId, 'SKIPPED');
-        await this.emitEvent('node.skipped', nodeId, {
-          reason: 'upstream_failed',
+      if (status === "PENDING") {
+        this.nodeStates.set(nodeId, "SKIPPED");
+        await this.emitEvent("node.skipped", nodeId, {
+          reason: "upstream_failed",
         });
       }
 
@@ -447,35 +449,35 @@ export class DAGScheduler {
   /** 计算最终 DAG 状态 */
   private computeFinalStatus(): DAGStatus {
     if (this.ctx.cancellation.cancelled) {
-      return 'CANCELLED';
+      return "CANCELLED";
     }
 
     // 检查是否有 SUSPENDED 节点（SuspendedError 抛出后不会走到这里，但保险起见）
     for (const status of this.nodeStates.values()) {
-      if (status === 'SUSPENDED' as NodeStatus) {
-        return 'SUSPENDED';
+      if (status === ("SUSPENDED" as NodeStatus)) {
+        return "SUSPENDED";
       }
     }
 
     let hasFailed = false;
-    let hasSkipped = false;
+    let _hasSkipped = false;
     let allCompleted = true;
 
     for (const status of this.nodeStates.values()) {
-      if (status === 'FAILED') {
+      if (status === "FAILED") {
         hasFailed = true;
         allCompleted = false;
-      } else if (status === 'SKIPPED' || status === 'CANCELLED') {
-        hasSkipped = true;
+      } else if (status === "SKIPPED" || status === "CANCELLED") {
+        _hasSkipped = true;
         allCompleted = false;
-      } else if (status !== 'COMPLETED') {
+      } else if (status !== "COMPLETED") {
         allCompleted = false;
       }
     }
 
-    if (allCompleted) return 'SUCCESS';
-    if (hasFailed) return 'FAILED';
-    return 'FAILED'; // hasSkipped or partial completion
+    if (allCompleted) return "SUCCESS";
+    if (hasFailed) return "FAILED";
+    return "FAILED"; // hasSkipped or partial completion
   }
 
   /** 构建运行摘要 */
@@ -485,9 +487,9 @@ export class DAGScheduler {
     let running = 0;
 
     for (const s of this.nodeStates.values()) {
-      if (s === 'COMPLETED') completed++;
-      else if (s === 'FAILED') failed++;
-      else if (s === 'RUNNING') running++;
+      if (s === "COMPLETED") completed++;
+      else if (s === "FAILED") failed++;
+      else if (s === "RUNNING") running++;
     }
 
     return {
@@ -507,7 +509,7 @@ export class DAGScheduler {
 
   /** 发射事件 */
   private async emitEvent(
-    type: DAGEvent['type'],
+    type: DAGEvent["type"],
     nodeId?: string,
     metadata?: Record<string, unknown>,
   ): Promise<string> {
@@ -527,7 +529,7 @@ export class DAGScheduler {
 
   /** 创建快照 */
   private async createSnapshot(status: DAGStatus, lastEventId: string): Promise<void> {
-    const nodeStates: DAGSnapshot['node_states'] = {};
+    const nodeStates: DAGSnapshot["node_states"] = {};
     for (const [id, s] of this.nodeStates) {
       nodeStates[id] = { status: s };
     }
@@ -544,13 +546,10 @@ export class DAGScheduler {
   }
 
   /** 节点完成后写入输出 + 快照（不发射事件，事件由执行器负责） */
-  private async saveSnapshotAfterNode(
-    nodeId: string,
-    output: NodeOutput,
-  ): Promise<void> {
+  private async saveSnapshotAfterNode(nodeId: string, output: NodeOutput): Promise<void> {
     await this.ctx.storage.setOutput(this.ctx.runId, nodeId, output);
 
-    const nodeStates: DAGSnapshot['node_states'] = {};
+    const nodeStates: DAGSnapshot["node_states"] = {};
     for (const [id, s] of this.nodeStates) {
       nodeStates[id] = { status: s };
     }
@@ -561,7 +560,7 @@ export class DAGScheduler {
       last_event_id: this.lastEventId,
       timestamp: new Date().toISOString(),
       node_states: nodeStates,
-      dag_status: 'RUNNING',
+      dag_status: "RUNNING",
     };
 
     await this.ctx.storage.createSnapshot(snapshot);

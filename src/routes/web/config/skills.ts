@@ -3,9 +3,9 @@ import { type AuthContext, authGuardPlugin } from "../../../plugins/auth";
 import { ConfigBodySchema } from "../../../schemas/config.schema";
 import { configError, configNotFound, configSuccess, configValidationError } from "../../../services/config-utils";
 import {
-  type ImportConflictStrategy,
   deleteSkill,
   getSkill,
+  type ImportConflictStrategy,
   importSkillDirectories,
   listSkills,
   setSkill,
@@ -20,11 +20,7 @@ async function handleList(ctx: AuthContext) {
   return configSuccess({ skills });
 }
 
-async function handleGet(
-  ctx: AuthContext,
-  body: { name?: string },
-  errorFn: (status: number, body: unknown) => any,
-) {
+async function handleGet(ctx: AuthContext, body: { name?: string }, errorFn: (status: number, body: unknown) => any) {
   if (!body.name) {
     return errorFn(400, configValidationError("Missing 'name' field"));
   }
@@ -46,7 +42,7 @@ async function handleSet(
   if (!body.name) {
     return errorFn(400, configValidationError("Missing 'name' field"));
   }
-  if (!body.data || !body.data.content) {
+  if (!body.data?.content) {
     return errorFn(400, configValidationError("Missing required field: data.content"));
   }
   const result = await setSkill(ctx, body.name, body.data);

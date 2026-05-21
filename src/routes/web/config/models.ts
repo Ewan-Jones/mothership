@@ -108,7 +108,7 @@ async function handleRefresh(ctx: AuthContext) {
 
 app.post(
   "/config/models",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error }: any) => {
     const authCtx = store.authContext!;
     const b = (body as any) ?? {};
     const payload = {

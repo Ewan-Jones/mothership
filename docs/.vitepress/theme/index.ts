@@ -1,8 +1,8 @@
-import DefaultTheme from "vitepress/theme";
 import type { Theme } from "vitepress";
+import DefaultTheme from "vitepress/theme";
 import Home from "./components/Home.vue";
-import RcsLayout from "./components/RcsLayout.vue";
 import NotFound from "./components/NotFound.vue";
+import RcsLayout from "./components/RcsLayout.vue";
 import "./custom.css";
 
 export default {

@@ -111,7 +111,7 @@ describe("Models Config Route", () => {
         body: JSON.stringify({ action: "refresh" }),
       }),
     );
-    const res = await modelsRoute.handle(
+    const _res = await modelsRoute.handle(
       new Request("http://localhost/web/config/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

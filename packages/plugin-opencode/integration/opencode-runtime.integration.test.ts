@@ -216,21 +216,13 @@ async function sendRequestMessagesInOrder(
 
     if (relayMessage.type === "connect") {
       await runStep("waitForConnectedStatus", () =>
-        waitForExpectedResponse(
-          relay,
-          { type: "status", rawIncludes: "\"connected\":true" },
-          responseTimeoutMs,
-        ),
+        waitForExpectedResponse(relay, { type: "status", rawIncludes: '"connected":true' }, responseTimeoutMs),
       );
     }
 
     if (relayMessage.type === "new_session") {
       await runStep("waitForSessionCreated", () =>
-        waitForExpectedResponse(
-          relay,
-          { type: "session_created" },
-          responseTimeoutMs,
-        ),
+        waitForExpectedResponse(relay, { type: "session_created" }, responseTimeoutMs),
       );
     }
   }
@@ -242,79 +234,75 @@ const INTEGRATION_TEST_TIMEOUT_MS = 180_000;
 
 describe("opencode-runtime integration", () => {
   // 真实环境下串通 prepare/start/connectRelay/send/receive/stop 全链路
-  integrationTest("runs the real runtime chain from prepare to stop with a configured hello request", async () => {
-    const config = integrationConfig;
-    if (!config) {
-      return;
-    }
-
-    const runtime = createEnginePlugin().createRuntime();
-    const instanceId = config.instanceId!;
-    const launchSpec = buildLaunchSpec(config);
-    const prepareTimeoutMs = config.prepareTimeoutMs ?? 30_000;
-    const startTimeoutMs = config.startTimeoutMs ?? 30_000;
-    const relayReadyDelayMs = config.relayReadyDelayMs ?? 1_000;
-    const responseTimeoutMs = config.responseTimeoutMs ?? 120_000;
-    let relay: ObservableRelayHandle | null = null;
-
-    try {
-      await runStep("prepareEnvironment", () =>
-        withTimeout(
-          runtime.prepareEnvironment({
-            instanceId,
-            launchSpec,
-          }),
-          prepareTimeoutMs,
-          "prepareEnvironment",
-        ),
-      );
-
-      await runStep("startInstance", () =>
-        withTimeout(
-          runtime.startInstance({
-            instanceId,
-          }),
-          startTimeoutMs,
-          "startInstance",
-        ),
-      );
-
-      relay = await runStep("connectRelay", async () =>
-        requireObservableRelay(
-          await runtime.connectRelay({
-            instanceId,
-          }),
-        ),
-      );
-      const connectedRelay = relay;
-
-      if (relayReadyDelayMs > 0) {
-        await Bun.sleep(relayReadyDelayMs);
+  integrationTest(
+    "runs the real runtime chain from prepare to stop with a configured hello request",
+    async () => {
+      const config = integrationConfig;
+      if (!config) {
+        return;
       }
 
-      const responsePromise = runStep("waitForExpectedResponse", () =>
-        waitForExpectedResponse(
-          connectedRelay,
-          config.relay.successMatch,
-          responseTimeoutMs,
-        ),
-      );
+      const runtime = createEnginePlugin().createRuntime();
+      const instanceId = config.instanceId!;
+      const launchSpec = buildLaunchSpec(config);
+      const prepareTimeoutMs = config.prepareTimeoutMs ?? 30_000;
+      const startTimeoutMs = config.startTimeoutMs ?? 30_000;
+      const relayReadyDelayMs = config.relayReadyDelayMs ?? 1_000;
+      const responseTimeoutMs = config.responseTimeoutMs ?? 120_000;
+      let relay: ObservableRelayHandle | null = null;
 
-      await runStep("sendRequestMessagesInOrder", () =>
-        sendRequestMessagesInOrder(
-          connectedRelay,
-          config.relay.requestMessages,
-          responseTimeoutMs,
-        ),
-      );
+      try {
+        await runStep("prepareEnvironment", () =>
+          withTimeout(
+            runtime.prepareEnvironment({
+              instanceId,
+              launchSpec,
+            }),
+            prepareTimeoutMs,
+            "prepareEnvironment",
+          ),
+        );
 
-      const response = await responsePromise;
-      expect(matchesExpectedResponse(response, config.relay.successMatch)).toBe(true);
-    } finally {
-      if (relay?.state === "open") {
-        await relay.close();
+        await runStep("startInstance", () =>
+          withTimeout(
+            runtime.startInstance({
+              instanceId,
+            }),
+            startTimeoutMs,
+            "startInstance",
+          ),
+        );
+
+        relay = await runStep("connectRelay", async () =>
+          requireObservableRelay(
+            await runtime.connectRelay({
+              instanceId,
+            }),
+          ),
+        );
+        const connectedRelay = relay;
+
+        if (relayReadyDelayMs > 0) {
+          await Bun.sleep(relayReadyDelayMs);
+        }
+
+        const responsePromise = runStep("waitForExpectedResponse", () =>
+          waitForExpectedResponse(connectedRelay, config.relay.successMatch, responseTimeoutMs),
+        );
+
+        await runStep("sendRequestMessagesInOrder", () =>
+          sendRequestMessagesInOrder(connectedRelay, config.relay.requestMessages, responseTimeoutMs),
+        );
+
+        const response = await responsePromise;
+        expect(matchesExpectedResponse(response, config.relay.successMatch)).toBe(true);
+      } finally {
+        if (relay?.state === "open") {
+          await relay.close();
+        }
+        await runtime.stopInstance({ instanceId });
       }
-      await runtime.stopInstance({ instanceId });
-    }
-  }, INTEGRATION_TEST_TIMEOUT_MS);
+    },
+    INTEGRATION_TEST_TIMEOUT_MS,
+  );
 });

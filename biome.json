@@ -15,6 +15,16 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "a11y": {
+        "noLabelWithoutControl": "warn",
+        "noRedundantAlt": "warn",
+        "noSvgWithoutTitle": "warn",
+        "useButtonType": "warn",
+        "useKeyWithClickEvents": "warn",
+        "useMediaCaption": "warn",
+        "useSemanticElements": "warn",
+        "noStaticElementInteractions": "warn"
+      },
       "complexity": {
         "noBannedTypes": "warn",
         "noUselessUndefined": "warn"
@@ -42,14 +52,7 @@
     }
   },
   "files": {
-    "includes": [
-      "**",
-      "!!**/dist",
-      "!!**/node_modules",
-      "!!**/drizzle",
-      "!!**/.agents",
-      "!!**/coverage"
-    ],
+    "includes": ["**", "!!**/dist", "!!**/node_modules", "!!**/drizzle", "!!**/.agents", "!!**/coverage", "!!**/routeTree.gen.ts"],
     "ignoreUnknown": true
   },
   "overrides": [

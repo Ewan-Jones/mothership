@@ -141,7 +141,7 @@ describe("MCP Eden Treaty 客户端", () => {
     fetchMock.status = 404;
     fetchMock.body = { error: { code: "NOT_FOUND", message: "Server not found" } };
     const { client } = await import("../api/client");
-    const { data, error } = await client.web.config.mcp.post({ action: "get", name: "xxx" } as any);
+    const { error } = await client.web.config.mcp.post({ action: "get", name: "xxx" } as any);
     expect(error).not.toBeNull();
   });
 });

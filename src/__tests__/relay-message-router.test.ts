@@ -1,5 +1,9 @@
-import { describe, test, expect } from "bun:test";
-import { shouldInterceptOutbound, shouldInterceptInbound, filterConnectFromFlush } from "../transport/relay/message-router";
+import { describe, expect, test } from "bun:test";
+import {
+  filterConnectFromFlush,
+  shouldInterceptInbound,
+  shouldInterceptOutbound,
+} from "../transport/relay/message-router";
 
 describe("RelayMessageRouter", () => {
   // keep_alive 消息应被拦截

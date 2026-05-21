@@ -28,21 +28,21 @@ export type { ITokenRepo, TokenRecord } from "./token";
 export { tokenRepo } from "./token";
 export type { IWorkItemRepo, WorkItemRecord } from "./work-item";
 export { workItemRepo } from "./work-item";
-export type { WorkflowDefRow, WorkflowVersionRow, AuthCtx as WorkflowAuthCtx } from "./workflow-def";
+export type { AuthCtx as WorkflowAuthCtx, WorkflowDefRow, WorkflowVersionRow } from "./workflow-def";
 export {
   createWorkflowDef,
-  saveDraft,
-  publishVersion,
-  listWorkflowDefs,
-  getWorkflowDef,
+  deleteWorkflowDef,
   getVersions,
   getVersionYaml,
-  setLatestVersion,
-  deleteWorkflowDef,
-  updateWorkflowMeta,
+  getWorkflowDef,
   listRecoverableWorkflows,
+  listWorkflowDefs,
+  publishVersion,
   recoverWorkflows,
   restoreVersionToDraft,
+  saveDraft,
+  setLatestVersion,
+  updateWorkflowMeta,
 } from "./workflow-def";
 
 import { sessionRepo } from "./session";

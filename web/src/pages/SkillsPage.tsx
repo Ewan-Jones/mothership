@@ -12,13 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { client, fetchUpload } from "../api/client";
 import { unwrapConfigData } from "../api/config-response";
-import { buildSkillUploadFormData, parseSkillUploadFiles, validateUploadBatch } from "../lib/skill-upload";
-import type {
-  SkillUploadConflictResponse,
-  SkillUploadConflictStrategy,
-  UploadSkillSummary,
-} from "../types/config";
 import { dispatchConfigChange } from "../lib/config-events";
+import { buildSkillUploadFormData, parseSkillUploadFiles, validateUploadBatch } from "../lib/skill-upload";
+import type { SkillUploadConflictResponse, SkillUploadConflictStrategy, UploadSkillSummary } from "../types/config";
 
 type SkillInfo = {
   id: string;
@@ -47,7 +43,8 @@ export function getUploadResultMessage(imported: number, skipped: number, t: (ke
 }
 
 export function normalizeSkillUploadResult(response: unknown): SkillUploadResult {
-  const data = unwrapConfigData<Partial<SkillUploadResult>>(response) ?? (response as Partial<SkillUploadResult> | null);
+  const data =
+    unwrapConfigData<Partial<SkillUploadResult>>(response) ?? (response as Partial<SkillUploadResult> | null);
   return {
     imported: Array.isArray(data?.imported) ? data.imported : [],
     skipped: Array.isArray(data?.skipped) ? data.skipped : [],
@@ -134,7 +131,7 @@ export function SkillsPage() {
   const [uploadItems, setUploadItems] = useState<UploadSkillSummary[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<SkillUploadConflictResponse["conflicts"]>([]);
-  const [conflictStrategy, setConflictStrategy] = useState<SkillUploadConflictStrategy | null>(null);
+  const [_conflictStrategy, setConflictStrategy] = useState<SkillUploadConflictStrategy | null>(null);
   const [uploadPending, setUploadPending] = useState(false);
   const [overwriteConfirmOpen, setOverwriteConfirmOpen] = useState(false);
 
@@ -310,11 +307,9 @@ export function SkillsPage() {
     try {
       await Promise.all(
         selected.map((s) =>
-          client.web.config.skills
-            .post({ action: "delete", name: s.name })
-            .then((r) => {
-              if (r.error) throw new Error(r.error.message ?? t("toast.deleteFailed"));
-            }),
+          client.web.config.skills.post({ action: "delete", name: s.name }).then((r) => {
+            if (r.error) throw new Error(r.error.message ?? t("toast.deleteFailed"));
+          }),
         ),
       );
       toast.success(t("toast.batchDeleted", { count: selected.length }));
@@ -355,6 +350,7 @@ export function SkillsPage() {
         <div className="rounded-md border">
           <Skeleton className="h-10 w-full rounded-t-md" />
           {Array.from({ length: 5 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Skeleton key={i} className="h-12 w-full rounded-none border-t" />
           ))}
         </div>

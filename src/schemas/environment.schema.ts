@@ -1,6 +1,6 @@
 import * as z from "zod/v4";
 
-const EnvironmentStatusSchema = z.enum(["active", "idle", "offline", "error"]);
+const _EnvironmentStatusSchema = z.enum(["active", "idle", "offline", "error"]);
 
 export const EnvironmentInfoSchema = z.object({
   id: z.string(),

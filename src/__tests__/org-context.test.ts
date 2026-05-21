@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 // mock better-auth 在 import 前注册
 mock.module("../auth/better-auth", () => ({
@@ -12,7 +12,7 @@ mock.module("../auth/better-auth", () => ({
   },
 }));
 
-import { setTestOrgContext, clearOrgCache } from "../services/org-context";
+import { clearOrgCache, setTestOrgContext } from "../services/org-context";
 
 describe("loadOrgContext", () => {
   beforeEach(() => {

@@ -1,3 +1,6 @@
+import { constants } from "node:fs";
+import { access, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import type {
   AgentLaunchSpec,
   ConnectRelayInput,
@@ -7,32 +10,17 @@ import type {
   StartInstanceInput,
   StopInstanceInput,
 } from "@mothership/plugin-sdk";
-import { constants } from "node:fs";
-import { access, mkdir } from "node:fs/promises";
-import { join } from "node:path";
-import {
-  prepareWorkspaceEnvironment,
-} from "./environment-preparer";
 import { AcpLinkProcessManager, type ManagedAcpLinkProcess } from "../process/acp-link-process-manager";
 import { createPortAllocator, type PortAllocator } from "../process/port-allocator";
 import { createRelayHandle, type OpencodeRelayHandle, type RelayHandleDependencies } from "../relay/relay-handle";
-import {
-  buildOpencodeRuntimeConfig,
-  type InstalledSkillReference,
-  type OpencodeRuntimeConfig,
-} from "./runtime-config";
+import { prepareWorkspaceEnvironment } from "./environment-preparer";
+import { buildOpencodeRuntimeConfig, type InstalledSkillReference, type OpencodeRuntimeConfig } from "./runtime-config";
 import { installSkills, type SkillInstallerDependencies } from "./skill-installer";
 
 const RELAY_CONNECT_MAX_ATTEMPTS = 20;
 const RELAY_CONNECT_RETRY_DELAY_MS = 100;
 
-export type RuntimeStatus =
-  | "idle"
-  | "prepared"
-  | "starting"
-  | "running"
-  | "stopped"
-  | "error";
+export type RuntimeStatus = "idle" | "prepared" | "starting" | "running" | "stopped" | "error";
 
 /**
  * runtime 为单个实例保存的内部状态。
@@ -71,22 +59,10 @@ export interface OpencodeRuntimeDependencies {
   relayHandleDependencies?: RelayHandleDependencies;
   skillInstallerDependencies?: SkillInstallerDependencies;
   installSkills?: typeof installSkills;
-  prepareEnvironment?: (
-    input: PrepareEnvironmentInput,
-    state: RuntimeInstanceState,
-  ) => Promise<void>;
-  startInstance?: (
-    input: StartInstanceInput,
-    state: RuntimeInstanceState,
-  ) => Promise<void>;
-  connectRelay?: (
-    input: ConnectRelayInput,
-    state: RuntimeInstanceState,
-  ) => Promise<EngineRelayHandle>;
-  stopInstance?: (
-    input: StopInstanceInput,
-    state: RuntimeInstanceState,
-  ) => Promise<void>;
+  prepareEnvironment?: (input: PrepareEnvironmentInput, state: RuntimeInstanceState) => Promise<void>;
+  startInstance?: (input: StartInstanceInput, state: RuntimeInstanceState) => Promise<void>;
+  connectRelay?: (input: ConnectRelayInput, state: RuntimeInstanceState) => Promise<EngineRelayHandle>;
+  stopInstance?: (input: StopInstanceInput, state: RuntimeInstanceState) => Promise<void>;
 }
 
 export interface OpencodeRuntime extends EngineRuntime {
@@ -97,10 +73,7 @@ async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getOrCreateState(
-  states: Map<string, RuntimeInstanceState>,
-  instanceId: string,
-): RuntimeInstanceState {
+function getOrCreateState(states: Map<string, RuntimeInstanceState>, instanceId: string): RuntimeInstanceState {
   const existing = states.get(instanceId);
   if (existing) {
     return existing;
@@ -120,9 +93,7 @@ function getOrCreateState(
 /**
  * 创建 opencode runtime。
  */
-export function createOpencodeRuntime(
-  dependencies: OpencodeRuntimeDependencies = {},
-): OpencodeRuntime {
+export function createOpencodeRuntime(dependencies: OpencodeRuntimeDependencies = {}): OpencodeRuntime {
   const states = new Map<string, RuntimeInstanceState>();
   const accessWorkspace = dependencies.accessWorkspace ?? access;
   const installSkillsImpl = dependencies.installSkills ?? installSkills;

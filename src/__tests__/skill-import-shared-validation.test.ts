@@ -42,9 +42,9 @@ afterEach(() => {
 
 describe("skill import shared validation", () => {
   it("空文件列表抛出验证错误", async () => {
-    await expect(importSkillDirectories({ organizationId: "test-org", userId: "user-1", role: "owner" }, [])).rejects.toThrow(
-      "未提供任何上传文件",
-    );
+    await expect(
+      importSkillDirectories({ organizationId: "test-org", userId: "user-1", role: "owner" }, []),
+    ).rejects.toThrow("未提供任何上传文件");
   });
 
   it("空 grouped 抛出验证错误", async () => {

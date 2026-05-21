@@ -4,8 +4,8 @@
  * with shadcn <Button> and <ScrollArea>.
  */
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const webRoot = resolve(__dirname, "..", "..");
 

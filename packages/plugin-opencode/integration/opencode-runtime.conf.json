@@ -24,11 +24,13 @@
       "modelName": "replace-with-model-name"
     },
     "skills": [],
-    "mcpServers": [{
-      "name": "mcp-test",
-      "type":"streamable-http",
-      "url": "http://127.0.0.1:9001/api/v1/mcp"
-    }]
+    "mcpServers": [
+      {
+        "name": "mcp-test",
+        "type": "streamable-http",
+        "url": "http://127.0.0.1:9001/api/v1/mcp"
+      }
+    ]
   },
   "relay": {
     "requestMessages": [

@@ -1,12 +1,12 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { MessageSquare, PanelLeft, PanelLeftClose, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ACPClient } from "../src/acp/client";
 import type { AgentSessionInfo } from "../src/acp/types";
-import { ChatInterface, type ChatInterfaceHandle } from "./ChatInterface";
+import { client as apiClient } from "../src/api/client";
 import { cn } from "../src/lib/utils";
-import { MessageSquare, Plus, PanelLeftClose, PanelLeft } from "lucide-react";
+import { ChatInterface, type ChatInterfaceHandle } from "./ChatInterface";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { client as apiClient } from "../src/api/client";
 
 interface ACPMainProps {
   client: ACPClient;
@@ -22,7 +22,15 @@ interface ACPMainProps {
  * Main container — Anthropic sidebar + chat layout.
  * Sidebar: sectioned by recency, orange active state, warm raised bg.
  */
-export function ACPMain({ client, agentId, initialCwd, readonly, hideSidebar, rcsSessionId, scenePrompt }: ACPMainProps) {
+export function ACPMain({
+  client,
+  agentId,
+  initialCwd,
+  readonly,
+  hideSidebar,
+  rcsSessionId,
+  scenePrompt,
+}: ACPMainProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [cwd, setCwd] = useState<string | undefined>(initialCwd?.replace(/\/+$/, ""));
   const [cwdReady, setCwdReady] = useState(!agentId || !!initialCwd);
@@ -46,7 +54,9 @@ export function ACPMain({ client, agentId, initialCwd, readonly, hideSidebar, rc
     }
 
     setCwdReady(false);
-    apiClient.web.environments({ id: agentId }).get()
+    apiClient.web
+      .environments({ id: agentId })
+      .get()
       .then(({ data, error }) => {
         if (error) throw new Error(error.message ?? "加载环境失败");
         const env = data as { workspace_path: string };
@@ -65,7 +75,7 @@ export function ACPMain({ client, agentId, initialCwd, readonly, hideSidebar, rc
       clearTimeout(bootstrapRetryTimerRef.current);
       bootstrapRetryTimerRef.current = null;
     }
-  }, [agentId, cwd]);
+  }, []);
 
   // When capabilities arrive via ACP event (not React getter), bump bootstrap attempt once.
   // This avoids the infinite loop caused by depending on a getter that returns true on every render.
@@ -84,19 +94,22 @@ export function ACPMain({ client, agentId, initialCwd, readonly, hideSidebar, rc
   }, [cwdReady, client]);
 
   // Handle session selection
-  const handleSelectSession = useCallback(async (session: AgentSessionInfo) => {
-    try {
-      if (client.supportsLoadSession) {
-        await client.loadSession({ sessionId: session.sessionId, cwd: session.cwd });
-      } else if (client.supportsResumeSession) {
-        await client.resumeSession({ sessionId: session.sessionId, cwd: session.cwd });
-      } else {
-        throw new Error("Loading or resuming sessions is not supported by this agent.");
+  const handleSelectSession = useCallback(
+    async (session: AgentSessionInfo) => {
+      try {
+        if (client.supportsLoadSession) {
+          await client.loadSession({ sessionId: session.sessionId, cwd: session.cwd });
+        } else if (client.supportsResumeSession) {
+          await client.resumeSession({ sessionId: session.sessionId, cwd: session.cwd });
+        } else {
+          throw new Error("Loading or resuming sessions is not supported by this agent.");
+        }
+      } catch (error) {
+        console.error("Failed to load/resume session:", error);
       }
-    } catch (error) {
-      console.error("Failed to load/resume session:", error);
-    }
-  }, [client]);
+    },
+    [client],
+  );
 
   // Bootstrap: load latest session or create new one.
   // Triggers on connection ready AND when capabilities arrive (via bootstrapAttempt increment).
@@ -170,57 +183,57 @@ export function ACPMain({ client, agentId, initialCwd, readonly, hideSidebar, rc
   return (
     <div className="flex h-full w-full">
       {/* 侧边栏 — Anthropic warm sidebar, hidden on mobile / hidden in readonly share mode */}
-      {!readonly && !hideSidebar && <div
-        className={cn(
-          "hidden md:flex flex-col border-r border-border/60 bg-surface-1/50 transition-all duration-200 flex-shrink-0",
-          sidebarCollapsed ? "w-12" : "w-64",
-        )}
-      >
-        {/* 头部 */}
-        <div className="flex items-center justify-between px-3 py-4">
-          {!sidebarCollapsed && (
-            <span className="text-xs font-display font-semibold text-text-muted uppercase tracking-widest px-1">会话</span>
+      {!readonly && !hideSidebar && (
+        <div
+          className={cn(
+            "hidden md:flex flex-col border-r border-border/60 bg-surface-1/50 transition-all duration-200 flex-shrink-0",
+            sidebarCollapsed ? "w-12" : "w-64",
           )}
-          <div className={cn("flex items-center gap-0.5", sidebarCollapsed && "mx-auto")}>
+        >
+          {/* 头部 */}
+          <div className="flex items-center justify-between px-3 py-4">
             {!sidebarCollapsed && (
+              <span className="text-xs font-display font-semibold text-text-muted uppercase tracking-widest px-1">
+                会话
+              </span>
+            )}
+            <div className={cn("flex items-center gap-0.5", sidebarCollapsed && "mx-auto")}>
+              {!sidebarCollapsed && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => chatRef.current?.newSession()}
+                  className="h-7 w-7 text-text-muted hover:text-brand hover:bg-brand/10"
+                  title="新会话"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => chatRef.current?.newSession()}
-                className="h-7 w-7 text-text-muted hover:text-brand hover:bg-brand/10"
-                title="新会话"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="h-7 w-7 text-text-muted hover:text-text-primary hover:bg-surface-2"
               >
-                <Plus className="h-4 w-4" />
+                {sidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="h-7 w-7 text-text-muted hover:text-text-primary hover:bg-surface-2"
-            >
-              {sidebarCollapsed ? (
-                <PanelLeft className="h-4 w-4" />
-              ) : (
-                <PanelLeftClose className="h-4 w-4" />
-              )}
-            </Button>
+            </div>
           </div>
-        </div>
 
-        {/* 会话列表 */}
-        {!sidebarCollapsed && (
-          <ScrollArea className="flex-1">
-            <SidebarSessionList
-              client={client}
-              cwd={cwd}
-              cwdReady={cwdReady}
-              initialActiveSessionId={initialActiveSessionId}
-              onSelectSession={handleSelectSession}
-            />
-          </ScrollArea>
-        )}
-      </div>}
+          {/* 会话列表 */}
+          {!sidebarCollapsed && (
+            <ScrollArea className="flex-1">
+              <SidebarSessionList
+                client={client}
+                cwd={cwd}
+                cwdReady={cwdReady}
+                initialActiveSessionId={initialActiveSessionId}
+                onSelectSession={handleSelectSession}
+              />
+            </ScrollArea>
+          )}
+        </div>
+      )}
 
       {/* 聊天区域 */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -237,7 +250,18 @@ export function ACPMain({ client, agentId, initialCwd, readonly, hideSidebar, rc
             </Button>
           </div>
         )}
-        <ChatInterface ref={chatRef} client={client} agentId={agentId} cwd={cwd} cwdReady={cwdReady} readonly={readonly} hideContextPanel={true} rcsSessionId={rcsSessionId} scenePrompt={scenePrompt} onSessionCreated={(sessionId) => setInitialActiveSessionId(sessionId)} />
+        <ChatInterface
+          ref={chatRef}
+          client={client}
+          agentId={agentId}
+          cwd={cwd}
+          cwdReady={cwdReady}
+          readonly={readonly}
+          hideContextPanel={true}
+          rcsSessionId={rcsSessionId}
+          scenePrompt={scenePrompt}
+          onSessionCreated={(sessionId) => setInitialActiveSessionId(sessionId)}
+        />
       </div>
     </div>
   );
@@ -387,7 +411,7 @@ function SidebarSessionList({
             >
               <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
               <span className="text-[13px] font-display truncate leading-snug">
-                {session.title && session.title.trim() ? session.title : "新会话"}
+                {session.title?.trim() ? session.title : "新会话"}
               </span>
             </Button>
           ))}

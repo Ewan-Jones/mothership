@@ -1,5 +1,5 @@
 import Elysia from "elysia";
-import { log, error as logError } from "../../logger";
+import { error as logError } from "../../logger";
 import { authGuardPlugin } from "../../plugins/auth";
 import { requireOrgScope } from "../../plugins/require-team-scope";
 import { environmentRepo, sessionRepo } from "../../repositories";
@@ -8,7 +8,6 @@ import {
   CreateSessionRequestSchema,
   type SendEventsRequest,
   SendEventsRequestSchema,
-  type UpdateSessionRequest,
   UpdateSessionRequestSchema,
 } from "../../schemas/v1-session.schema";
 import { archiveSession, createSession, getSession, resolveExistingSessionId } from "../../services/session";
@@ -29,15 +28,15 @@ const app = new Elysia({ name: "v1-sessions", prefix: "/v1/sessions" }).use(auth
 async function requireSessionScope(
   authContext: any,
   sessionId: string,
-  error: (code: number, body: unknown) => Response,
+  _error: (code: number, body: unknown) => Response,
 ): Promise<Response | undefined> {
   const sessionRecord = await sessionRepo.getById(sessionId);
   if (!sessionRecord?.environmentId) {
     // session 无 environment 绑定（轻量存根）— 允许访问
-    return undefined;
+    return;
   }
   const env = await environmentRepo.getById(sessionRecord.environmentId);
-  if (!env) return undefined;
+  if (!env) return;
   return requireOrgScope(authContext, env.organizationId);
 }
 

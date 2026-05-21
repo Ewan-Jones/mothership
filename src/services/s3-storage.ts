@@ -215,7 +215,7 @@ function sessionKey(sessionId: string, relativePath: string): string {
   return normalizeKey(`sessions/${sessionId}/${relativePath}`);
 }
 
-function assetKey(relativePath: string): string {
+function _assetKey(relativePath: string): string {
   return normalizeKey(`assets/${relativePath}`);
 }
 

@@ -1,14 +1,14 @@
-import { EventEmitter } from "./emitter.js";
-import type { WSTransport } from "./transport.js";
-import type { ACPProtocol } from "./protocol.js";
 import type {
   AgentCapabilities,
+  AvailableCommand,
+  ConnectionState,
   PromptCapabilities,
   SessionModelState,
   SessionModeState,
-  AvailableCommand,
-  ConnectionState,
 } from "../types.js";
+import { EventEmitter } from "./emitter.js";
+import type { ACPProtocol } from "./protocol.js";
+import type { WSTransport } from "./transport.js";
 
 export interface StateEvents {
   connectionStateChange: { state: ConnectionState; error?: string };
@@ -36,16 +36,32 @@ export class ACPState extends EventEmitter<StateEvents> {
   private _availableCommands: AvailableCommand[] = [];
 
   // Getters
-  get connectionState(): ConnectionState { return this._connectionState; }
-  get sessionId(): string | null { return this._sessionId; }
-  get agentCapabilities(): AgentCapabilities | null { return this._agentCapabilities; }
-  get promptCapabilities(): PromptCapabilities | null { return this._promptCapabilities; }
-  get modelState(): SessionModelState | null { return this._modelState; }
-  get modeState(): SessionModeState | null { return this._modeState; }
-  get availableCommands(): AvailableCommand[] { return this._availableCommands; }
+  get connectionState(): ConnectionState {
+    return this._connectionState;
+  }
+  get sessionId(): string | null {
+    return this._sessionId;
+  }
+  get agentCapabilities(): AgentCapabilities | null {
+    return this._agentCapabilities;
+  }
+  get promptCapabilities(): PromptCapabilities | null {
+    return this._promptCapabilities;
+  }
+  get modelState(): SessionModelState | null {
+    return this._modelState;
+  }
+  get modeState(): SessionModeState | null {
+    return this._modeState;
+  }
+  get availableCommands(): AvailableCommand[] {
+    return this._availableCommands;
+  }
 
   // Derived getters
-  get supportsImages(): boolean { return this._promptCapabilities?.image === true; }
+  get supportsImages(): boolean {
+    return this._promptCapabilities?.image === true;
+  }
 
   get supportsModelSelection(): boolean {
     return this._modelState !== null && this._modelState.availableModels.length > 0;
@@ -56,13 +72,17 @@ export class ACPState extends EventEmitter<StateEvents> {
   }
 
   get supportsResumeSession(): boolean {
-    return this._agentCapabilities?.sessionCapabilities?.resume !== undefined
-      && this._agentCapabilities?.sessionCapabilities?.resume !== null;
+    return (
+      this._agentCapabilities?.sessionCapabilities?.resume !== undefined &&
+      this._agentCapabilities?.sessionCapabilities?.resume !== null
+    );
   }
 
   get supportsSessionList(): boolean {
-    return this._agentCapabilities?.sessionCapabilities?.list !== undefined
-      && this._agentCapabilities?.sessionCapabilities?.list !== null;
+    return (
+      this._agentCapabilities?.sessionCapabilities?.list !== undefined &&
+      this._agentCapabilities?.sessionCapabilities?.list !== null
+    );
   }
 
   get supportsSessionHistory(): boolean {
@@ -81,9 +101,7 @@ export class ACPState extends EventEmitter<StateEvents> {
       } else if (state === "connecting") {
         this.setConnectionState("connecting");
       } else if (state === "error") {
-        const error = detail?.code === 4001
-          ? "登录已过期"
-          : detail?.reason || "连接已断开，请刷新页面重试";
+        const error = detail?.code === 4001 ? "登录已过期" : detail?.reason || "连接已断开，请刷新页面重试";
         this.setConnectionState("error", error);
       } else if (state === "disconnected") {
         this.resetSessionState();
@@ -99,7 +117,12 @@ export class ACPState extends EventEmitter<StateEvents> {
       }
     };
 
-    const onSessionCreated = (payload: { sessionId: string; promptCapabilities?: PromptCapabilities; models?: SessionModelState | null; modes?: SessionModeState | null }) => {
+    const onSessionCreated = (payload: {
+      sessionId: string;
+      promptCapabilities?: PromptCapabilities;
+      models?: SessionModelState | null;
+      modes?: SessionModeState | null;
+    }) => {
       this._sessionId = payload.sessionId;
       this.emit("sessionIdChange", this._sessionId);
       this.setPromptCapabilities(payload.promptCapabilities ?? null);
@@ -107,7 +130,12 @@ export class ACPState extends EventEmitter<StateEvents> {
       this.setModeState(payload.modes ?? null);
     };
 
-    const onSessionLoaded = (payload: { sessionId: string; promptCapabilities?: PromptCapabilities; models?: SessionModelState | null; modes?: SessionModeState | null }) => {
+    const onSessionLoaded = (payload: {
+      sessionId: string;
+      promptCapabilities?: PromptCapabilities;
+      models?: SessionModelState | null;
+      modes?: SessionModeState | null;
+    }) => {
       this._sessionId = payload.sessionId;
       this.emit("sessionIdChange", this._sessionId);
       this.setPromptCapabilities(payload.promptCapabilities ?? null);
@@ -115,7 +143,12 @@ export class ACPState extends EventEmitter<StateEvents> {
       this.setModeState(payload.modes ?? null);
     };
 
-    const onSessionResumed = (payload: { sessionId: string; promptCapabilities?: PromptCapabilities; models?: SessionModelState | null; modes?: SessionModeState | null }) => {
+    const onSessionResumed = (payload: {
+      sessionId: string;
+      promptCapabilities?: PromptCapabilities;
+      models?: SessionModelState | null;
+      modes?: SessionModeState | null;
+    }) => {
       this._sessionId = payload.sessionId;
       this.emit("sessionIdChange", this._sessionId);
       this.setPromptCapabilities(payload.promptCapabilities ?? null);

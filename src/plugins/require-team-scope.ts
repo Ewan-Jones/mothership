@@ -20,5 +20,5 @@ export function requireOrgScope(
       error: { type: "forbidden", message: "Resource does not belong to your organization" },
     });
   }
-  return undefined;
+  return;
 }

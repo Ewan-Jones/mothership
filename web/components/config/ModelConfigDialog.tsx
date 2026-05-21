@@ -1,9 +1,9 @@
+import { Settings } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Settings } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { client } from "@/src/api/client";
 import type { ModelEntry } from "@/src/types/config";
 
@@ -26,11 +26,14 @@ export function ModelConfigDialog({ currentModel, currentSmallModel, available }
 
   const handleModelChange = async (field: "model" | "small_model", value: string) => {
     try {
-      const { error } = await client.web.config.models.post({ action: "set", [field]: value } as Record<string, unknown>);
+      const { error } = await client.web.config.models.post({ action: "set", [field]: value } as Record<
+        string,
+        unknown
+      >);
       if (error) throw new Error(error.message ?? "更新失败");
       toast.success("模型已更新");
     } catch (e) {
-      toast.error("更新失败: " + (e instanceof Error ? e.message : "未知错误"));
+      toast.error(`更新失败: ${e instanceof Error ? e.message : "未知错误"}`);
     }
   };
 
@@ -52,47 +55,53 @@ export function ModelConfigDialog({ currentModel, currentSmallModel, available }
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">主模型</label>
-              <Select
-                value={currentModel ?? ""}
-                onValueChange={(v) => handleModelChange("model", v)}
-              >
+              <Select value={currentModel ?? ""} onValueChange={(v) => handleModelChange("model", v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="选择主模型" />
                 </SelectTrigger>
                 <SelectContent>
                   {modelOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Input
                 value={customModel}
                 onChange={(e) => setCustomModel(e.target.value)}
-                onBlur={() => { handleCustomModel("model", customModel); }}
-                onKeyDown={(e) => { if (e.key === "Enter") handleCustomModel("model", customModel); }}
+                onBlur={() => {
+                  handleCustomModel("model", customModel);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCustomModel("model", customModel);
+                }}
                 placeholder="或手动输入模型 ID"
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">轻量模型</label>
-              <Select
-                value={currentSmallModel ?? ""}
-                onValueChange={(v) => handleModelChange("small_model", v)}
-              >
+              <Select value={currentSmallModel ?? ""} onValueChange={(v) => handleModelChange("small_model", v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="选择轻量模型" />
                 </SelectTrigger>
                 <SelectContent>
                   {modelOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Input
                 value={customSmallModel}
                 onChange={(e) => setCustomSmallModel(e.target.value)}
-                onBlur={() => { handleCustomModel("small_model", customSmallModel); }}
-                onKeyDown={(e) => { if (e.key === "Enter") handleCustomModel("small_model", customSmallModel); }}
+                onBlur={() => {
+                  handleCustomModel("small_model", customSmallModel);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCustomModel("small_model", customSmallModel);
+                }}
                 placeholder="或手动输入模型 ID"
               />
             </div>

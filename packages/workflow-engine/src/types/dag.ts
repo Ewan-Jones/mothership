@@ -1,6 +1,6 @@
 /** 参数定义 */
 export interface ParamDef {
-  type?: 'string' | 'number' | 'boolean' | 'object';
+  type?: "string" | "number" | "boolean" | "object";
   default?: unknown;
   required?: boolean;
 }
@@ -11,11 +11,11 @@ export interface RetryConfig {
   /** 默认 1 秒 */
   delay?: number;
   /** 默认 fixed */
-  backoff?: 'fixed' | 'exponential';
+  backoff?: "fixed" | "exponential";
 }
 
 /** 节点类型 */
-export type NodeType = 'shell' | 'python' | 'agent' | 'api' | 'audit' | 'workflow' | 'loop';
+export type NodeType = "shell" | "python" | "agent" | "api" | "audit" | "workflow" | "loop";
 
 /** 基础节点定义 */
 export interface BaseNodeDef {
@@ -32,7 +32,7 @@ export interface BaseNodeDef {
 
 /** Shell 节点 — 执行命令 */
 export interface ShellNodeDef extends BaseNodeDef {
-  type: 'shell';
+  type: "shell";
   command: string | string[];
   cwd?: string;
   /** 显式声明需要注入为环境变量的上游数据，key 为环境变量名，value 为表达式 */
@@ -41,7 +41,7 @@ export interface ShellNodeDef extends BaseNodeDef {
 
 /** Python 节点 — 执行 Python 脚本 */
 export interface PythonNodeDef extends BaseNodeDef {
-  type: 'python';
+  type: "python";
   code: string;
   requirements?: string[];
   cwd?: string;
@@ -51,7 +51,7 @@ export interface PythonNodeDef extends BaseNodeDef {
 
 /** Agent 节点 — 调用 AI Agent */
 export interface AgentNodeDef extends BaseNodeDef {
-  type: 'agent';
+  type: "agent";
   prompt: string;
   agent?: string;
   skill?: string;
@@ -66,23 +66,23 @@ export interface AgentNodeDef extends BaseNodeDef {
 
 /** API 节点 — HTTP 请求 */
 export interface ApiNodeDef extends BaseNodeDef {
-  type: 'api';
+  type: "api";
   url: string;
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   headers?: Record<string, string>;
   body?: string;
 }
 
 /** 审计节点 — 人工审��门 */
 export interface AuditNodeDef extends BaseNodeDef {
-  type: 'audit';
+  type: "audit";
   display_data?: unknown;
   expires_in?: number;
 }
 
 /** 子工作流节点 */
 export interface SubWorkflowNodeDef extends BaseNodeDef {
-  type: 'workflow';
+  type: "workflow";
   ref: string;
   params?: Record<string, unknown>;
   ignore_errors?: boolean;
@@ -95,7 +95,7 @@ export interface LoopBody {
 
 /** 循环节点 */
 export interface LoopNodeDef extends BaseNodeDef {
-  type: 'loop';
+  type: "loop";
   condition: string;
   max_iterations: number;
   body: LoopBody;

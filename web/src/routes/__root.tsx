@@ -1,10 +1,10 @@
-import { createRootRoute, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { createRootRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Toaster } from "sonner";
-import { ThemeProvider } from "../lib/theme";
 import { OrgProvider } from "../contexts/OrgContext";
 import { useSession } from "../lib/auth-client";
+import { ThemeProvider } from "../lib/theme";
 
 export const Route = createRootRoute({
   component: RootComponent,

@@ -13,7 +13,6 @@ import {
   updateTask,
 } from "../../services/task";
 
-
 const app = new Elysia({ name: "web-tasks", prefix: "/web" }).use(authGuardPlugin).model({
   "task-info": TaskInfoSchema,
   "task-info-list": TaskInfoSchema.array(),
@@ -24,7 +23,7 @@ const app = new Elysia({ name: "web-tasks", prefix: "/web" }).use(authGuardPlugi
 /** GET /tasks — List current team's scheduled tasks */
 app.get(
   "/tasks",
-  async ({ store, request }: any) => {
+  async ({ store, request: _request }: any) => {
     const authCtx = store.authContext!;
     const result = await listTasks(authCtx.organizationId);
     return result;
@@ -35,7 +34,7 @@ app.get(
 /** POST /tasks — Create a new scheduled task */
 app.post(
   "/tasks",
-  async ({ store, body, error, request }: any) => {
+  async ({ store, body, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const payload = body as Record<string, unknown>;
     const result = await createTask(authCtx.organizationId, payload as any, authCtx.userId);
@@ -69,7 +68,7 @@ async function safeTaskOp<T>(
 /** GET /tasks/:id — Get task detail */
 app.get(
   "/tasks/:id",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const taskId = params.id;
     return safeTaskOp(async () => {
@@ -86,7 +85,7 @@ app.get(
 /** PUT /tasks/:id — Update task configuration */
 app.put(
   "/tasks/:id",
-  async ({ store, params, body, error, request }: any) => {
+  async ({ store, params, body, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const taskId = params.id;
     const payload = body as Record<string, unknown>;
@@ -108,7 +107,7 @@ app.put(
 /** DELETE /tasks/:id — Delete a task */
 app.delete(
   "/tasks/:id",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const taskId = params.id;
     try {
@@ -133,7 +132,7 @@ app.delete(
 /** POST /tasks/:id/toggle — Toggle task enabled/disabled */
 app.post(
   "/tasks/:id/toggle",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const taskId = params.id;
     return safeTaskOp(async () => {
@@ -148,7 +147,7 @@ app.post(
 /** POST /tasks/:id/trigger — Manually trigger a task execution */
 app.post(
   "/tasks/:id/trigger",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const taskId = params.id;
     return safeTaskOp(async () => {
@@ -163,7 +162,7 @@ app.post(
 /** GET /tasks/:id/logs — Get execution logs (paginated) */
 app.get(
   "/tasks/:id/logs",
-  async ({ store, params, query, error, request }: any) => {
+  async ({ store, params, query, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const taskId = params.id;
     return safeTaskOp(async () => {
@@ -181,7 +180,7 @@ app.get(
 /** DELETE /tasks/:id/logs — Clear all execution logs for a task */
 app.delete(
   "/tasks/:id/logs",
-  async ({ store, params, error, request }: any) => {
+  async ({ store, params, error, request: _request }: any) => {
     const authCtx = store.authContext!;
     const taskId = params.id;
     return safeTaskOp(async () => {

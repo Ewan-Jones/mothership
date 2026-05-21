@@ -7,12 +7,12 @@
  * 3. 等待 prompt_complete 信号后拼接输出并返回 AgentResponse
  */
 
-import { nanoid } from "nanoid";
 import type { AgentRequest, AgentResponse, AgentSession, Transport } from "@mothership/workflow-engine";
-import { findAcpConnectionByAgentId, sendToAgentWs } from "../../transport/acp-ws-handler";
-import { getAcpEventBus } from "../../transport/event-bus";
-import type { SessionEvent } from "../../transport/event-bus";
+import { nanoid } from "nanoid";
 import { log } from "../../logger";
+import { findAcpConnectionByAgentId, sendToAgentWs } from "../../transport/acp-ws-handler";
+import type { SessionEvent } from "../../transport/event-bus";
+import { getAcpEventBus } from "../../transport/event-bus";
 
 // ---------- 常量 ----------
 

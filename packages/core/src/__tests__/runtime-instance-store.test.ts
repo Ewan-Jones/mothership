@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
-import { CoreRuntimeError } from "../errors/core-runtime-error";
 import { createRuntimeInstanceStore } from "../runtime/runtime-instance-store";
 import { createFakeEnginePlugin } from "./fixtures/fake-engine-plugin";
 

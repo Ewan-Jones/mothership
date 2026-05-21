@@ -13,11 +13,9 @@ export async function listAgentSkillIds(agentConfigId: string): Promise<string[]
 
 /** 全量覆盖 Agent 的技能关联（先删后插） */
 export async function syncAgentSkills(agentConfigId: string, skillIds: string[]): Promise<void> {
-  await db
-    .delete(agentConfigSkill)
-    .where(eq(agentConfigSkill.agentConfigId, agentConfigId));
+  await db.delete(agentConfigSkill).where(eq(agentConfigSkill.agentConfigId, agentConfigId));
 
-  const valid = skillIds.filter((id) => id && id.trim());
+  const valid = skillIds.filter((id) => id?.trim());
   if (valid.length === 0) return;
 
   await db.insert(agentConfigSkill).values(

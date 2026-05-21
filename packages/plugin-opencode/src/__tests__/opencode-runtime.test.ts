@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
@@ -74,7 +74,9 @@ describe("opencode-runtime prepareEnvironment", () => {
       launchSpec: createLaunchSpec({ skills: [{ name: "writer-skill", url: "https://example.com/first.zip" }] }),
     });
     const state1 = runtime.getInstanceState("inst_repeat");
-    expect(await readFile(join(state1!.workspace!, ".opencode", "skills", "writer-skill", "SKILL.md"), "utf8")).toBe("v1");
+    expect(await readFile(join(state1!.workspace!, ".opencode", "skills", "writer-skill", "SKILL.md"), "utf8")).toBe(
+      "v1",
+    );
 
     version = "v2";
     await runtime.prepareEnvironment({
@@ -82,7 +84,9 @@ describe("opencode-runtime prepareEnvironment", () => {
       launchSpec: createLaunchSpec({ skills: [{ name: "writer-skill", url: "https://example.com/second.zip" }] }),
     });
     const state2 = runtime.getInstanceState("inst_repeat");
-    expect(await readFile(join(state2!.workspace!, ".opencode", "skills", "writer-skill", "SKILL.md"), "utf8")).toBe("v2");
+    expect(await readFile(join(state2!.workspace!, ".opencode", "skills", "writer-skill", "SKILL.md"), "utf8")).toBe(
+      "v2",
+    );
 
     if (state2?.workspace) {
       await rm(state2.workspace, { recursive: true, force: true });
@@ -299,9 +303,7 @@ describe("opencode-runtime lifecycle", () => {
       },
     });
 
-    await expect(runtime.connectRelay({ instanceId: "inst_not_running" })).rejects.toThrow(
-      "is not running",
-    );
+    await expect(runtime.connectRelay({ instanceId: "inst_not_running" })).rejects.toThrow("is not running");
 
     const state = runtime.getInstanceState("inst_not_running");
     if (state?.workspace) {

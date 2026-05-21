@@ -1,8 +1,5 @@
 import { log } from "../../logger";
 import { getAcpEventBus } from "../event-bus";
-import type { SessionEvent } from "../event-bus";
-import { sendToRelayWs } from "./connection-manager";
-import type { WsConnection } from "../ws-types";
 
 /** Whether an outbound message should be intercepted (not forwarded to agent) */
 export function shouldInterceptOutbound(message: Record<string, unknown>): boolean {
@@ -40,10 +37,7 @@ export function publishToEventBus(agentId: string, message: Record<string, unkno
 }
 
 /** Flush buffered outbound messages to a relay handle, filtering connect messages */
-export function flushOutboundBuffer(
-  buffer: Record<string, unknown>[],
-  handle: { send: (msg: any) => void },
-): void {
+export function flushOutboundBuffer(buffer: Record<string, unknown>[], handle: { send: (msg: any) => void }): void {
   if (buffer.length === 0) return;
   const buffered = buffer.splice(0);
   log(`[ACP-Relay] Flushing ${buffered.length} buffered outbound messages`);

@@ -1,15 +1,10 @@
 import type { EngineRelayHandle, EngineRuntime } from "@mothership/plugin-sdk";
 import { createCoreRuntimeError } from "../errors/core-runtime-error";
-import { CoreNodeRegistry } from "../registry/core-node-registry";
-import { EnginePluginRegistry } from "../registry/engine-plugin-registry";
-import type {
-  ConnectInstanceRelayRequest,
-  LaunchInstanceRequest,
-} from "../types/launch-request";
+import type { CoreNodeRegistry } from "../registry/core-node-registry";
+import type { EnginePluginRegistry } from "../registry/engine-plugin-registry";
+import type { ConnectInstanceRelayRequest, LaunchInstanceRequest } from "../types/launch-request";
 import type { RuntimeInstanceSnapshot } from "../types/runtime-instance";
-import type {
-  RuntimeInstanceStore,
-} from "./runtime-instance-store";
+import type { RuntimeInstanceStore } from "./runtime-instance-store";
 
 /**
  * Core 层对实例生命周期暴露的统一编排接口。
@@ -48,17 +43,14 @@ export interface CreateInstanceOrchestratorOptions {
 /**
  * 创建 core 实例生命周期 orchestrator。
  */
-export function createInstanceOrchestrator(
-  options: CreateInstanceOrchestratorOptions,
-): InstanceOrchestrator {
+export function createInstanceOrchestrator(options: CreateInstanceOrchestratorOptions): InstanceOrchestrator {
   const { pluginRegistry, nodeRegistry, store, onInstanceStarted } = options;
 
   /**
    * 把异常统一收敛为实例 `error` 状态，便于上层读取失败快照。
    */
   function markInstanceError(instanceId: string, error: unknown): void {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     store.update(instanceId, {
       status: "error",
       relayConnected: false,
@@ -69,11 +61,7 @@ export function createInstanceOrchestrator(
   /**
    * 构造状态非法时使用的稳定错误对象。
    */
-  function toInvalidStateError(
-    instanceId: string,
-    currentStatus: string,
-    action: string,
-  ) {
+  function toInvalidStateError(instanceId: string, currentStatus: string, action: string) {
     return createCoreRuntimeError(
       "INVALID_INSTANCE_STATE",
       `Instance ${instanceId} cannot ${action} from status ${currentStatus}`,
@@ -84,10 +72,7 @@ export function createInstanceOrchestrator(
   /**
    * 当 runtime 尚未成功创建记录时，补写一条错误实例快照以保留失败痕迹。
    */
-  function createErroredInstanceRecord(
-    request: LaunchInstanceRequest,
-    error: unknown,
-  ): void {
+  function createErroredInstanceRecord(request: LaunchInstanceRequest, error: unknown): void {
     if (!store.get(request.instanceId)) {
       store.create({
         instanceId: request.instanceId,
@@ -116,11 +101,9 @@ export function createInstanceOrchestrator(
       const node = nodeRegistry.require(request.nodeId);
 
       if (node.status !== "online") {
-        throw createCoreRuntimeError(
-          "NODE_OFFLINE",
-          `Core node is offline: ${request.nodeId}`,
-          { nodeId: request.nodeId },
-        );
+        throw createCoreRuntimeError("NODE_OFFLINE", `Core node is offline: ${request.nodeId}`, {
+          nodeId: request.nodeId,
+        });
       }
       if (!nodeRegistry.supportsEngine(request.nodeId, request.engineType)) {
         throw createCoreRuntimeError(
@@ -133,7 +116,7 @@ export function createInstanceOrchestrator(
         );
       }
 
-      let runtime;
+      let runtime: EngineRuntime;
       try {
         runtime = plugin.createRuntime();
       } catch (error) {
@@ -169,13 +152,9 @@ export function createInstanceOrchestrator(
 
         // 通知上层写入 plugin 补充元数据（port, token, pid 等）
         if (onInstanceStarted) {
-          onInstanceStarted(
-            request.instanceId,
-            runtime,
-            (metadata) => {
-              store.update(request.instanceId, { pluginMetadata: metadata });
-            },
-          );
+          onInstanceStarted(request.instanceId, runtime, (metadata) => {
+            store.update(request.instanceId, { pluginMetadata: metadata });
+          });
         }
 
         return store.require(request.instanceId);
@@ -194,20 +173,14 @@ export function createInstanceOrchestrator(
       try {
         const record = store.require(request.instanceId);
         if (record.status !== "running") {
-          throw toInvalidStateError(
-            request.instanceId,
-            record.status,
-            "connectRelay",
-          );
+          throw toInvalidStateError(request.instanceId, record.status, "connectRelay");
         }
 
         const runtimeEntry = store.getRuntimeEntry(request.instanceId);
         if (!runtimeEntry) {
-          throw createCoreRuntimeError(
-            "INSTANCE_NOT_FOUND",
-            `Runtime entry not found: ${request.instanceId}`,
-            { instanceId: request.instanceId },
-          );
+          throw createCoreRuntimeError("INSTANCE_NOT_FOUND", `Runtime entry not found: ${request.instanceId}`, {
+            instanceId: request.instanceId,
+          });
         }
 
         if (runtimeEntry.relay && runtimeEntry.relay.state === "open") {
@@ -239,11 +212,7 @@ export function createInstanceOrchestrator(
         store.update(instanceId, { status: "stopping" });
         const runtimeEntry = store.getRuntimeEntry(instanceId);
         if (!runtimeEntry) {
-          throw createCoreRuntimeError(
-            "INSTANCE_NOT_FOUND",
-            `Runtime entry not found: ${instanceId}`,
-            { instanceId },
-          );
+          throw createCoreRuntimeError("INSTANCE_NOT_FOUND", `Runtime entry not found: ${instanceId}`, { instanceId });
         }
 
         if (runtimeEntry.relay?.state === "open") {

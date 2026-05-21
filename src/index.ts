@@ -5,7 +5,7 @@ import Elysia from "elysia";
 import { applyEnv, config } from "./config";
 import { initDb, client as pgClient } from "./db";
 import { validateEnv } from "./env";
-import { authGuardPlugin, authPlugin } from "./plugins/auth";
+import { authPlugin } from "./plugins/auth";
 import { corsPlugin } from "./plugins/cors";
 import { errorPlugin } from "./plugins/error-handler";
 import { loggerPlugin } from "./plugins/logger";
@@ -28,26 +28,26 @@ import webConfig from "./routes/web/config";
 import webControl from "./routes/web/control";
 import webEnvironments from "./routes/web/environments";
 import webFiles from "./routes/web/files";
-import webUserFile from "./routes/web/user-file";
 import webInstances from "./routes/web/instances";
 import webKnowledgeBases from "./routes/web/knowledge-bases";
+import webMetaAgent from "./routes/web/meta-agent";
 import webOrganizations from "./routes/web/organizations";
 import webS3Files from "./routes/web/s3-files";
 import webSessions from "./routes/web/sessions";
 import webSkills from "./routes/web/skills";
 import webTasks from "./routes/web/tasks";
-import webMetaAgent from "./routes/web/meta-agent";
+import webUserFile from "./routes/web/user-file";
 import webWorkflowDefs from "./routes/web/workflow-defs";
 import webWorkflowEngine from "./routes/web/workflow-engine";
 import { workflowStaticApp } from "./routes/web/workflow-proxy";
+import { closeCache } from "./services/cache";
 import { getCoreRuntime } from "./services/core-bootstrap";
 import { getHermesClient, initHermesClient } from "./services/hermes-client";
 import { findRunningInstanceByEnvironment, spawnInstanceFromEnvironment, stopAllInstances } from "./services/instance";
 import { startScheduler, stopScheduler } from "./services/scheduler";
-import { closeAllRelayConnections } from "./transport/relay";
-import { closeAllAcpConnections } from "./transport/acp-ws-handler";
-import { closeCache } from "./services/cache";
 import { resolveWorkspacePath } from "./services/workspace-resolver";
+import { closeAllAcpConnections } from "./transport/acp-ws-handler";
+import { closeAllRelayConnections } from "./transport/relay";
 
 await initDb();
 console.log("[RCS] Database initialized (PostgreSQL + better-auth)");
@@ -131,7 +131,7 @@ const app = new Elysia()
   // 全局请求体大小限制 10MB
   .onBeforeHandle(({ request }) => {
     const contentLength = request.headers.get("content-length");
-    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+    if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
       return new Response(
         JSON.stringify({ error: { type: "PAYLOAD_TOO_LARGE", message: "Request body exceeds 10MB limit" } }),
         { status: 413, headers: { "Content-Type": "application/json" } },

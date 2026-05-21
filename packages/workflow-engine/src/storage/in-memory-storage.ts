@@ -5,8 +5,8 @@
  * `atomicNodeComplete` 按顺序写入，单线程 JS 下天然原子。
  */
 
-import type { DAGEvent, DAGSnapshot, DAGStatus, EventType, NodeOutput, RunSummary } from '../types/execution';
-import type { StorageAdapter } from './storage-adapter';
+import type { DAGEvent, DAGSnapshot, DAGStatus, EventType, NodeOutput, RunSummary } from "../types/execution";
+import type { StorageAdapter } from "./storage-adapter";
 
 export function createInMemoryStorage(): StorageAdapter {
   const events = new Map<string, DAGEvent[]>();
@@ -24,11 +24,14 @@ export function createInMemoryStorage(): StorageAdapter {
       events.set(event.run_id, list);
     },
 
-    async getEvents(runId: string, opts?: {
-      afterEventId?: string;
-      nodeId?: string;
-      types?: EventType[];
-    }): Promise<DAGEvent[]> {
+    async getEvents(
+      runId: string,
+      opts?: {
+        afterEventId?: string;
+        nodeId?: string;
+        types?: EventType[];
+      },
+    ): Promise<DAGEvent[]> {
       let list = events.get(runId) ?? [];
       if (opts?.afterEventId) {
         const idx = list.findIndex((e) => e.event_id === opts.afterEventId);
@@ -88,11 +91,7 @@ export function createInMemoryStorage(): StorageAdapter {
 
     // ---------- 原子操作 ----------
 
-    async atomicNodeComplete(opts: {
-      output: NodeOutput;
-      snapshot: DAGSnapshot;
-      event: DAGEvent;
-    }): Promise<void> {
+    async atomicNodeComplete(opts: { output: NodeOutput; snapshot: DAGSnapshot; event: DAGEvent }): Promise<void> {
       // 写入节点输出
       const { snapshot, event } = opts;
       const runId = snapshot.run_id;
