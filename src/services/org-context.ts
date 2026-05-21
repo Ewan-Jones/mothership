@@ -56,14 +56,14 @@ function extractActiveOrgId(request: Request): string | null {
 export async function loadOrgContext(user: { id: string }, request: Request): Promise<AuthContext | null> {
   if (_testOrgContext) return _testOrgContext;
 
+  // 先提取 activeOrgId，以便与缓存比对
+  const activeOrgId = extractActiveOrgId(request);
   const cached = getCachedOrg(user.id);
-  if (cached) return cached;
+  if (cached && (!activeOrgId || cached.organizationId === activeOrgId)) return cached;
 
   try {
     const { auth } = await import("../auth/better-auth");
     const api = auth.api as any;
-
-    const activeOrgId = extractActiveOrgId(request);
     if (activeOrgId) {
       const memberRes = await api.listMembers({
         query: { organizationId: activeOrgId },
