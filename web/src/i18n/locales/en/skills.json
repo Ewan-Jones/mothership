@@ -1,23 +1,13 @@
 {
   "title": "Skill Management",
-  "subtitle": "Manage skill templates available to AI Agents",
+  "subtitle": "Manage global skill templates available to AI Agents",
   "search": "Search skills...",
   "empty": "No skills yet",
-  "noSkills": "No skills",
-  "status": {
-    "online": "Online",
-    "offline": "Offline",
-    "timeout": "Scan timeout",
-    "global": "Global"
-  },
   "column": {
-    "source": "Source",
-    "status": "Status",
-    "skillCount": "Skills"
+    "name": "Skill Name",
+    "description": "Description"
   },
   "btn": {
-    "disable": "Disable",
-    "enable": "Enable",
     "edit": "Edit",
     "delete": "Delete",
     "createSkill": "+ New Skill",
@@ -56,12 +46,8 @@
   "confirm": {
     "deleteTitle": "Confirm Delete",
     "deleteDescription": "This action is irreversible. Are you sure you want to delete skill \"{{name}}\"?",
-    "deleteWorkspaceDescription": "This action will permanently delete project files:\n{{path}}\n\nThis action cannot be undone. Are you sure you want to continue?",
-    "editWorkspaceTitle": "Edit Workspace Skill",
-    "editWorkspaceDescription": "You are editing the skill \"{{skillName}}\" in workspace \"{{sourceName}}\". Changes will directly affect project files: {{path}}. Continue?",
     "batchDeleteTitle": "Batch Delete Confirmation",
     "batchDeleteDescription": "Are you sure you want to delete the selected {{count}} skills? {{workspaceHint}}",
-    "batchDeleteWorkspaceHint": "This action will permanently delete project files and cannot be undone.",
     "batchDeleteHint": "This action is irreversible.",
     "overwriteTitle": "Confirm Overwrite Conflicting Skills",
     "overwriteDescription": "Overwriting will replace existing skill content for the entire directory, and old files will be deleted. Are you sure you want to continue?",
@@ -80,9 +66,6 @@
     "skillUpdated": "Skill updated",
     "skillCreated": "Skill created",
     "skillDeleted": "Skill deleted",
-    "disabled": "Disabled \"{{name}}\"",
-    "enabled": "Enabled \"{{name}}\"",
-    "toggleFailed": "Operation failed",
     "operationFailed": "Operation failed: {{message}}",
     "deleteFailed": "Delete failed",
     "deleteFailedWith": "Delete failed: {{message}}",

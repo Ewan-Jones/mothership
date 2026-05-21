@@ -1,23 +1,13 @@
 {
   "title": "技能管理",
-  "subtitle": "管理 AI Agent 可用的技能模板",
+  "subtitle": "管理 AI Agent 可用的全局技能模板",
   "search": "搜索技能...",
   "empty": "暂无技能",
-  "noSkills": "暂无技能",
-  "status": {
-    "online": "在线",
-    "offline": "离线",
-    "timeout": "扫描超时",
-    "global": "全局"
-  },
   "column": {
-    "source": "来源",
-    "status": "状态",
-    "skillCount": "技能数"
+    "name": "技能名称",
+    "description": "描述"
   },
   "btn": {
-    "disable": "禁用",
-    "enable": "启用",
     "edit": "编辑",
     "delete": "删除",
     "createSkill": "+ 新建技能",
@@ -56,12 +46,8 @@
   "confirm": {
     "deleteTitle": "确认删除",
     "deleteDescription": "此操作不可逆。确定要删除技能 \"{{name}}\" 吗？",
-    "deleteWorkspaceDescription": "此操作将永久删除项目文件：\n{{path}}\n\n此操作不可撤销。确定要继续吗？",
-    "editWorkspaceTitle": "编辑工作区技能",
-    "editWorkspaceDescription": "你正在编辑工作区「{{sourceName}}」中的技能「{{skillName}}」，修改将直接影响项目文件：{{path}}。确定继续吗？",
     "batchDeleteTitle": "批量删除确认",
     "batchDeleteDescription": "确定要删除选中的 {{count}} 个技能吗？{{workspaceHint}}",
-    "batchDeleteWorkspaceHint": "此操作将永久删除项目文件，不可撤销。",
     "batchDeleteHint": "此操作不可逆。",
     "overwriteTitle": "确认覆盖冲突技能",
     "overwriteDescription": "覆盖会整目录替换已有技能内容，旧文件会被删除。确定继续吗？",
@@ -80,9 +66,6 @@
     "skillUpdated": "技能已更新",
     "skillCreated": "技能已创建",
     "skillDeleted": "技能已删除",
-    "disabled": "已禁用 \"{{name}}\"",
-    "enabled": "已启用 \"{{name}}\"",
-    "toggleFailed": "操作失败",
     "operationFailed": "操作失败: {{message}}",
     "deleteFailed": "删除失败",
     "deleteFailedWith": "删除失败: {{message}}",

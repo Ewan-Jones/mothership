@@ -5,7 +5,6 @@ import { BatchActionBar } from "@/components/config/BatchActionBar";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
 import { type Column, DataTable } from "@/components/config/DataTable";
 import { FormDialog } from "@/components/config/FormDialog";
-import { StatusBadge } from "@/components/config/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,28 +14,17 @@ import { client, fetchUpload } from "../api/client";
 import { unwrapConfigData } from "../api/config-response";
 import { buildSkillUploadFormData, parseSkillUploadFiles, validateUploadBatch } from "../lib/skill-upload";
 import type {
-  SkillSourceStatus,
   SkillUploadConflictResponse,
   SkillUploadConflictStrategy,
   UploadSkillSummary,
 } from "../types/config";
+import { dispatchConfigChange } from "../lib/config-events";
 
 type SkillInfo = {
+  id: string;
   name: string;
   description: string;
-  enabled: boolean;
 };
-
-type SkillSourceInfo = {
-  id?: string;
-  name: string;
-  type: string;
-  path: string;
-  status: SkillSourceStatus;
-  skills: SkillInfo[];
-};
-
-import { dispatchConfigChange } from "../lib/config-events";
 
 type CreateMode = "text" | "upload";
 
@@ -124,49 +112,31 @@ function UploadItemCard({ item }: { item: UploadSkillSummary }) {
 
 const directoryInputProps = { webkitdirectory: "", directory: "" } as Record<string, string>;
 
-function SourceStatusBadge({ status }: { status: SkillSourceStatus }) {
-  const { t } = useTranslation("skills");
-  const badgeMap: Record<SkillSourceStatus, "configured" | "disabled" | "unconfigured"> = {
-    online: "configured",
-    offline: "disabled",
-    timeout: "unconfigured",
-  };
-  const labelMap: Record<SkillSourceStatus, string> = {
-    online: t("status.online"),
-    offline: t("status.offline"),
-    timeout: t("status.timeout"),
-  };
-  return <StatusBadge status={badgeMap[status]} label={labelMap[status]} />;
-}
+// --- Main Page ---
 
-// --- SkillSubrow: 展开后显示的 skill 列表 ---
-
-function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh: () => void }) {
+export function SkillsPage() {
   const { t } = useTranslation("skills");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [skills, setSkills] = useState<SkillInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState<SkillInfo | null>(null);
-  const [createMode, setCreateMode] = useState<CreateMode>("text");
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ name: string; path: string } | null>(null);
-  const [workspaceEditConfirmOpen, setWorkspaceEditConfirmOpen] = useState(false);
-  const [pendingEditSkill, setPendingEditSkill] = useState<SkillInfo | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [selected, setSelected] = useState<SkillInfo[]>([]);
   const [batchConfirmOpen, setBatchConfirmOpen] = useState(false);
-  const [overwriteConfirmOpen, setOverwriteConfirmOpen] = useState(false);
+  const [createMode, setCreateMode] = useState<CreateMode>("text");
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formContent, setFormContent] = useState("");
   const [formSaving, setFormSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadItems, setUploadItems] = useState<UploadSkillSummary[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<SkillUploadConflictResponse["conflicts"]>([]);
   const [conflictStrategy, setConflictStrategy] = useState<SkillUploadConflictStrategy | null>(null);
   const [uploadPending, setUploadPending] = useState(false);
-
-  const isWorkspace = source.type === "workspace";
-  const sourceArg = isWorkspace ? "workspace" : undefined;
-  const workspaceIdArg = source.id;
+  const [overwriteConfirmOpen, setOverwriteConfirmOpen] = useState(false);
 
   const resetUploadState = useCallback(() => {
     setUploadItems([]);
@@ -176,6 +146,31 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
     setUploadPending(false);
     setOverwriteConfirmOpen(false);
   }, []);
+
+  const loadSkills = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: res, error: resErr } = await client.web.config.skills.post({ action: "list" });
+      if (resErr) throw new Error(resErr.message ?? t("toast.loadListFailed"));
+      const d = unwrapConfigData(res) ?? res;
+      setSkills(Array.isArray(d?.skills) ? d.skills : []);
+    } catch (e) {
+      console.error(t("toast.loadListFailed"), e);
+      toast.error(t("toast.loadListFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    loadSkills();
+  }, [loadSkills]);
+
+  const filteredSkills = useMemo(() => {
+    if (!searchQuery.trim()) return skills;
+    const q = searchQuery.toLowerCase();
+    return skills.filter((s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
+  }, [skills, searchQuery]);
 
   const handleOpenCreate = (mode: CreateMode) => {
     setEditingSkill(null);
@@ -188,11 +183,6 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
   };
 
   const handleOpenEdit = async (skill: SkillInfo) => {
-    if (isWorkspace) {
-      setPendingEditSkill(skill);
-      setWorkspaceEditConfirmOpen(true);
-      return;
-    }
     setEditingSkill(skill);
     setCreateMode("text");
     resetUploadState();
@@ -200,8 +190,6 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
       const { data: res, error: resErr } = await client.web.config.skills.post({
         action: "get",
         name: skill.name,
-        source: sourceArg,
-        workspaceId: workspaceIdArg,
       });
       if (resErr) {
         toast.error(t("toast.loadDetailFailed"));
@@ -213,36 +201,6 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
       setFormContent(detail.content);
       setDialogOpen(true);
     } catch {
-      toast.error(t("toast.loadDetailFailed"));
-    }
-  };
-
-  const confirmWorkspaceEdit = async () => {
-    if (!pendingEditSkill) return;
-    setWorkspaceEditConfirmOpen(false);
-    setEditingSkill(pendingEditSkill);
-    setPendingEditSkill(null);
-    setCreateMode("text");
-    resetUploadState();
-    try {
-      const { data: res, error: resErr } = await client.web.config.skills.post({
-        action: "get",
-        name: pendingEditSkill.name,
-        source: sourceArg,
-        workspaceId: workspaceIdArg,
-      });
-      if (resErr) {
-        console.error(t("toast.loadDetailFailed"), resErr);
-        toast.error(t("toast.loadDetailFailed"));
-        return;
-      }
-      const detail = unwrapConfigData(res) ?? res;
-      setFormName(detail.name);
-      setFormDescription(detail.description);
-      setFormContent(detail.content);
-      setDialogOpen(true);
-    } catch (e) {
-      console.error(t("toast.loadDetailFailed"), e);
       toast.error(t("toast.loadDetailFailed"));
     }
   };
@@ -259,13 +217,11 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
         action: "set",
         name: formName,
         data: { description: formDescription, content: formContent },
-        source: sourceArg,
-        workspaceId: workspaceIdArg,
       });
       if (setErr) throw new Error(setErr.message ?? t("toast.saveFailed"));
       toast.success(editingSkill ? t("toast.skillUpdated") : t("toast.skillCreated"));
       setDialogOpen(false);
-      onRefresh();
+      loadSkills();
       dispatchConfigChange("skills");
     } catch (e) {
       toast.error(t("toast.saveFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
@@ -294,13 +250,11 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
     setUploadPending(true);
     try {
       const formData = buildSkillUploadFormData(uploadItems, strategy);
-      if (sourceArg) formData.append("source", sourceArg);
-      if (workspaceIdArg) formData.append("workspaceId", workspaceIdArg);
       const result = normalizeSkillUploadResult(await fetchUpload<unknown>("/web/config/skills/upload", formData));
       toast.success(getUploadResultMessage(result.imported.length, result.skipped.length, t));
       setDialogOpen(false);
       resetUploadState();
-      onRefresh();
+      loadSkills();
       dispatchConfigChange("skills");
     } catch (error) {
       const conflictData = getUploadConflictData(error);
@@ -329,31 +283,8 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
     await handleUploadSubmit();
   };
 
-  const handleToggle = async (skill: SkillInfo) => {
-    try {
-      if (skill.enabled) {
-        const { error: toggleErr } = await client.web.config.skills.post({ action: "disable", name: skill.name });
-        if (toggleErr) throw new Error(toggleErr.message ?? t("toast.toggleFailed"));
-        toast.success(t("toast.disabled", { name: skill.name }));
-      } else {
-        const { error: toggleErr } = await client.web.config.skills.post({ action: "enable", name: skill.name });
-        if (toggleErr) throw new Error(toggleErr.message ?? t("toast.toggleFailed"));
-        toast.success(t("toast.enabled", { name: skill.name }));
-      }
-      onRefresh();
-      dispatchConfigChange("skills");
-    } catch (e) {
-      console.error(t("toast.toggleFailed"), e);
-      toast.error(t("toast.operationFailed", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
-    }
-  };
-
   const handleDeleteClick = (skill: SkillInfo) => {
-    if (isWorkspace) {
-      setDeleteTarget({ name: skill.name, path: `${source.path}/.agents/skills/${skill.name}` });
-    } else {
-      setDeleteTarget({ name: skill.name, path: skill.name });
-    }
+    setDeleteTarget(skill.name);
     setConfirmOpen(true);
   };
 
@@ -362,14 +293,12 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
     try {
       const { error: delErr } = await client.web.config.skills.post({
         action: "delete",
-        name: deleteTarget.name,
-        source: sourceArg,
-        workspaceId: workspaceIdArg,
+        name: deleteTarget,
       });
       if (delErr) throw new Error(delErr.message ?? t("toast.deleteFailed"));
       toast.success(t("toast.skillDeleted"));
       setConfirmOpen(false);
-      onRefresh();
+      loadSkills();
       dispatchConfigChange("skills");
     } catch (e) {
       console.error(t("toast.deleteFailed"), e);
@@ -382,7 +311,7 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
       await Promise.all(
         selected.map((s) =>
           client.web.config.skills
-            .post({ action: "delete", name: s.name, source: sourceArg, workspaceId: workspaceIdArg })
+            .post({ action: "delete", name: s.name })
             .then((r) => {
               if (r.error) throw new Error(r.error.message ?? t("toast.deleteFailed"));
             }),
@@ -391,7 +320,7 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
       toast.success(t("toast.batchDeleted", { count: selected.length }));
       setBatchConfirmOpen(false);
       setSelected([]);
-      onRefresh();
+      loadSkills();
       dispatchConfigChange("skills");
     } catch (e) {
       console.error(t("toast.batchDeleteFailed"), e);
@@ -401,58 +330,91 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
     }
   };
 
+  const columns: Column<SkillInfo>[] = [
+    {
+      key: "name",
+      header: t("column.name"),
+      sortable: true,
+      filterable: true,
+      render: (row) => <span className="font-mono text-sm font-medium text-text-bright">{row.name}</span>,
+    },
+    {
+      key: "description",
+      header: t("column.description"),
+      render: (row) => <span className="text-sm text-text-secondary line-clamp-1">{row.description || "—"}</span>,
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <div className="rounded-md border">
+          <Skeleton className="h-10 w-full rounded-t-md" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-none border-t" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <div className="space-y-2 overflow-hidden">
-        {source.skills.length === 0 ? (
-          <div className="py-6 text-center text-sm text-text-muted">{t("noSkills")}</div>
-        ) : (
-          <div className="grid gap-2">
-            {source.skills.map((skill) => (
-              <div
-                key={skill.name}
-                className="group flex items-center gap-3 rounded-lg border border-border-light bg-surface-1 px-3 py-2.5 transition-colors hover:border-border-active hover:shadow-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.some((s) => s.name === skill.name)}
-                  onChange={(e) => {
-                    if (e.target.checked) setSelected([...selected, skill]);
-                    else setSelected(selected.filter((s) => s.name !== skill.name));
-                  }}
-                  className="h-4 w-4 rounded border-border-light text-brand focus:ring-brand/30"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-medium text-text-bright truncate">{skill.name}</span>
-                    {isWorkspace && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-surface-2 text-text-muted">
-                        ({source.name})
-                      </span>
-                    )}
-                  </div>
-                  {skill.description && (
-                    <p className="mt-0.5 text-xs text-text-secondary line-clamp-1">{skill.description}</p>
-                  )}
-                </div>
-                <div className="flex shrink-0 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {!isWorkspace && (
-                    <Button size="xs" variant="outline" onClick={() => handleToggle(skill)}>
-                      {skill.enabled ? t("btn.disable") : t("btn.enable")}
-                    </Button>
-                  )}
-                  <Button size="xs" variant="outline" onClick={() => handleOpenEdit(skill)}>
-                    {t("btn.edit")}
-                  </Button>
-                  <Button size="xs" variant="destructive" onClick={() => handleDeleteClick(skill)}>
-                    {t("btn.delete")}
-                  </Button>
-                </div>
-              </div>
-            ))}
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-text-bright">{t("title")}</h2>
+          <p className="text-sm text-text-muted mt-0.5">{t("subtitle")}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => handleOpenCreate("upload")}>
+            {t("btn.uploadSkill")}
+          </Button>
+          <Button onClick={() => handleOpenCreate("text")}>{t("btn.createSkill")}</Button>
+        </div>
+      </div>
+      <div className="relative">
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+          />
+        </svg>
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("search")}
+          className="pl-9"
+        />
+      </div>
+      <DataTable<SkillInfo>
+        columns={columns}
+        data={filteredSkills}
+        rowKey={(row) => row.id}
+        selectable
+        onSelectionChange={setSelected}
+        emptyMessage={t("empty")}
+        actions={(row) => (
+          <div className="flex gap-1.5">
+            <Button size="xs" variant="outline" onClick={() => handleOpenEdit(row)}>
+              {t("btn.edit")}
+            </Button>
+            <Button size="xs" variant="destructive" onClick={() => handleDeleteClick(row)}>
+              {t("btn.delete")}
+            </Button>
           </div>
         )}
-      </div>
+      />
       {selected.length > 0 && (
         <BatchActionBar
           selectedCount={selected.length}
@@ -460,14 +422,6 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
           actions={[{ label: t("btn.batchDelete"), variant: "destructive", onClick: () => setBatchConfirmOpen(true) }]}
         />
       )}
-      <div className="flex gap-2 pt-2">
-        <Button size="sm" variant="outline" className="w-full border-dashed" onClick={() => handleOpenCreate("text")}>
-          {t("btn.createSkill")}
-        </Button>
-        <Button size="sm" variant="outline" className="w-full border-dashed" onClick={() => handleOpenCreate("upload")}>
-          {t("btn.uploadSkill")}
-        </Button>
-      </div>
 
       {/* FormDialog */}
       <FormDialog
@@ -560,7 +514,6 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
                     {conflicts.map((conflict) => (
                       <div key={conflict.name} className="flex items-center gap-2">
                         <span className="font-mono text-xs text-text-primary">{conflict.name}</span>
-                        <StatusBadge status={conflict.enabled ? "enabled" : "disabled"} />
                       </div>
                     ))}
                   </div>
@@ -657,26 +610,9 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title={t("confirm.deleteTitle")}
-        description={
-          isWorkspace && deleteTarget
-            ? t("confirm.deleteWorkspaceDescription", { path: deleteTarget.path })
-            : t("confirm.deleteDescription", { name: deleteTarget?.name ?? "" })
-        }
+        description={t("confirm.deleteDescription", { name: deleteTarget ?? "" })}
         variant="destructive"
         onConfirm={confirmDelete}
-      />
-
-      {/* Workspace edit confirmation */}
-      <ConfirmDialog
-        open={workspaceEditConfirmOpen}
-        onOpenChange={setWorkspaceEditConfirmOpen}
-        title={t("confirm.editWorkspaceTitle")}
-        description={t("confirm.editWorkspaceDescription", {
-          sourceName: source.name,
-          skillName: pendingEditSkill?.name ?? "",
-          path: `${source.path}/.agents/skills/${pendingEditSkill?.name ?? ""}`,
-        })}
-        onConfirm={confirmWorkspaceEdit}
       />
 
       {/* Batch delete confirm */}
@@ -686,7 +622,7 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
         title={t("confirm.batchDeleteTitle")}
         description={t("confirm.batchDeleteDescription", {
           count: selected.length,
-          workspaceHint: isWorkspace ? t("confirm.batchDeleteWorkspaceHint") : t("confirm.batchDeleteHint"),
+          workspaceHint: t("confirm.batchDeleteHint"),
         })}
         variant="destructive"
         onConfirm={confirmBatchDelete}
@@ -702,148 +638,6 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
         confirmLabel={t("confirm.overwriteConfirm")}
         onConfirm={() => void handleUploadSubmit("overwrite")}
         loading={uploadPending}
-      />
-    </>
-  );
-}
-
-// --- Main Page ---
-
-export function SkillsPage() {
-  const { t } = useTranslation("skills");
-  const [sources, setSources] = useState<SkillSourceInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const loadSources = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: res, error: resErr } = await client.web.config.skills.post({ action: "workspace_list" });
-      if (resErr) {
-        console.error(t("toast.loadListFailed"), resErr);
-        toast.error(t("toast.loadListFailedWith", { message: resErr.message ?? t("toast.saveFailed") }));
-        return;
-      }
-      const d = unwrapConfigData(res) ?? res;
-      setSources(d.sources ?? d);
-    } catch (e) {
-      console.error(t("toast.loadListFailed"), e);
-      toast.error(t("toast.loadListFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
-
-  useEffect(() => {
-    loadSources();
-  }, [loadSources]);
-
-  const filteredSources = useMemo(() => {
-    if (!searchQuery.trim()) return sources;
-    const q = searchQuery.toLowerCase();
-    return sources
-      .map((s) => ({
-        ...s,
-        skills: s.skills.filter((sk) => sk.name.toLowerCase().includes(q) || sk.description.toLowerCase().includes(q)),
-      }))
-      .filter((s) => s.skills.length > 0 || s.name.toLowerCase().includes(q));
-  }, [sources, searchQuery]);
-
-  const columns: Column<SkillSourceInfo>[] = [
-    {
-      key: "name",
-      header: t("column.source"),
-      sortable: true,
-      filterable: true,
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-text-bright">{row.name}</span>
-          {row.type === "workspace" && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-surface-2 text-text-muted truncate max-w-[240px]">
-              {row.path}
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      header: t("column.status"),
-      filterable: true,
-      render: (row) => {
-        if (row.type === "global") return <StatusBadge status="configured" label={t("status.global")} />;
-        return <SourceStatusBadge status={row.status} />;
-      },
-    },
-    {
-      key: "skills",
-      header: t("column.skillCount"),
-      sortable: true,
-      render: (row) => (
-        <span
-          className={`inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-full text-xs font-medium ${
-            row.skills.length > 0 ? "bg-brand-subtle text-brand dark:text-brand-light" : "bg-surface-2 text-text-muted"
-          }`}
-        >
-          {row.skills.length}
-        </span>
-      ),
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-7 w-32" />
-          <Skeleton className="h-9 w-24" />
-        </div>
-        <div className="rounded-md border">
-          <Skeleton className="h-10 w-full rounded-t-md" />
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-none border-t" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-text-bright">{t("title")}</h2>
-          <p className="text-sm text-text-muted mt-0.5">{t("subtitle")}</p>
-        </div>
-      </div>
-      <div className="relative">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-          />
-        </svg>
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t("search")}
-          className="pl-9"
-        />
-      </div>
-      <DataTable<SkillSourceInfo>
-        columns={columns}
-        data={filteredSources}
-        rowKey={(row) => (row.type === "global" ? "__global__" : row.id!)}
-        expandableRow={(row) => <SkillSubrow source={row} onRefresh={loadSources} />}
-        defaultExpandAll
-        emptyMessage={t("empty")}
       />
     </div>
   );
