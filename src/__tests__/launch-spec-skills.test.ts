@@ -20,7 +20,7 @@ function baseConfig(skills: unknown[]) {
 function skillRow(name: string, overrides: Record<string, unknown> = {}) {
   return {
     id: `${name}-id`,
-    teamId: "team-1",
+    organizationId: "org-1",
     userId: "user-1",
     environmentId: null,
     agentConfigId: null,
@@ -86,16 +86,17 @@ describe("launch spec skills", () => {
     expect(spec.skills).toEqual([]);
   });
 
-  // enabled skill 缺少 zip artifact 时明确抛错。
-  test("enabled skill missing archive throws", async () => {
-    await expect(specFor([skillRow("missing")])).rejects.toThrow("Skill archive missing: missing");
+  // enabled skill 缺少 zip artifact 时跳过而非抛错，避免阻塞 agent 启动。
+  test("enabled skill missing archive is skipped", async () => {
+    const spec = await specFor([skillRow("missing")]);
+    expect(spec.skills).toEqual([]);
   });
 
   // URL 包含下载路由和可验证的 skill token。
   test("skill url contains verifiable download token", async () => {
     await writeArchive("encoded skill");
 
-    const spec = await specFor([skillRow("encoded skill", { id: "skill-encoded", teamId: "team-encoded" })]);
+    const spec = await specFor([skillRow("encoded skill", { id: "skill-encoded", organizationId: "org-encoded" })]);
     const [entry] = spec.skills;
     const url = new URL(entry.url);
 
@@ -103,7 +104,7 @@ describe("launch spec skills", () => {
     const payload = verifySkillDownloadToken(url.searchParams.get("token") ?? "");
     expect(payload).toMatchObject({
       skillId: "skill-encoded",
-      teamId: "team-encoded",
+      organizationId: "org-encoded",
       skillName: "encoded skill",
     });
   });

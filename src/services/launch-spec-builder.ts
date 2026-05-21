@@ -142,13 +142,14 @@ export async function buildLaunchSpec(input: BuildLaunchSpecInput): Promise<Agen
   }
 
   const skills = fullConfig.skills
-    .filter((skill) => skill.enabled)
-    .map((skill) => {
-      const archivePath = getSkillArchivePath(getGlobalSkillsDir(), skill.name);
+    .filter((s) => s.enabled)
+    .flatMap((s) => {
+      const archivePath = getSkillArchivePath(getGlobalSkillsDir(), s.name);
       if (!existsSync(archivePath)) {
-        throw new Error(`Skill archive missing: ${skill.name}`);
+        log(`[launch-spec-builder] Skill archive missing, skipping: ${s.name}`);
+        return [];
       }
-      return { name: skill.name, url: buildSkillDownloadUrl(skill, { expiresInSeconds: 3600 }) };
+      return [{ name: s.name, url: buildSkillDownloadUrl({ id: s.id, organizationId: s.organizationId, name: s.name }, { expiresInSeconds: 3600 }) }];
     });
 
   const knowledgeBindings = agentConfigId ? await listAgentKnowledgeBindingsById(agentConfigId) : [];

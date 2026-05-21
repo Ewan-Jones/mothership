@@ -51,7 +51,7 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
         query: { organizationId: activeOrgId },
         headers: request.headers,
       });
-      const memberList: any[] = Array.isArray(memberRes) ? memberRes : (memberRes?.members ?? []);
+      const memberList: any[] = Array.isArray(memberRes) ? memberRes : ((memberRes as any)?.members ?? []);
       const me = memberList.find((m: any) => m.userId === user.id);
       if (me) {
         const result: AuthContext = {
@@ -73,7 +73,7 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
         query: { organizationId: org.id },
         headers: request.headers,
       });
-      const memberList: any[] = Array.isArray(memberRes) ? memberRes?.members ?? [] : [];
+      const memberList: any[] = Array.isArray(memberRes) ? (memberRes as any)?.members ?? [] : [];
       const me = memberList.find((m: any) => m.userId === user.id);
       if (me) {
         const result: AuthContext = {

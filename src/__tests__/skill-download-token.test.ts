@@ -6,7 +6,7 @@ import {
   verifySkillDownloadToken,
 } from "../services/skill-download-token";
 
-const skill = { id: "skill-1", teamId: "team-1", name: "demo" };
+const skill = { id: "skill-1", organizationId: "org-1", name: "demo" };
 const originalEnv = { ...process.env };
 
 describe("skill download token", () => {
@@ -24,7 +24,7 @@ describe("skill download token", () => {
     const token = generateSkillDownloadToken(skill, { expiresInSeconds: 60 });
     expect(verifySkillDownloadToken(token)).toMatchObject({
       skillId: "skill-1",
-      teamId: "team-1",
+      organizationId: "org-1",
       skillName: "demo",
     });
   });

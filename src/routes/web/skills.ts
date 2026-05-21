@@ -34,7 +34,7 @@ app.get("/:name/download", async ({ params, query, set }) => {
     .where(
       and(
         eq(skill.id, payload.skillId),
-        eq(skill.teamId, payload.teamId),
+        eq(skill.organizationId, payload.organizationId),
         eq(skill.name, name),
         eq(skill.enabled, true),
         isNull(skill.environmentId),

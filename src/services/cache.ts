@@ -1,6 +1,6 @@
 import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
-import Redis from "ioredis";
+import Redis, { type Cluster } from "ioredis";
 
 /**
  * 缓存模块 — 基于 Keyv，自动选择存储后端：
@@ -27,9 +27,9 @@ type Backend = "memory" | "redis" | "redis-cluster";
 
 let _backend: Backend = "memory";
 /** 全局共享的 Redis 连接（单实例或集群），所有 Keyv 实例复用 */
-let _redis: Redis | Redis.Cluster | null = null;
+let _redis: Redis | Cluster | null = null;
 
-function buildRedisConnection(): { redis: Redis | Redis.Cluster; backend: Backend } | null {
+function buildRedisConnection(): { redis: Redis | Cluster; backend: Backend } | null {
   const clusterStr = getEnv("RCS_REDIS_CLUSTER");
   const redisUrl = getEnv("RCS_REDIS_URL");
   const redisPassword = getEnv("RCS_REDIS_PASSWORD");
@@ -94,7 +94,7 @@ export function getCache(namespace: string, defaultTtlMs?: number): Keyv {
 
   if (_redis) {
     // 每个 namespace 创建独立的 KeyvRedis 包装器（内部共享同一个 Redis 连接）
-    const store = new KeyvRedis(_redis, { emitErrors: false });
+    const store = new KeyvRedis(_redis as any);
     kv = new Keyv({ store, namespace, ttl: defaultTtlMs });
   } else {
     kv = new Keyv({ namespace, ttl: defaultTtlMs });

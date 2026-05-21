@@ -3,14 +3,14 @@ import { getBaseUrl } from "../config";
 
 interface SkillTokenInput {
   id: string;
-  teamId: string;
+  organizationId: string;
   name: string;
 }
 
 interface SkillDownloadPayload {
   type: "skill-download";
   skillId: string;
-  teamId: string;
+  organizationId: string;
   skillName: string;
   iat: number;
   exp: number;
@@ -36,7 +36,7 @@ export function generateSkillDownloadToken(
   const payload: SkillDownloadPayload = {
     type: "skill-download",
     skillId: skill.id,
-    teamId: skill.teamId,
+    organizationId: skill.organizationId,
     skillName: skill.name,
     iat,
     exp: iat + (options?.expiresInSeconds ?? 300),
@@ -65,7 +65,7 @@ export function verifySkillDownloadToken(token: string): SkillDownloadPayload | 
     if (
       payload.type !== "skill-download" ||
       typeof payload.skillId !== "string" ||
-      typeof payload.teamId !== "string" ||
+      typeof payload.organizationId !== "string" ||
       typeof payload.skillName !== "string" ||
       typeof payload.exp !== "number" ||
       payload.exp < Math.floor(Date.now() / 1000)
