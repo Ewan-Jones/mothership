@@ -40,6 +40,11 @@ import { dispatchConfigChange } from "../lib/config-events";
 
 type CreateMode = "text" | "upload";
 
+type SkillUploadResult = {
+  imported: unknown[];
+  skipped: unknown[];
+};
+
 export function validateSkillForm(name: string, content: string, t: (key: string) => string): string | null {
   if (!name.trim()) return t("form.nameRequired");
   if (!content.trim()) return t("form.contentRequired");
@@ -51,6 +56,14 @@ export function getUploadResultMessage(imported: number, skipped: number, t: (ke
     return t("toast.importResultWithSkipped", { imported, skipped });
   }
   return t("toast.importResult", { imported });
+}
+
+export function normalizeSkillUploadResult(response: unknown): SkillUploadResult {
+  const data = unwrapConfigData<Partial<SkillUploadResult>>(response) ?? (response as Partial<SkillUploadResult> | null);
+  return {
+    imported: Array.isArray(data?.imported) ? data.imported : [],
+    skipped: Array.isArray(data?.skipped) ? data.skipped : [],
+  };
 }
 
 export function getUploadConflictData(error: unknown): SkillUploadConflictResponse | null {
@@ -283,7 +296,7 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
       const formData = buildSkillUploadFormData(uploadItems, strategy);
       if (sourceArg) formData.append("source", sourceArg);
       if (workspaceIdArg) formData.append("workspaceId", workspaceIdArg);
-      const result = await fetchUpload<{ imported: any[]; skipped: any[] }>("/web/config/skills/upload", formData);
+      const result = normalizeSkillUploadResult(await fetchUpload<unknown>("/web/config/skills/upload", formData));
       toast.success(getUploadResultMessage(result.imported.length, result.skipped.length, t));
       setDialogOpen(false);
       resetUploadState();

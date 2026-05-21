@@ -11,13 +11,6 @@ import {
   validateMcpConfig,
 } from "../../../services/config/mcp-server";
 import * as configPg from "../../../services/config-pg";
-import {
-  configError,
-  configNotFound,
-  configSuccess,
-  configValidationError,
-  isValidResourceName,
-} from "../../../services/config-utils";
 import { inspectRemoteMcpServer } from "../../../services/mcp-inspector";
 
 // 内部类型定义（与前端 web/src/types/config.ts 对齐）
@@ -152,7 +145,7 @@ async function handleTest(ctx: AuthContext, name: string) {
     const timeout = remote.timeout ?? 10000;
     const headers: Record<string, string> = { ...remote.headers };
     if (remote.oauth && typeof remote.oauth === "object" && remote.oauth.clientId) {
-      headers["Authorization"] = `Bearer ${remote.oauth.clientId}`;
+      headers.Authorization = `Bearer ${remote.oauth.clientId}`;
     }
     const result = await inspectRemoteMcpServer(remote.url, headers, timeout);
     if (result.reachable && result.protocol) {
@@ -236,7 +229,7 @@ async function handleInspect(ctx: AuthContext, name: string) {
   const timeout = remote.timeout ?? 10000;
   const headers: Record<string, string> = { ...remote.headers };
   if (remote.oauth && typeof remote.oauth === "object" && remote.oauth.clientId) {
-    headers["Authorization"] = `Bearer ${remote.oauth.clientId}`;
+    headers.Authorization = `Bearer ${remote.oauth.clientId}`;
   }
 
   const result = await inspectRemoteMcpServer(remote.url, headers, timeout);
@@ -289,7 +282,7 @@ app.post(
     const { action, name, config, url, headers, timeout } = {
       action: b.action ?? "",
       name: b.name as string | undefined,
-      config: b.config as McpServerConfig | undefined,
+      config: (b.config ?? b.data) as McpServerConfig | undefined,
       url: b.url as string | undefined,
       headers: b.headers as Record<string, string> | undefined,
       timeout: b.timeout as number | undefined,
@@ -303,6 +296,7 @@ app.post(
           return await handleGet(authCtx, name!);
         case "create":
           return await handleCreate(authCtx, name!, config as McpServerConfig);
+        case "set":
         case "update":
           return await handleUpdate(authCtx, name!, config as McpServerConfig);
         case "delete":

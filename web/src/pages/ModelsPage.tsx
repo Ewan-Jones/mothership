@@ -55,6 +55,17 @@ export function buildProviderPayload(
   return data;
 }
 
+export function buildProviderModelRequest(
+  action: "add_model" | "update_model",
+  providerId: string,
+  modelId: string,
+  data: Record<string, unknown>,
+) {
+  return action === "update_model"
+    ? { action, name: providerId, modelId, data }
+    : { action, name: providerId, data };
+}
+
 function ModalityBadge({ type, items }: { type: "input" | "output"; items: string[] }) {
   const { t } = useTranslation("models");
   if (!items || items.length === 0) return null;
@@ -171,20 +182,15 @@ function ModelSubrow({
     setModelSaving(true);
     try {
       if (isNewModel) {
-        const { error: addErr } = await client.web.config.providers.post({
-          action: "add_model",
-          name: providerId,
-          ...data,
-        });
+        const { error: addErr } = await client.web.config.providers.post(
+          buildProviderModelRequest("add_model", providerId, mfId.trim(), data),
+        );
         if (addErr) throw new Error(addErr.message ?? t("saveProvider.errorGeneric", { message: "" }));
         toast.success(t("modelSubrow.saveModel.successCreate"));
       } else {
-        const { error: updErr } = await client.web.config.providers.post({
-          action: "update_model",
-          name: providerId,
-          modelId: mfId,
-          ...data,
-        });
+        const { error: updErr } = await client.web.config.providers.post(
+          buildProviderModelRequest("update_model", providerId, mfId, data),
+        );
         if (updErr) throw new Error(updErr.message ?? t("saveProvider.errorGeneric", { message: "" }));
         toast.success(t("modelSubrow.saveModel.successUpdate"));
       }

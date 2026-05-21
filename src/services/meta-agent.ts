@@ -46,6 +46,9 @@ async function ensureMetaConfig(ctx: AuthContext): Promise<string> {
       steps: null,
     });
     agentConfig = await getAgentConfig(ctx, META_AGENT_CONFIG_NAME);
+    if (!agentConfig) {
+      throw new Error("Failed to create meta agent config");
+    }
   }
 
   await writeMetaSkillFile();

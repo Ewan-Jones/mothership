@@ -1,8 +1,12 @@
+import { existsSync } from "node:fs";
 import type { AgentLaunchSpec, McpServerConfig, ModelConfig } from "@mothership/plugin-sdk";
 import { getBaseUrl } from "../config";
 import { log } from "../logger";
 import { listAgentKnowledgeBindingsById } from "./agent-knowledge";
 import type { AgentFullConfig } from "./config-pg";
+import { getGlobalSkillsDir } from "./skill";
+import { buildSkillDownloadUrl } from "./skill-download-token";
+import { getSkillArchivePath } from "./skill-fs";
 
 function inferProtocol(npm?: string | null): "openai" | "anthropic" {
   if (npm?.includes("anthropic")) return "anthropic";
@@ -137,6 +141,16 @@ export async function buildLaunchSpec(input: BuildLaunchSpecInput): Promise<Agen
     }
   }
 
+  const skills = fullConfig.skills
+    .filter((skill) => skill.enabled)
+    .map((skill) => {
+      const archivePath = getSkillArchivePath(getGlobalSkillsDir(), skill.name);
+      if (!existsSync(archivePath)) {
+        throw new Error(`Skill archive missing: ${skill.name}`);
+      }
+      return { name: skill.name, url: buildSkillDownloadUrl(skill, { expiresInSeconds: 3600 }) };
+    });
+
   const knowledgeBindings = agentConfigId ? await listAgentKnowledgeBindingsById(agentConfigId) : [];
   if (knowledgeBindings.length > 0) {
     mcpServers.push({
@@ -153,7 +167,7 @@ export async function buildLaunchSpec(input: BuildLaunchSpecInput): Promise<Agen
     ...(input.extraEnv ? { env: input.extraEnv } : {}),
     agent,
     model,
-    skills: [],
+    skills,
     mcpServers,
   };
 }
