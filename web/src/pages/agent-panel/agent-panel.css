@@ -377,14 +377,14 @@ file-tree-container {
 }
 
 .agent-artifacts-tree-pane {
-  width: 50%;
-  min-width: 0;
+  width: 35%;
+  min-width: 120px;
   overflow: hidden;
   border-right: 1px solid var(--color-border-subtle);
 }
 
 .agent-artifacts-preview-pane {
-  width: 50%;
+  flex: 1;
   min-width: 0;
   overflow: hidden;
 }
