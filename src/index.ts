@@ -45,6 +45,7 @@ import { startScheduler, stopScheduler } from "./services/scheduler";
 import { migrateSkillsDir } from "./services/skill";
 import { closeAllRelayConnections } from "./transport/relay";
 import { closeAllAcpConnections } from "./transport/acp-ws-handler";
+import { closeCache } from "./services/cache";
 
 await initDb();
 console.log("[RCS] Database initialized (PostgreSQL + better-auth)");
@@ -215,6 +216,7 @@ async function gracefulShutdown(signal: string) {
   closeAllRelayConnections();
   await stopAllInstances();
   stopScheduler();
+  await closeCache();
   await pgClient.end();
   process.exit(0);
 }

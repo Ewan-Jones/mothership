@@ -1,4 +1,5 @@
 import type { AuthContext } from "../plugins/auth";
+import { getCache } from "./cache";
 
 // ────────────────────────────────────────────
 // 测试注入：路由级测试通过 setTestOrgContext 绕过 DB 查询
@@ -10,31 +11,12 @@ export function setTestOrgContext(ctx: AuthContext | null) {
   _testOrgContext = ctx;
 }
 
-// 简易 TTL 缓存：避免每个请求都查 DB 解析 org context
-const orgCache = new Map<string, { ctx: AuthContext; expiresAt: number }>();
 const ORG_CACHE_TTL_MS = 60_000; // 60 秒
-
-function getCachedOrg(userId: string): AuthContext | null {
-  const entry = orgCache.get(userId);
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    orgCache.delete(userId);
-    return null;
-  }
-  return entry.ctx;
-}
-
-function setCachedOrg(userId: string, ctx: AuthContext): void {
-  orgCache.set(userId, { ctx, expiresAt: Date.now() + ORG_CACHE_TTL_MS });
-  if (orgCache.size > 1000) {
-    const oldest = orgCache.keys().next().value;
-    if (oldest) orgCache.delete(oldest);
-  }
-}
+const orgCache = getCache("org-context", ORG_CACHE_TTL_MS);
 
 /** 测试用：清除缓存 */
-export function clearOrgCache(): void {
-  orgCache.clear();
+export function clearOrgCache(): Promise<void> {
+  return orgCache.clear();
 }
 
 /** 从请求中解析 activeOrganizationId（header > query param > cookie） */
@@ -58,7 +40,7 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
 
   // 先提取 activeOrgId，以便与缓存比对
   const activeOrgId = extractActiveOrgId(request);
-  const cached = getCachedOrg(user.id);
+  const cached = await orgCache.get<AuthContext>(user.id);
   if (cached && (!activeOrgId || cached.organizationId === activeOrgId)) return cached;
 
   try {
@@ -77,7 +59,7 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
           userId: user.id,
           role: me.role as "owner" | "admin" | "member",
         };
-        setCachedOrg(user.id, result);
+        await orgCache.set(user.id, result);
         return result;
       }
     }
@@ -91,7 +73,7 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
         query: { organizationId: org.id },
         headers: request.headers,
       });
-      const memberList: any[] = Array.isArray(memberRes) ? memberRes : (memberRes?.members ?? []);
+      const memberList: any[] = Array.isArray(memberRes) ? memberRes?.members ?? [] : [];
       const me = memberList.find((m: any) => m.userId === user.id);
       if (me) {
         const result: AuthContext = {
@@ -99,7 +81,7 @@ export async function loadOrgContext(user: { id: string }, request: Request): Pr
           userId: user.id,
           role: me.role as "owner" | "admin" | "member",
         };
-        setCachedOrg(user.id, result);
+        await orgCache.set(user.id, result);
         return result;
       }
     }

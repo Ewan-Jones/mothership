@@ -52,6 +52,11 @@ const envSchema = z.object({
 
   // ── 可选：Workflow ──
   ACPX_G_URL: z.string().default("http://localhost:8848"),
+
+  // ── 可选：Redis 缓存 ──
+  RCS_REDIS_URL: z.string().optional(),
+  RCS_REDIS_PASSWORD: z.string().optional(),
+  RCS_REDIS_CLUSTER: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
