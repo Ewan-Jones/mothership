@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { mkdir, open, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { environmentRepo } from "../repositories";
 
@@ -215,4 +215,56 @@ export async function deleteFile(filePath: string): Promise<void> {
 /** 创建文件读取流（用于二进制文件下载或预览） */
 export function createFileStream(filePath: string): NodeJS.ReadableStream {
   return createReadStream(filePath);
+}
+
+/** 递归列出 user/ 下所有文件和目录，返回相对路径（目录以 / 结尾） */
+export async function listPathsRecursive(workspaceDir: string): Promise<string[]> {
+  const userDir = join(workspaceDir, "user");
+  await mkdir(userDir, { recursive: true });
+
+  const results: string[] = [];
+
+  async function walk(dirPath: string, prefix: string): Promise<void> {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    const dirs: { name: string; fullPath: string; relPath: string }[] = [];
+    const files: string[] = [];
+
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+      const fullPath = join(dirPath, entry.name);
+      if (shouldHideWorkspaceEntry(fullPath, userDir)) continue;
+      const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+
+      if (entry.isDirectory()) {
+        dirs.push({ name: entry.name, fullPath, relPath });
+      } else {
+        files.push(relPath);
+      }
+    }
+
+    // 排序：目录按名称字母序，文件按名称字母序
+    dirs.sort((a, b) => a.name.localeCompare(b.name));
+    files.sort();
+
+    for (const d of dirs) {
+      results.push(`${d.relPath}/`);
+      await walk(d.fullPath, d.relPath);
+    }
+
+    results.push(...files);
+  }
+
+  await walk(userDir, "");
+  return results;
+}
+
+/** 重命名文件或目录，自动创建目标父目录 */
+export async function renamePath(oldPath: string, newPath: string): Promise<void> {
+  await mkdir(resolve(newPath, ".."), { recursive: true });
+  await rename(oldPath, newPath);
+}
+
+/** 递归创建目录（等同于 mkdir -p） */
+export async function mkdirp(dirPath: string): Promise<void> {
+  await mkdir(dirPath, { recursive: true });
 }
