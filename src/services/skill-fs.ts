@@ -264,7 +264,7 @@ export async function buildSkillArchive(sourceDir: string, archivePath: string):
 // ────────────────────────────────────────────
 
 /** 扫描 baseDir 下所有子目录，解析每个 SKILL.md 的元数据 */
-export async function listSkillsFromDir(baseDir: string, enabled = true): Promise<SkillInfo[]> {
+export async function listSkillsFromDir(baseDir: string): Promise<SkillInfo[]> {
   const skills: SkillInfo[] = [];
   if (!existsSync(baseDir)) return skills;
   for (const entry of await readdir(baseDir, { withFileTypes: true })) {
@@ -273,7 +273,7 @@ export async function listSkillsFromDir(baseDir: string, enabled = true): Promis
     if (!existsSync(mdPath)) continue;
     const raw = await readFile(mdPath, "utf-8");
     const { metadata } = parseFrontmatter(raw);
-    skills.push({ name: entry.name, enabled, description: metadata.description ?? "", path: mdPath });
+    skills.push({ name: entry.name, enabled: true, description: metadata.description ?? "", path: mdPath });
   }
   return skills;
 }

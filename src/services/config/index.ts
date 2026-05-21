@@ -30,11 +30,8 @@ export { addModel, removeModel, updateModel } from "./model";
 export { buildModelData, deleteProvider, getProvider, listProviders, upsertProvider } from "./provider";
 export {
   deleteSkill,
-  disableSkill,
-  enableSkill,
   getSkill,
   listSkills,
-  listWorkspaceSkills,
   upsertSkill,
 } from "./skill";
 export { listAgentSkillIds, syncAgentSkills } from "./agent-config-skill";
