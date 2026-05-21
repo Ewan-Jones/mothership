@@ -330,7 +330,7 @@ export function DataTable<T>({
                       </TableRow>
                       {expandableRow && (
                         <TableRow className="border-b">
-                          <TableCell colSpan={colSpan} className="p-0">
+                          <TableCell colSpan={colSpan} className="p-0 whitespace-normal overflow-hidden">
                             <CollapsibleContent>
                               <div className="px-6 py-3 bg-surface-2/50 border-t border-border-light">
                                 {expandableRow(row.original)}

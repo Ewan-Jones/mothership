@@ -403,7 +403,7 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="space-y-2 overflow-hidden">
         {source.skills.length === 0 ? (
           <div className="py-6 text-center text-sm text-text-muted">{t("noSkills")}</div>
         ) : (
@@ -435,7 +435,7 @@ function SkillSubrow({ source, onRefresh }: { source: SkillSourceInfo; onRefresh
                     <p className="mt-0.5 text-xs text-text-secondary line-clamp-1">{skill.description}</p>
                   )}
                 </div>
-                <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex shrink-0 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {!isWorkspace && (
                     <Button size="xs" variant="outline" onClick={() => handleToggle(skill)}>
                       {skill.enabled ? t("btn.disable") : t("btn.enable")}
