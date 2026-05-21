@@ -37,5 +37,6 @@ export {
   listWorkspaceSkills,
   upsertSkill,
 } from "./skill";
+export { listAgentSkillIds, syncAgentSkills } from "./agent-config-skill";
 export type { UserConfigData } from "./user-config";
 export { getUserConfig, setUserConfig } from "./user-config";

@@ -33,4 +33,6 @@ export {
   updateModel,
   upsertProvider,
   upsertSkill,
+  listAgentSkillIds,
+  syncAgentSkills,
 } from "./config/index";
