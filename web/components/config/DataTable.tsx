@@ -151,6 +151,7 @@ function buildColumnDefs<T>(
   if (actions) {
     defs.push({
       id: "actions",
+      size: 120,
       header: "操作",
       cell: ({ row }) => (
         <div className="table-row-actions opacity-0 group-hover:opacity-100 transition-opacity duration-150">
@@ -267,7 +268,7 @@ export function DataTable<T>({
         </div>
       )}
       <div className="rounded-md border overflow-hidden">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-b bg-muted/50">
