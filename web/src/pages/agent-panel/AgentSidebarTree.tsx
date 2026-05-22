@@ -126,7 +126,17 @@ export function AgentSidebarTree({
     return (
       <div className="px-4 py-4 text-center">
         <Bot className="h-8 w-8 mx-auto mb-2 text-text-muted opacity-30" />
-        <p className="text-xs text-text-muted">{t("noAgents")}</p>
+        <p className="text-xs text-text-muted mb-3">{t("noAgents")}</p>
+        {onCreateAgent && (
+          <button
+            type="button"
+            onClick={onCreateAgent}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {t("createAgent")}
+          </button>
+        )}
       </div>
     );
   }
