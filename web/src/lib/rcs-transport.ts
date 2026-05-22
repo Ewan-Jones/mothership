@@ -1,6 +1,6 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { v4 as uuidv4 } from "uuid";
-import { getUuid } from "../api/client";
+import { getUuid } from "@/src/api/helpers";
 import type { EventPayload, SessionEvent } from "../types";
 
 // ============================================================

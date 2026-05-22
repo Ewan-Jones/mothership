@@ -12,11 +12,13 @@ export interface ApiError {
 export interface ApiOk<T> {
   readonly ok: true;
   readonly data: T;
+  readonly error?: undefined;
 }
 
 /** API 失败响应 */
 export interface ApiErr {
   readonly ok: false;
+  readonly data?: undefined;
   readonly error: ApiError;
 }
 

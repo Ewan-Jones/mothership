@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { apiPost, fetchUpload } from "../api/client";
+import { skillConfigApi } from "@/src/api/sdk";
 import { dispatchConfigChange } from "../lib/config-events";
 import { buildSkillUploadFormData, parseSkillUploadFiles, validateUploadBatch } from "../lib/skill-upload";
 import type { SkillUploadConflictResponse, SkillUploadConflictStrategy, UploadSkillSummary } from "../types/config";
@@ -158,19 +158,18 @@ export function SkillsPage() {
 
   const loadSkills = useCallback(async () => {
     setLoading(true);
-    try {
-      const res = await apiPost<{ skills?: SkillInfo[] }>("/web/config/skills", { action: "list" });
-      setSkills(Array.isArray(res?.skills) ? res.skills : []);
-    } catch (e) {
-      console.error(t("toast.loadListFailed"), e);
+    const { data: res, error } = await skillConfigApi.list();
+    if (error) {
+      console.error(t("toast.loadListFailed"), error);
       toast.error(
         t("toast.loadListFailedWith", {
-          message: e instanceof Error ? e.message : t("toast.saveFailed"),
+          message: error.message,
         }),
       );
-    } finally {
-      setLoading(false);
+    } else {
+      setSkills((Array.isArray(res) ? res : []) as unknown as SkillInfo[]);
     }
+    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -197,18 +196,15 @@ export function SkillsPage() {
     setEditingSkill(skill);
     setCreateMode("text");
     resetUploadState();
-    try {
-      const detail = await apiPost<{ name: string; description: string; content: string }>("/web/config/skills", {
-        action: "get",
-        name: skill.name,
-      });
-      setFormName(detail.name);
-      setFormDescription(detail.description);
-      setFormContent(detail.content);
-      setDialogOpen(true);
-    } catch {
+    const { data: detail, error } = await skillConfigApi.get(skill.name);
+    if (error) {
       toast.error(t("toast.loadDetailFailed"));
+    } else {
+      setFormName(((detail as Record<string, unknown>)?.name as string) ?? "");
+      setFormDescription(((detail as Record<string, unknown>)?.description as string) ?? "");
+      setFormContent(((detail as Record<string, unknown>)?.content as string) ?? "");
     }
+    setDialogOpen(true);
   };
 
   const handleTextSave = async () => {
@@ -218,25 +214,20 @@ export function SkillsPage() {
       return;
     }
     setFormSaving(true);
-    try {
-      await apiPost("/web/config/skills", {
-        action: "set",
-        name: formName,
-        data: { description: formDescription, content: formContent },
-      });
+    const { error } = await skillConfigApi.set(formName, { description: formDescription, content: formContent });
+    if (error) {
+      toast.error(
+        t("toast.saveFailedWith", {
+          message: error.message,
+        }),
+      );
+    } else {
       toast.success(editingSkill ? t("toast.skillUpdated") : t("toast.skillCreated"));
       setDialogOpen(false);
       loadSkills();
       dispatchConfigChange("skills");
-    } catch (e) {
-      toast.error(
-        t("toast.saveFailedWith", {
-          message: e instanceof Error ? e.message : t("toast.saveFailed"),
-        }),
-      );
-    } finally {
-      setFormSaving(false);
     }
+    setFormSaving(false);
   };
 
   const handleUploadSelection = (event: ChangeEvent<HTMLInputElement>) => {
@@ -257,33 +248,33 @@ export function SkillsPage() {
       return;
     }
     setUploadPending(true);
-    try {
-      const formData = buildSkillUploadFormData(uploadItems, strategy);
-      const result = normalizeSkillUploadResult(await fetchUpload<unknown>("/web/config/skills/upload", formData));
+    const formData = buildSkillUploadFormData(uploadItems, strategy);
+    const { data: uploadResult, error: uploadError } = await skillConfigApi.upload(formData);
+    if (uploadError) {
+      const conflictData = getUploadConflictData(uploadError);
+      if (conflictData) {
+        console.error(t("toast.importFailed"), uploadError);
+        setConflicts(conflictData.conflicts);
+        setConflictStrategy(strategy ?? null);
+        toast.error(t("conflict.detected"));
+      } else {
+        console.error(t("toast.importFailed"), uploadError);
+        toast.error(
+          t("toast.importFailedWith", {
+            message: uploadError.message,
+          }),
+        );
+      }
+    } else {
+      const result = normalizeSkillUploadResult(uploadResult);
       toast.success(getUploadResultMessage(result.imported.length, result.skipped.length, t));
       setDialogOpen(false);
       resetUploadState();
       loadSkills();
       dispatchConfigChange("skills");
-    } catch (error) {
-      const conflictData = getUploadConflictData(error);
-      if (conflictData) {
-        console.error(t("toast.importFailed"), error);
-        setConflicts(conflictData.conflicts);
-        setConflictStrategy(strategy ?? null);
-        toast.error(t("conflict.detected"));
-      } else {
-        console.error(t("toast.importFailed"), error);
-        toast.error(
-          t("toast.importFailedWith", {
-            message: error instanceof Error ? error.message : t("toast.saveFailed"),
-          }),
-        );
-      }
-    } finally {
-      setUploadPending(false);
-      setOverwriteConfirmOpen(false);
     }
+    setUploadPending(false);
+    setOverwriteConfirmOpen(false);
   };
 
   const handleDialogSubmit = async () => {
@@ -301,41 +292,29 @@ export function SkillsPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      await apiPost("/web/config/skills", {
-        action: "delete",
-        name: deleteTarget,
-      });
-      toast.success(t("toast.skillDeleted"));
-      setConfirmOpen(false);
-      loadSkills();
-      dispatchConfigChange("skills");
-    } catch (e) {
-      console.error(t("toast.deleteFailed"), e);
+    const { error } = await skillConfigApi.delete(deleteTarget);
+    if (error) {
+      console.error(t("toast.deleteFailed"), error);
       toast.error(
         t("toast.deleteFailedWith", {
-          message: e instanceof Error ? e.message : t("toast.saveFailed"),
+          message: error.message,
         }),
       );
+      return;
     }
+    toast.success(t("toast.skillDeleted"));
+    setConfirmOpen(false);
+    loadSkills();
+    dispatchConfigChange("skills");
   };
 
   const confirmBatchDelete = async () => {
-    try {
-      await Promise.all(selected.map((s) => apiPost("/web/config/skills", { action: "delete", name: s.name })));
-      toast.success(t("toast.batchDeleted", { count: selected.length }));
-      setBatchConfirmOpen(false);
-      setSelected([]);
-      loadSkills();
-      dispatchConfigChange("skills");
-    } catch (e) {
-      console.error(t("toast.batchDeleteFailed"), e);
-      toast.error(
-        t("toast.batchDeleteFailedWith", {
-          message: e instanceof Error ? e.message : t("toast.saveFailed"),
-        }),
-      );
-    }
+    await Promise.all(selected.map((s) => skillConfigApi.delete(s.name)));
+    toast.success(t("toast.batchDeleted", { count: selected.length }));
+    setBatchConfirmOpen(false);
+    setSelected([]);
+    loadSkills();
+    dispatchConfigChange("skills");
   };
 
   const columns: Column<SkillInfo>[] = [

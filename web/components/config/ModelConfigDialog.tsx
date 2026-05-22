@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { client } from "@/src/api/client";
+import { modelApi } from "@/src/api/sdk";
 import type { ModelEntry } from "@/src/types/config";
 
 export function buildModelOptions(available: ModelEntry[]): { value: string; label: string }[] {
@@ -27,16 +27,12 @@ export function ModelConfigDialog({ currentModel, currentSmallModel, available }
   const modelOptions = buildModelOptions(available);
 
   const handleModelChange = async (field: "model" | "small_model", value: string) => {
-    try {
-      const { error } = await client.web.config.models.post({ action: "set", [field]: value } as Record<
-        string,
-        unknown
-      >);
-      if (error) throw new Error(error.message ?? "更新失败");
-      toast.success("模型已更新");
-    } catch (e) {
-      toast.error(`更新失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    const { error } = await modelApi.set({ [field]: value });
+    if (error) {
+      toast.error(t("modelConfig.updateError", { message: error.message }));
+      return;
     }
+    toast.success(t("modelConfig.updateSuccess"));
   };
 
   const handleCustomModel = (field: "model" | "small_model", value: string) => {

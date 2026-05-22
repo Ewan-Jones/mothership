@@ -2,7 +2,7 @@ import { FileTree, useFileTree, useFileTreeSelection } from "@pierre/trees/react
 import { Eye, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, apiPost, fetchUpload } from "../../api/client";
+import { fileApi, userFileApi } from "@/src/api/sdk";
 import { FileTreeContextMenu } from "./FileTreeContextMenu";
 
 interface FileTreeTabProps {
@@ -26,17 +26,16 @@ export function FileTreeTab({ envId, onPreviewFile, onReferenceFile }: FileTreeT
   const loadTree = useCallback(async () => {
     if (!envId) return;
     setLoading(true);
-    try {
-      const data = await api<{ paths?: string[] }>("GET", `/web/environments/${envId}/user-file/tree`);
+    const { data, error: err } = await userFileApi.tree({ id: envId });
+    if (err) {
+      console.error("Failed to load file tree:", err);
+      setHasPaths(false);
+    } else {
       const newPaths = data?.paths ?? [];
       setHasPaths(newPaths.length > 0);
       model.resetPaths(newPaths);
-    } catch (err) {
-      console.error("Failed to load file tree:", err);
-      setHasPaths(false);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [envId, model]);
 
   useEffect(() => {
@@ -59,11 +58,11 @@ export function FileTreeTab({ envId, onPreviewFile, onReferenceFile }: FileTreeT
       if (!newName || newName === currentName) return;
       const parentDir = path.endsWith("/") ? path.slice(0, -1) : path.substring(0, path.lastIndexOf("/"));
       const newPath = parentDir ? `${parentDir}/${newName}` : newName;
-      try {
-        await apiPost(`/web/environments/${envId}/user-file/rename`, { oldPath: path, newPath });
+      const { error: renameErr } = await userFileApi.rename({ id: envId! }, { oldPath: path, newPath });
+      if (renameErr) {
+        console.error("Rename failed:", renameErr);
+      } else {
         await loadTree();
-      } catch (err) {
-        console.error("Rename failed:", err);
       }
     },
     [envId, loadTree, t],
@@ -72,11 +71,11 @@ export function FileTreeTab({ envId, onPreviewFile, onReferenceFile }: FileTreeT
   const handleDelete = useCallback(
     async (path: string) => {
       if (!window.confirm(`${t("fileTree.contextMenu.delete")}: ${path}?`)) return;
-      try {
-        await apiPost(`/web/environments/${envId}/user-file/batch`, { paths: [path] });
+      const { error: deleteErr } = await userFileApi.batchDelete({ id: envId! }, { paths: [path] });
+      if (deleteErr) {
+        console.error("Delete failed:", deleteErr);
+      } else {
         await loadTree();
-      } catch (err) {
-        console.error("Delete failed:", err);
       }
     },
     [envId, loadTree, t],
@@ -88,11 +87,11 @@ export function FileTreeTab({ envId, onPreviewFile, onReferenceFile }: FileTreeT
       if (!name) return;
       const cleanParent = parentPath.endsWith("/") ? parentPath.slice(0, -1) : parentPath;
       const fullPath = cleanParent ? `${cleanParent}/${name}` : name;
-      try {
-        await apiPost(`/web/environments/${envId}/user-file/mkdir`, { path: fullPath });
+      const { error: mkdirErr } = await userFileApi.mkdir({ id: envId! }, { path: fullPath });
+      if (mkdirErr) {
+        console.error("Mkdir failed:", mkdirErr);
+      } else {
         await loadTree();
-      } catch (err) {
-        console.error("Mkdir failed:", err);
       }
     },
     [envId, loadTree, t],
@@ -135,7 +134,7 @@ export function FileTreeTab({ envId, onPreviewFile, onReferenceFile }: FileTreeT
         for (const file of files) {
           formData.append("files", file);
         }
-        await fetchUpload(`/web/environments/${envId}/user/${targetSubdir.replace(/^user\/?/, "")}`, formData);
+        await fileApi.upload({ id: envId, path: targetSubdir.replace(/^user\/?/, "") }, formData);
         await loadTree();
       } catch (err) {
         console.error("Upload failed:", err);

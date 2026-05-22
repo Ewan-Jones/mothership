@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
-import { client, fetchUpload } from "../api/client";
+import { fileApi } from "../api/sdk";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -9,7 +9,7 @@ let mockFetchCalls: Array<{ url: string; method: string; headers?: Record<string
 
 const originalFetch = globalThis.fetch;
 
-describe("File API Functions (Eden Treaty)", () => {
+describe("File API Functions (SDK)", () => {
   beforeEach(() => {
     mockFetchCalls = [];
     globalThis.fetch = Object.assign(
@@ -40,30 +40,30 @@ describe("File API Functions (Eden Treaty)", () => {
 
   // 测试列出文件不带目录参数
   test("listFiles — no path param", async () => {
-    await (client as any).web.sessions({ id: "s1" }).user.get();
+    await fileApi.listDir({ id: "s1" });
     expect(mockFetchCalls.length).toBe(1);
-    expect(mockFetchCalls[0].url).toContain("/web/sessions/s1/user");
+    expect(mockFetchCalls[0].url).toContain("/web/environments/s1/user");
     expect(mockFetchCalls[0].method).toBe("GET");
   });
 
   // 测试列出文件带目录参数
   test("listFiles — with path query param", async () => {
-    await (client as any).web.sessions({ id: "s1" }).user.get({ path: "docs/" });
+    await fileApi.listDir({ id: "s1" }, { path: "docs/" });
     expect(mockFetchCalls.length).toBe(1);
-    expect(mockFetchCalls[0].url).toContain("/web/sessions/s1/user");
-    // Eden Treaty passes query params via fetch options
+    expect(mockFetchCalls[0].url).toContain("/web/environments/s1/user");
+    expect(mockFetchCalls[0].url).toContain("path=docs");
     expect(mockFetchCalls[0].method).toBe("GET");
   });
 
-  // 测试上传文件使用 fetchUpload 和 FormData
-  test("fetchUpload — uses FormData and POST", async () => {
+  // 测试上传文件使用 SDK upload 和 FormData
+  test("upload — uses FormData and POST", async () => {
     const file = new File(["content"], "test.txt");
     const formData = new FormData();
     formData.append("files", file);
-    await fetchUpload("/web/sessions/s1/user/docs/", formData);
+    await fileApi.upload({ id: "s1", path: "docs" }, formData);
     expect(mockFetchCalls.length).toBe(1);
     expect(mockFetchCalls[0].method).toBe("POST");
     expect(mockFetchCalls[0].body).toBeInstanceOf(FormData);
-    expect(mockFetchCalls[0].url).toContain("/web/sessions/s1/user/");
+    expect(mockFetchCalls[0].url).toContain("/web/environments/s1/user/docs");
   });
 });

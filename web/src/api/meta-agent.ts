@@ -4,7 +4,7 @@
  * 对接后端 POST /web/meta-agent/ensure。
  */
 
-import { apiPost } from "./client";
+import { metaAgentApi } from "./sdk";
 
 export interface EnsureMetaResult {
   environmentId: string;
@@ -13,5 +13,7 @@ export interface EnsureMetaResult {
 }
 
 export async function ensureMetaAgent(): Promise<EnsureMetaResult> {
-  return apiPost<EnsureMetaResult>("/web/meta-agent/ensure", {});
+  const { data, error } = await metaAgentApi.ensure();
+  if (error) throw new Error(error.message);
+  return data as unknown as EnsureMetaResult;
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, mock, afterEach } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { BaseApi } from "../base";
 
 const originalFetch = globalThis.fetch;
@@ -76,10 +76,10 @@ describe("BaseApi.post — 错误响应", () => {
     const api = new BaseApi();
     globalThis.fetch = mock(() =>
       Promise.resolve(
-        new Response(
-          JSON.stringify({ success: false, error: { code: "NOT_FOUND", message: "资源不存在" } }),
-          { status: 404, headers: { "Content-Type": "application/json" } },
-        ),
+        new Response(JSON.stringify({ success: false, error: { code: "NOT_FOUND", message: "资源不存在" } }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }),
       ),
     ) as unknown as typeof fetch;
 

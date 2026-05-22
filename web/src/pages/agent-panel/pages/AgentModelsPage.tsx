@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { apiPost } from "../../../api/client";
+import { modelApi, providerApi } from "@/src/api/sdk";
 import { dispatchConfigChange } from "../../../lib/config-events";
 import type { ModelConfig, ProviderInfo, ProviderModel } from "../../../types/config";
 import { AgentCardList } from "../shared/AgentCardList";
@@ -74,23 +74,19 @@ export function AgentModelsPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [providersData, modelConfigData] = await Promise.all([
+      const [providersResult, modelConfigResult] = await Promise.all([
         (async () => {
-          const listResult = await apiPost<{ providers?: ProviderInfo[] } | ProviderInfo[]>("/web/config/providers", {
-            action: "list",
-          });
+          const { data: listResult, error: listErr } = await providerApi.list();
+          if (listErr) throw new Error(listErr.message);
           const data = Array.isArray(listResult)
-            ? listResult
-            : ((listResult as { providers?: ProviderInfo[] }).providers ?? []);
+            ? (listResult as unknown as ProviderInfo[])
+            : (((listResult as unknown as Record<string, unknown>)?.providers ?? []) as unknown as ProviderInfo[]);
           const modelsMap: Record<string, ProviderModel[]> = {};
           await Promise.all(
-            data.map(async (p: ProviderInfo) => {
+            data.map(async (p) => {
               try {
-                const detail = await apiPost<{ models: ProviderModel[] }>("/web/config/providers", {
-                  action: "get",
-                  name: p.id,
-                });
-                modelsMap[p.id] = (detail as { models?: ProviderModel[] }).models ?? [];
+                const { data: detail } = await providerApi.get(p.id);
+                modelsMap[p.id] = (detail as unknown as { models?: ProviderModel[] }).models ?? [];
               } catch {
                 modelsMap[p.id] = [];
               }
@@ -98,13 +94,11 @@ export function AgentModelsPage() {
           );
           return { providers: data, providerModels: modelsMap };
         })(),
-        (async () => {
-          return await apiPost<ModelConfig>("/web/config/models", { action: "get" });
-        })(),
+        modelApi.get(),
       ]);
-      setProviders(providersData.providers);
-      setProviderModels(providersData.providerModels);
-      setModelConfig(modelConfigData as ModelConfig);
+      setProviders(providersResult.providers);
+      setProviderModels(providersResult.providerModels);
+      if (modelConfigResult.data) setModelConfig(modelConfigResult.data as unknown as ModelConfig);
     } catch (e) {
       console.error(t("loadModelsError"), e);
       toast.error(t("loadError", { message: e instanceof Error ? e.message : t("unknownError") }));
@@ -151,7 +145,7 @@ export function AgentModelsPage() {
       if (formBaseURL) data.baseURL = formBaseURL;
       if (npmPackage) data.npm = npmPackage;
       if (formDisplayName) data.name = formDisplayName;
-      await apiPost("/web/config/providers", { action: "set", name: formName, data });
+      await providerApi.set(formName, data);
       toast.success(editingProvider ? t("saveProvider.successUpdate") : t("saveProvider.successCreate"));
       setDialogOpen(false);
       loadAll();
@@ -167,11 +161,13 @@ export function AgentModelsPage() {
   const handleTest = async (name: string) => {
     setTesting(name);
     try {
-      const result = await apiPost<{ models: string[]; warning?: string }>("/web/config/providers", {
-        action: "test",
-        name,
-      });
-      setTestResult({ name, models: result.models, warning: result.warning });
+      const { data: result, error: testErr } = await providerApi.test(name);
+      if (testErr) throw new Error(testErr.message);
+      const r = result as unknown as Record<string, unknown>;
+      const modelIds = Array.isArray(r?.models)
+        ? (r.models as unknown as Array<{ id?: string }>).map((m: { id?: string }) => m.id ?? String(m))
+        : [];
+      setTestResult({ name, models: modelIds, warning: (r?.warning ?? undefined) as string | undefined });
       setAddedModelIds(new Set((providerModels[name] ?? []).map((m) => m.id)));
     } catch (e) {
       setTestResult({ name, error: e instanceof Error ? e.message : t("unknownError") });
@@ -182,21 +178,16 @@ export function AgentModelsPage() {
 
   const handleAddFromTest = async (modelId: string) => {
     if (!testResult || "error" in testResult) return;
-    try {
-      await apiPost("/web/config/providers", {
-        action: "add_model",
-        name: testResult.name,
-        modelId,
-        data: { modelId, name: modelId },
-      });
-      setAddedModelIds((prev) => new Set(prev).add(modelId));
-      toast.success(t("testDialog.addModelSuccess", { modelId }));
-      dispatchConfigChange("models");
-      loadAll();
-    } catch (e) {
-      console.error(e);
-      toast.error(t("testDialog.addModelError", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await providerApi.addModel(testResult.name, { modelId, name: modelId });
+    if (error) {
+      console.error(error);
+      toast.error(t("testDialog.addModelError", { message: error.message }));
+      return;
     }
+    setAddedModelIds((prev) => new Set(prev).add(modelId));
+    toast.success(t("testDialog.addModelSuccess", { modelId }));
+    dispatchConfigChange("models");
+    loadAll();
   };
 
   const handleDelete = (name: string) => {
@@ -205,30 +196,25 @@ export function AgentModelsPage() {
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      await apiPost("/web/config/providers", { action: "delete", name: deleteTarget });
-      toast.success(t("deleteProvider.success"));
-      setConfirmOpen(false);
-      loadAll();
-      dispatchConfigChange("providers");
-    } catch (e) {
-      console.error(e);
-      toast.error(t("deleteProvider.error", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await providerApi.delete(deleteTarget);
+    if (error) {
+      console.error(error);
+      toast.error(t("deleteProvider.error", { message: error.message }));
+      return;
     }
+    toast.success(t("deleteProvider.success"));
+    setConfirmOpen(false);
+    loadAll();
+    dispatchConfigChange("providers");
   };
 
   const confirmBatchDelete = async () => {
-    try {
-      await Promise.all(selected.map((p) => apiPost("/web/config/providers", { action: "delete", name: p.id })));
-      toast.success(t("batchDeleteCount", { count: selected.length }));
-      setBatchConfirmOpen(false);
-      setSelected([]);
-      loadAll();
-      dispatchConfigChange("providers");
-    } catch (e) {
-      console.error(e);
-      toast.error(t("batchDeleteError", { message: e instanceof Error ? e.message : t("unknownError") }));
-    }
+    await Promise.all(selected.map((p) => providerApi.delete(p.id)));
+    toast.success(t("batchDeleteCount", { count: selected.length }));
+    setBatchConfirmOpen(false);
+    setSelected([]);
+    loadAll();
+    dispatchConfigChange("providers");
   };
 
   // Model CRUD
@@ -295,11 +281,19 @@ export function AgentModelsPage() {
     if (Object.keys(cost).length > 0) data.cost = cost;
     setModelSaving(true);
     try {
-      const action = isNewModel ? "add_model" : "update_model";
-      const payload = isNewModel
-        ? { action, name: modelProviderId, data }
-        : { action, name: modelProviderId, modelId: mfId, data };
-      await apiPost("/web/config/providers", payload);
+      if (isNewModel) {
+        const { error } = await providerApi.addModel(modelProviderId, data);
+        if (error) {
+          toast.error(t("modelSubrow.saveModel.errorGeneric", { message: error.message }));
+          return;
+        }
+      } else {
+        const { error } = await providerApi.updateModel(modelProviderId, { modelId: mfId, ...data });
+        if (error) {
+          toast.error(t("modelSubrow.saveModel.errorGeneric", { message: error.message }));
+          return;
+        }
+      }
       toast.success(isNewModel ? t("modelSubrow.saveModel.successCreate") : t("modelSubrow.saveModel.successUpdate"));
       setModelDialogOpen(false);
       loadAll();
@@ -316,20 +310,16 @@ export function AgentModelsPage() {
 
   const handleModelDelete = async () => {
     if (!deleteModelConfirm) return;
-    try {
-      await apiPost("/web/config/providers", {
-        action: "remove_model",
-        name: deleteModelConfirm.providerId,
-        modelId: deleteModelConfirm.modelId,
-      });
-      toast.success(t("modelSubrow.deleteModel.success"));
-      setDeleteModelConfirm(null);
-      loadAll();
-      dispatchConfigChange("models");
-    } catch (e) {
-      console.error(e);
-      toast.error(t("modelSubrow.deleteModel.error", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await providerApi.removeModel(deleteModelConfirm.providerId, deleteModelConfirm.modelId);
+    if (error) {
+      console.error(error);
+      toast.error(t("modelSubrow.deleteModel.error", { message: error.message }));
+      return;
     }
+    toast.success(t("modelSubrow.deleteModel.success"));
+    setDeleteModelConfirm(null);
+    loadAll();
+    dispatchConfigChange("models");
   };
 
   const toggleModality = (list: string[], item: string, setter: (v: string[]) => void) => {

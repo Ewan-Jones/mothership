@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { api, apiGet, apiPost } from "../api/client";
+import { envApi, fileApi, taskApi } from "@/src/api/sdk";
 
 interface TaskInfo {
   id: string;
@@ -158,12 +158,11 @@ export function TasksPage() {
   const loadTasksAndEnvironments = useCallback(async () => {
     setLoading(true);
     try {
-      const [taskRes, envRes] = await Promise.all([
-        apiGet<TaskInfo[]>("/web/tasks"),
-        apiGet<Environment[]>("/web/environments"),
-      ]);
-      setTasks(Array.isArray(taskRes) ? taskRes : []);
-      setEnvironments(Array.isArray(envRes) ? envRes : []);
+      const [taskResult, envResult] = await Promise.all([taskApi.list(), envApi.list()]);
+      const taskRes = taskResult.data;
+      const envRes = envResult.data;
+      setTasks(Array.isArray(taskRes) ? (taskRes as TaskInfo[]) : []);
+      setEnvironments(Array.isArray(envRes) ? (envRes as Environment[]) : []);
     } catch (error) {
       console.error(t("toast.loadPageFailed", { error: "" }), error);
       toast.error(t("toast.loadPageFailed", { error: error instanceof Error ? error.message : t("misc.unknown") }));
@@ -180,11 +179,11 @@ export function TasksPage() {
     async (taskId: string, page = 1) => {
       setLogsLoading(true);
       try {
-        const logResult = await apiGet<{ items?: unknown[]; total?: number }>(
-          `/web/tasks/${taskId}/logs?page=${page}&pageSize=20`,
-        );
-        setLogs((logResult?.items ?? []) as ExecutionLogInfo[]);
-        setLogsTotal(logResult?.total ?? 0);
+        const { data: logResult } = await taskApi.logs({ id: taskId });
+        const items = (logResult as { items?: unknown[]; total?: number } | null)?.items;
+        const total = (logResult as { items?: unknown[]; total?: number } | null)?.total;
+        setLogs((items ?? []) as ExecutionLogInfo[]);
+        setLogsTotal(total ?? 0);
         setLogsPage(page);
       } catch (error) {
         console.error(t("toast.loadLogsFailed", { error: "" }), error);
@@ -244,10 +243,10 @@ export function TasksPage() {
       };
 
       if (editingTask) {
-        await api("PUT", `/web/tasks/${editingTask.id}`, payload);
+        await taskApi.update({ id: editingTask.id }, payload);
         toast.success(t("toast.taskUpdated"));
       } else {
-        await apiPost("/web/tasks", payload);
+        await taskApi.create(payload);
         toast.success(t("toast.taskCreated"));
       }
 
@@ -263,7 +262,7 @@ export function TasksPage() {
 
   const handleToggle = async (task: TaskInfo) => {
     try {
-      await apiPost(`/web/tasks/${task.id}/toggle`);
+      await taskApi.toggle({ id: task.id });
       toast.success(task.enabled ? t("toast.disabled", { name: task.name }) : t("toast.enabled", { name: task.name }));
       await loadTasksAndEnvironments();
     } catch (error) {
@@ -275,14 +274,12 @@ export function TasksPage() {
   const handleTrigger = async (task: TaskInfo) => {
     setTriggeringTaskId(task.id);
     try {
-      const result = await apiPost<{ status?: string; duration?: number | null; workspaceName?: string }>(
-        `/web/tasks/${task.id}/trigger`,
-      );
+      const { data: result } = await taskApi.trigger({ id: task.id });
       toast.success(
         t("toast.triggerSuccess", {
-          status: result?.status ?? t("misc.unknown"),
-          duration: formatDuration(result?.duration ?? null),
-          directory: result?.workspaceName ?? "—",
+          status: (result as { status?: string } | null)?.status ?? t("misc.unknown"),
+          duration: formatDuration((result as { duration?: number | null } | null)?.duration ?? null),
+          directory: (result as { workspaceName?: string } | null)?.workspaceName ?? "—",
         }),
       );
       await loadTasksAndEnvironments();
@@ -317,10 +314,8 @@ export function TasksPage() {
     setWorkspaceLoading(true);
     try {
       const relativePath = toWorkspaceRelativePath(environment, log.workspacePath);
-      const wsResult = await apiGet<{ entries?: unknown[] }>(
-        `/web/sessions/${environment.session_id}/user?path=${encodeURIComponent(relativePath)}`,
-      );
-      setWorkspaceEntries((wsResult?.entries ?? []) as FileInfo[]);
+      const { data: wsResult } = await fileApi.listDir({ id: environment.session_id! }, { path: relativePath });
+      setWorkspaceEntries(((wsResult as { entries?: unknown[] } | null)?.entries ?? []) as FileInfo[]);
       setWorkspaceTitle(relativePath);
     } catch (error) {
       console.error(t("toast.viewDirFailed", { error: "" }), error);
@@ -333,7 +328,7 @@ export function TasksPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await api("DELETE", `/web/tasks/${deleteTarget.id}`);
+      await taskApi.delete({ id: deleteTarget.id });
       toast.success(t("toast.taskDeleted"));
       setConfirmOpen(false);
       setDeleteTarget(null);
@@ -347,7 +342,7 @@ export function TasksPage() {
   const handleClearLogs = async () => {
     if (!logsTask) return;
     try {
-      await api("DELETE", `/web/tasks/${logsTask.id}/logs`);
+      await taskApi.clearLogs({ id: logsTask.id });
       toast.success(t("toast.logsCleared"));
       setClearLogsConfirmOpen(false);
       await loadLogs(logsTask.id, 1);

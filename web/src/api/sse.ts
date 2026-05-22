@@ -1,5 +1,5 @@
 import type { SessionEvent } from "../types";
-import { getUuid } from "./client";
+import { getUuid } from "./helpers";
 
 let currentEventSource: EventSource | null = null;
 

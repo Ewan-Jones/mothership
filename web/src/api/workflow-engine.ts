@@ -100,61 +100,90 @@ export interface DryRunResult {
 
 // ── API Client ──
 
-import { apiPost } from "./client";
+import { workflowEngineApi as _sdkEngineApi } from "./sdk";
 
 export const workflowEngineApi = {
   /** 执行工作流（同步，会阻塞到完成或 SUSPENDED） */
   async run(yaml: string, params?: Record<string, unknown>, workflowId?: string): Promise<DAGRunResult> {
-    return apiPost<DAGRunResult>("/web/workflow-engine", { action: "run", yaml, params, workflowId });
+    return _sdkEngineApi.run(yaml, { params, workflowId }).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data as DAGRunResult;
+    });
   },
 
   /** 校验 + 执行计划（不执行） */
   async dryRun(yaml: string): Promise<DryRunResult> {
-    return apiPost<DryRunResult>("/web/workflow-engine", { action: "dryRun", yaml });
+    return _sdkEngineApi.dryRun(yaml).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data as DryRunResult;
+    });
   },
 
   /** 取消运行 */
   async cancel(runId: string): Promise<void> {
-    await apiPost("/web/workflow-engine", { action: "cancel", runId });
+    const { error } = await _sdkEngineApi.cancel(runId);
+    if (error) throw new Error(error.message);
   },
 
   /** 获取运行状态快照 */
   async getRunStatus(runId: string): Promise<DAGSnapshot | null> {
-    return apiPost<DAGSnapshot | null>("/web/workflow-engine", { action: "getRunStatus", runId });
+    return _sdkEngineApi.getRunStatus(runId).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data as DAGSnapshot | null;
+    });
   },
 
   /** 获取事件流 */
   async getEvents(runId: string, nodeId?: string): Promise<DAGEvent[]> {
-    return apiPost<DAGEvent[]>("/web/workflow-engine", { action: "getEvents", runId, nodeId });
+    return _sdkEngineApi.getEvents(runId).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return (data ?? []) as DAGEvent[];
+    });
   },
 
   /** 获取节点输出 */
   async getOutput(runId: string, nodeId: string): Promise<NodeOutput | null> {
-    return apiPost<NodeOutput | null>("/web/workflow-engine", { action: "getOutput", runId, nodeId });
+    return _sdkEngineApi.getOutput(runId, nodeId).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data as NodeOutput | null;
+    });
   },
 
   /** 获取待审批列表 */
   async getPendingApprovals(runId: string): Promise<PendingApproval[]> {
-    return apiPost<PendingApproval[]>("/web/workflow-engine", { action: "getPendingApprovals", runId });
+    return _sdkEngineApi.getPendingApprovals(runId).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return (data ?? []) as PendingApproval[];
+    });
   },
 
   /** 审批通过 */
   async approve(runId: string, nodeId: string, token: string, data?: unknown): Promise<void> {
-    await apiPost("/web/workflow-engine", { action: "approve", runId, nodeId, token, data });
+    const { error } = await _sdkEngineApi.approve(runId, nodeId, token, data as unknown as Record<string, unknown>);
+    if (error) throw new Error(error.message);
   },
 
   /** 列出运行记录 */
   async listRuns(): Promise<RunSummary[]> {
-    return apiPost<RunSummary[]>("/web/workflow-engine", { action: "listRuns" });
+    return _sdkEngineApi.listRuns().then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return (data ?? []) as RunSummary[];
+    });
   },
 
   /** 崩溃恢复 */
   async recover(runId: string, yaml: string): Promise<DAGRunResult> {
-    return apiPost<DAGRunResult>("/web/workflow-engine", { action: "recover", runId, yaml });
+    return _sdkEngineApi.recover(runId).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data as DAGRunResult;
+    });
   },
 
   /** 从指定节点重新运行（保留上游输出，目标及下游重新执行） */
   async rerunFrom(runId: string, yaml: string, fromNodeId: string, workflowId?: string): Promise<DAGRunResult> {
-    return apiPost<DAGRunResult>("/web/workflow-engine", { action: "rerunFrom", runId, yaml, fromNodeId, workflowId });
+    return _sdkEngineApi.rerunFrom(runId, fromNodeId).then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data as DAGRunResult;
+    });
   },
 };

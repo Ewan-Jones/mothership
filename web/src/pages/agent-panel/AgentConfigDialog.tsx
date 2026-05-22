@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { apiGet, apiPost } from "../../api/client";
+import { agentApi, kbApi, modelApi, skillConfigApi } from "@/src/api/sdk";
 import { PermissionTab } from "../../components/PermissionTab";
 import { dispatchConfigChange } from "../../lib/config-events";
 import type { KnowledgeBaseInfo } from "../../types/knowledge";
@@ -65,14 +65,15 @@ export function AgentConfigDialog({ open, onOpenChange, agentName }: AgentConfig
     setFormPermission(null);
     setFormSkillIds([]);
 
-    Promise.all([
-      apiPost<Record<string, unknown>>("/web/config/agents", { action: "get", name: agentName }),
-      apiPost<Record<string, unknown>>("/web/config/models", { action: "get" }),
-      apiGet<KnowledgeBaseInfo[]>("/web/knowledgeBases").catch(() => [] as KnowledgeBaseInfo[]),
-      apiPost<Record<string, unknown>>("/web/config/skills", { action: "list" }).catch(() => ({})),
-    ])
-      .then(([detail, modelsData, kbData, skillsData]) => {
-        const d = detail as Record<string, unknown>;
+    Promise.all([agentApi.get(agentName), modelApi.get(), kbApi.list(), skillConfigApi.list()])
+      .then(([agentResult, modelsResult, kbResult, skillsResult]) => {
+        const agentError = agentResult.error;
+        if (agentError) {
+          console.error("Failed to load agent config:", agentError);
+          toast.error(t("knowledge.loadError", { message: agentError.message }));
+          return;
+        }
+        const d = agentResult.data as unknown as Record<string, unknown>;
         setFormModel((d.model as string) || "");
         setFormMode((d.mode as string) || DEFAULT_AGENT_MODE);
         setFormSteps(String(d.steps ?? 50));
@@ -94,20 +95,22 @@ export function AgentConfigDialog({ open, onOpenChange, agentName }: AgentConfig
           d.permission
             ? typeof d.permission === "string"
               ? (d.permission as unknown as Record<string, unknown>)
-              : (d.permission as Record<string, unknown>)
+              : (d.permission as unknown as Record<string, unknown>)
             : null,
         );
         setFormSkillIds(Array.isArray(d.skillIds) ? (d.skillIds as string[]) : []);
 
-        const models = Array.isArray(modelsData?.available)
-          ? (modelsData.available as Array<{ fullId: string }>).map((m) => m.fullId)
-          : [];
+        const modelsData = modelsResult.data as unknown as Record<string, unknown> | null;
+        const available = modelsData?.available;
+        const models = Array.isArray(available) ? (available as Array<{ fullId: string }>).map((m) => m.fullId) : [];
         setModelOptions(models);
 
-        const kbList = Array.isArray(kbData) ? kbData : [];
+        const kbData = kbResult.data;
+        const kbList = Array.isArray(kbData) ? (kbData as unknown as KnowledgeBaseInfo[]) : [];
         setKnowledgeOptions(kbList);
 
-        const skillsRaw = (skillsData as Record<string, unknown>)?.skills;
+        const skillsData = skillsResult.data as unknown as Record<string, unknown> | null;
+        const skillsRaw = skillsData?.skills;
         const skills = Array.isArray(skillsRaw)
           ? (skillsRaw as Array<{ id: string; name: string; description?: string }>).map((s) => ({
               id: s.id,
@@ -151,13 +154,11 @@ export function AgentConfigDialog({ open, onOpenChange, agentName }: AgentConfig
     setFormSaving(true);
     try {
       let latestKnowledgeOptions = knowledgeOptions;
-      try {
-        const kbData = await apiGet<KnowledgeBaseInfo[]>("/web/knowledgeBases");
-        latestKnowledgeOptions = Array.isArray(kbData) ? kbData : [];
-      } catch {
-        latestKnowledgeOptions = knowledgeOptions;
+      const { data: kbData } = await kbApi.list();
+      if (kbData) {
+        latestKnowledgeOptions = (Array.isArray(kbData) ? kbData : []) as unknown as typeof knowledgeOptions;
+        setKnowledgeOptions(latestKnowledgeOptions);
       }
-      setKnowledgeOptions(latestKnowledgeOptions);
       const validKnowledgeBaseIds = filterKnowledgeBaseIds(formKnowledgeBaseIds, latestKnowledgeOptions);
       if (validKnowledgeBaseIds.length !== formKnowledgeBaseIds.length) {
         setFormKnowledgeBaseIds(validKnowledgeBaseIds);
@@ -184,7 +185,11 @@ export function AgentConfigDialog({ open, onOpenChange, agentName }: AgentConfig
         }),
         skillIds: formSkillIds,
       };
-      await apiPost("/web/config/agents", { action: "set", name: agentName, data });
+      const { error } = await agentApi.set(agentName, data);
+      if (error) {
+        toast.error(t("save.errorGeneric", { message: error.message }));
+        return;
+      }
       toast.success(t("save.successUpdate"));
       onOpenChange(false);
       dispatchConfigChange("agents");

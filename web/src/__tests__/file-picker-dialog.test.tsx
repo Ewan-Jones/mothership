@@ -32,10 +32,11 @@ describe("FilePickerDialog", () => {
     expect(typeof dialogMod.DialogTitle).toBe("function");
   });
 
-  test("exports client and fetchUpload from api/client", async () => {
-    const clientMod = await import("../api/client");
-    expect(clientMod.client).toBeDefined();
-    expect(typeof clientMod.fetchUpload).toBe("function");
+  test("exports fileApi from api/sdk", async () => {
+    const sdkMod = await import("../api/sdk");
+    expect(sdkMod.fileApi).toBeDefined();
+    expect(typeof sdkMod.fileApi.listDir).toBe("function");
+    expect(typeof sdkMod.fileApi.upload).toBe("function");
   });
 
   test("FileInfo type is exported from types", async () => {

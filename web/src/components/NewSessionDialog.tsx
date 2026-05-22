@@ -3,12 +3,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { sessionApi } from "@/src/api/sdk";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { apiPost } from "../api/client";
 import type { Environment, Session } from "../types";
 
 const newSessionSchema = z.object({
@@ -35,19 +35,18 @@ export function NewSessionDialog({ open, environments, onClose, onCreated }: New
 
   const handleCreate = form.handleSubmit(async (values) => {
     setCreating(true);
-    try {
-      const body: Record<string, string> = {};
-      if (values.title.trim()) body.title = values.title.trim();
-      if (values.envId) body.environment_id = values.envId;
-      const session = await apiPost<Session>("/web/sessions", body);
-      onCreated(session);
-    } catch (err) {
+    const body: Record<string, string> = {};
+    if (values.title.trim()) body.title = values.title.trim();
+    if (values.envId) body.environment_id = values.envId;
+    const { data, error } = await sessionApi.create(body);
+    if (error) {
       form.setError("root", {
-        message: err instanceof Error ? err.message : t("newSession.createFailed"),
+        message: error.message ?? t("newSession.createFailed"),
       });
-    } finally {
-      setCreating(false);
+    } else {
+      onCreated(data as Session);
     }
+    setCreating(false);
   });
 
   return (

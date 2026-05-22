@@ -35,4 +35,10 @@ export class WorkflowDefApi extends BaseApi {
   async restoreToDraft(workflowId: string, version: number): Promise<ApiResult<unknown>> {
     return this.post("/web/workflow-defs", { action: "restoreToDraft", workflowId, version });
   }
+  async recover(): Promise<ApiResult<string[]>> {
+    return this.post("/web/workflow-defs", { action: "recover" });
+  }
+  async recoverApply(workflowIds: string[]): Promise<ApiResult<unknown[]>> {
+    return this.post("/web/workflow-defs", { action: "recoverApply", workflowIds });
+  }
 }

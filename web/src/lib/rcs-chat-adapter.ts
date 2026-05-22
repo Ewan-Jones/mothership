@@ -1,6 +1,7 @@
 import type { SetStateAction } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { api, apiGet, getUuid } from "../api/client";
+import { getUuid } from "@/src/api/helpers";
+import { controlApi, sessionApi } from "@/src/api/sdk";
 import type { EventPayload, SessionEvent } from "../types";
 import type {
   AssistantMessageEntry,
@@ -189,7 +190,8 @@ export class RCSChatAdapter {
 
   /** 加载历史事件并转为 ThreadEntry */
   async loadHistory(): Promise<void> {
-    const historyData = await apiGet<{ events?: SessionEvent[] }>(`/web/sessions/${this.sessionId}/history`);
+    const { data: historyData, error: histErr } = await sessionApi.history({ id: this.sessionId });
+    if (histErr) throw new Error(histErr.message);
     const events = historyData?.events;
     if (!events || events.length === 0) return;
 
@@ -554,22 +556,28 @@ export class RCSChatAdapter {
     this.setEntries((prev) => [...prev, userEntry]);
 
     // Send to backend
-    await api(`/web/sessions/${this.sessionId}/events`, "POST", {
-      type: "user",
-      uuid: uuidv4(),
-      content: text,
-      message: { content: text },
-    });
+    await controlApi.sendEvent(
+      { id: this.sessionId },
+      {
+        type: "user",
+        uuid: uuidv4(),
+        content: text,
+        message: { content: text },
+      },
+    );
   }
 
   /** 响应权限请求 */
   async respondPermission(requestId: string, approved: boolean, extra?: Record<string, unknown>): Promise<void> {
-    await api(`/web/sessions/${this.sessionId}/control`, "POST", {
-      type: "permission_response",
-      approved,
-      request_id: requestId,
-      ...extra,
-    });
+    await controlApi.control(
+      { id: this.sessionId },
+      {
+        type: "permission_response",
+        approved,
+        request_id: requestId,
+        ...extra,
+      },
+    );
 
     // Update tool call status
     this.setEntries((prev) =>
@@ -602,8 +610,11 @@ export class RCSChatAdapter {
       }),
     );
 
-    await api(`/web/sessions/${this.sessionId}/control`, "POST", {
-      type: "interrupt",
-    });
+    await controlApi.control(
+      { id: this.sessionId },
+      {
+        type: "interrupt",
+      },
+    );
   }
 }

@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import type { AvailableCommand } from "../../src/acp/types";
-import { fetchUpload } from "../../src/api/client";
+import { fileApi } from "../../src/api/sdk";
 import { FilePickerDialog } from "../../src/components/FilePickerDialog";
 import type { ChatInputMessage, FileAttachment, UserMessageImage } from "../../src/lib/types";
 import { cn } from "../../src/lib/utils";
@@ -227,7 +227,7 @@ export function ChatInput({
         for (const file of otherFiles) {
           formData.append("files", file);
         }
-        await fetchUpload(`/web/environments/${fileWorkspaceId}/user/user`, formData);
+        await fileApi.upload({ id: fileWorkspaceId, path: "user" }, formData);
         const newAttachments: FileAttachment[] = otherFiles.map((f) => ({
           name: f.name,
           path: `user/${f.name}`,

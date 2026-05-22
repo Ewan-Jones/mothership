@@ -1,25 +1,25 @@
 import { BaseApi } from "../base";
 import type { ApiResult } from "../result";
 import type {
-  ChannelProviderListResponse,
-  HermesStatus,
-  ChannelBindingListResponse,
   ChannelBinding,
+  ChannelBindingListResponse,
+  ChannelProviderListResponse,
   CreateChannelBindingRequest,
   CreateChannelBindingResponse,
   DeleteChannelBindingResponse,
+  HermesStatus,
   UpdateChannelBindingResponse,
 } from "../types/schemas";
 
 export class ChannelApi extends BaseApi {
   async listProviders(): Promise<ApiResult<ChannelProviderListResponse>> {
-    return this.get<ChannelProviderListResponse>("/web/channels/providers");
+    return this._get<ChannelProviderListResponse>("/web/channels/providers");
   }
   async hermesStatus(): Promise<ApiResult<HermesStatus>> {
-    return this.get<HermesStatus>("/web/channels/hermes/status");
+    return this._get<HermesStatus>("/web/channels/hermes/status");
   }
   async listBindings(): Promise<ApiResult<ChannelBindingListResponse>> {
-    return this.get<ChannelBindingListResponse>("/web/channels/bindings");
+    return this._get<ChannelBindingListResponse>("/web/channels/bindings");
   }
   async createBinding(body: CreateChannelBindingRequest): Promise<ApiResult<CreateChannelBindingResponse>> {
     return this.post<CreateChannelBindingResponse>("/web/channels/bindings", body);
@@ -27,7 +27,10 @@ export class ChannelApi extends BaseApi {
   async deleteBinding(params: { id: string }): Promise<ApiResult<DeleteChannelBindingResponse>> {
     return this.del<DeleteChannelBindingResponse>("/web/channels/bindings/:id", { params });
   }
-  async updateBinding(params: { id: string }, body: Partial<Pick<ChannelBinding, "platform" | "chatId" | "agentId" | "enabled">>): Promise<ApiResult<UpdateChannelBindingResponse>> {
+  async updateBinding(
+    params: { id: string },
+    body: Partial<Pick<ChannelBinding, "platform" | "chatId" | "agentId" | "enabled">>,
+  ): Promise<ApiResult<UpdateChannelBindingResponse>> {
     return this.patch<UpdateChannelBindingResponse>("/web/channels/bindings/:id", body, { params });
   }
 }

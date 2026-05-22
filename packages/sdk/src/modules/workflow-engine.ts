@@ -11,7 +11,12 @@ export class WorkflowEngineApi extends BaseApi {
   async cancel(runId: string): Promise<ApiResult<{ success: boolean }>> {
     return this.post("/web/workflow-engine", { action: "cancel", runId });
   }
-  async approve(runId: string, nodeId: string, token: string, data?: Record<string, unknown>): Promise<ApiResult<{ success: boolean }>> {
+  async approve(
+    runId: string,
+    nodeId: string,
+    token: string,
+    data?: Record<string, unknown>,
+  ): Promise<ApiResult<{ success: boolean }>> {
     return this.post("/web/workflow-engine", { action: "approve", runId, nodeId, token, data });
   }
   async getRunStatus(runId: string): Promise<ApiResult<unknown>> {

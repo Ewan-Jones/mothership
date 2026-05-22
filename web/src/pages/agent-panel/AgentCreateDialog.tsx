@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { apiGet, apiPost } from "../../api/client";
+import { agentApi, kbApi, modelApi, skillConfigApi } from "@/src/api/sdk";
 import { PermissionTab } from "../../components/PermissionTab";
 import { dispatchConfigChange } from "../../lib/config-events";
 import type { KnowledgeBaseInfo } from "../../types/knowledge";
@@ -70,35 +70,32 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
     setFormSkillIds([]);
     setActiveTab("basic");
 
-    apiPost<Record<string, unknown>>("/web/config/models", { action: "get" })
-      .then((modelsData) => {
-        const models = Array.isArray(modelsData?.available)
-          ? (modelsData.available as Array<{ fullId: string }>).map((m) => m.fullId)
-          : [];
-        setModelOptions(models);
-        setFormModel(models[0] || "");
-      })
-      .catch(() => {});
+    modelApi.get().then(({ data, error }) => {
+      if (error) return;
+      const available = (data as unknown as Record<string, unknown>)?.available;
+      const models = Array.isArray(available) ? (available as Array<{ fullId: string }>).map((m) => m.fullId) : [];
+      setModelOptions(models);
+      setFormModel(models[0] || "");
+    });
 
-    apiGet<KnowledgeBaseInfo[]>("/web/knowledgeBases")
-      .then((kbData) => {
-        setKnowledgeOptions(Array.isArray(kbData) ? kbData : []);
-      })
-      .catch(() => {});
+    kbApi.list().then(({ data, error }) => {
+      if (error) return;
+      setKnowledgeOptions(Array.isArray(data) ? (data as unknown as KnowledgeBaseInfo[]) : []);
+    });
 
-    apiPost<Record<string, unknown>>("/web/config/skills", { action: "list" })
-      .then((skillsData) => {
-        setSkillOptions(
-          Array.isArray(skillsData?.skills)
-            ? (skillsData.skills as Array<{ id: string; name: string; description?: string }>).map((s) => ({
-                id: s.id,
-                name: s.name,
-                description: s.description ?? "",
-              }))
-            : [],
-        );
-      })
-      .catch(() => {});
+    skillConfigApi.list().then(({ data, error }) => {
+      if (error) return;
+      const skills = (data as unknown as Record<string, unknown>)?.skills;
+      setSkillOptions(
+        Array.isArray(skills)
+          ? (skills as Array<{ id: string; name: string; description?: string }>).map((s) => ({
+              id: s.id,
+              name: s.name,
+              description: s.description ?? "",
+            }))
+          : [],
+      );
+    });
   }, [open, defaultName]);
 
   const handleSave = useCallback(async () => {
@@ -131,40 +128,35 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
       return;
     }
     setFormSaving(true);
-    try {
-      await apiPost("/web/config/agents", {
-        action: "create",
-        name,
-        data: {
-          model: formModel || undefined,
-          mode: formMode,
-          steps: parseInt(formSteps, 10),
-          prompt: formPrompt || undefined,
-          description: formDescription || undefined,
-          variant: formVariant || undefined,
-          temperature: formTemperature !== "" ? parseFloat(formTemperature) : undefined,
-          top_p: formTopP !== "" ? parseFloat(formTopP) : undefined,
-          color: formColor || undefined,
-          hidden: formHidden,
-          disable: formDisable,
-          permission: formPermission,
-          knowledge: {
-            knowledgeBaseIds: formKnowledgeBaseIds,
-            policy: { searchFirst: formKnowledgeSearchFirst, maxResults: Number(formKnowledgeMaxResults || 5) },
-          },
-          skillIds: formSkillIds,
-        },
-      });
+    const { error } = await agentApi.create(name, {
+      model: formModel || undefined,
+      mode: formMode,
+      steps: parseInt(formSteps, 10),
+      prompt: formPrompt || undefined,
+      description: formDescription || undefined,
+      variant: formVariant || undefined,
+      temperature: formTemperature !== "" ? parseFloat(formTemperature) : undefined,
+      top_p: formTopP !== "" ? parseFloat(formTopP) : undefined,
+      color: formColor || undefined,
+      hidden: formHidden,
+      disable: formDisable,
+      permission: formPermission,
+      knowledge: {
+        knowledgeBaseIds: formKnowledgeBaseIds,
+        policy: { searchFirst: formKnowledgeSearchFirst, maxResults: Number(formKnowledgeMaxResults || 5) },
+      },
+      skillIds: formSkillIds,
+    });
+    if (error) {
+      console.error(t("save.errorGeneric", { message: "" }), error);
+      toast.error(t("save.errorGeneric", { message: error.message }));
+    } else {
       toast.success(t("save.successCreate"));
       onOpenChange(false);
       onSuccess?.();
       dispatchConfigChange("agents");
-    } catch (e) {
-      console.error(t("save.errorGeneric", { message: "" }), e);
-      toast.error(t("save.errorGeneric", { message: e instanceof Error ? e.message : t("unknownError") }));
-    } finally {
-      setFormSaving(false);
     }
+    setFormSaving(false);
   }, [
     formName,
     formModel,

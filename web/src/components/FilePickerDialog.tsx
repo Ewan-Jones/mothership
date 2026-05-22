@@ -1,10 +1,10 @@
 import { ArrowLeft, ChevronRight, File, Folder, Loader2, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { fileApi } from "@/src/api/sdk";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Input } from "../../components/ui/input";
-import { apiGet, fetchUpload } from "../api/client";
 import type { FileInfo } from "../types";
 
 interface FilePickerDialogProps {
@@ -34,16 +34,14 @@ export function FilePickerDialog({ open, envId, onClose, onSelect }: FilePickerD
     async (dirPath: string) => {
       setLoading(true);
       setError(null);
-      try {
-        const query = dirPath ? `?path=${encodeURIComponent(dirPath)}` : "";
-        const result = await apiGet<{ entries?: FileInfo[] }>(`/web/environments/${envId}/user${query}`);
-        setEntries(result?.entries ?? []);
+      const { data, error: err } = await fileApi.listDir({ id: envId }, dirPath ? { path: dirPath } : undefined);
+      if (err) {
+        setError(err.message ?? t("filePicker.loadFailed"));
+      } else {
+        setEntries(data?.entries ?? []);
         setCurrentDir(dirPath);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t("filePicker.loadFailed"));
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     },
     [envId, t],
   );
@@ -77,19 +75,18 @@ export function FilePickerDialog({ open, envId, onClose, onSelect }: FilePickerD
       if (!files || files.length === 0) return;
       setLoading(true);
       setError(null);
-      try {
-        const formData = new FormData();
-        for (const file of Array.from(files)) {
-          formData.append("files", file);
-        }
-        await fetchUpload(`/web/environments/${envId}/user/user`, formData);
-        await loadDirectory(currentDir);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t("filePicker.uploadFailed"));
-      } finally {
-        setLoading(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+      const formData = new FormData();
+      for (const file of Array.from(files)) {
+        formData.append("files", file);
       }
+      const { error: uploadErr } = await fileApi.upload({ id: envId, path: "user" }, formData);
+      if (uploadErr) {
+        setError(uploadErr.message ?? t("filePicker.uploadFailed"));
+      } else {
+        await loadDirectory(currentDir);
+      }
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     },
     [envId, currentDir, loadDirectory, t],
   );

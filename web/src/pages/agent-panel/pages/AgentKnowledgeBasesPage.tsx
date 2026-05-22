@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { api, apiGet, apiPost, fetchUpload } from "../../../api/client";
+import { kbApi } from "@/src/api/sdk";
 import type {
   KnowledgeBaseDetail,
   KnowledgeBaseInfo,
@@ -46,7 +46,7 @@ export function AgentKnowledgeBasesPage() {
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiGet<KnowledgeBaseInfo[]>("/web/knowledgeBases");
+      const { data } = await kbApi.list();
       setItems((Array.isArray(data) ? data : []) as KnowledgeBaseInfo[]);
     } catch (e) {
       console.error("Failed to load knowledge bases", e);
@@ -60,12 +60,9 @@ export function AgentKnowledgeBasesPage() {
     async (id: string) => {
       setDetailLoading(true);
       try {
-        const [detail, resList] = await Promise.all([
-          apiGet<KnowledgeBaseDetail>(`/web/knowledgeBases/${id}`),
-          apiGet<KnowledgeResourceInfo[]>(`/web/knowledgeBases/${id}/resources`),
-        ]);
-        setSelectedDetail((detail ?? {}) as KnowledgeBaseDetail);
-        setResources(Array.isArray(resList) ? (resList as KnowledgeResourceInfo[]) : []);
+        const [detailResult, resListResult] = await Promise.all([kbApi.get({ id }), kbApi.listResources({ id })]);
+        setSelectedDetail((detailResult.data ?? {}) as KnowledgeBaseDetail);
+        setResources(Array.isArray(resListResult.data) ? (resListResult.data as KnowledgeResourceInfo[]) : []);
         setSelectedId(id);
       } catch (e) {
         console.error("Failed to load detail", e);
@@ -102,10 +99,10 @@ export function AgentKnowledgeBasesPage() {
         description: formDescription.trim() || undefined,
       };
       if (editingItem) {
-        await api("PUT", `/web/knowledgeBases/${editingItem.id}`, payload);
+        await kbApi.update({ id: editingItem.id }, payload);
         toast.success(t("toast.updated"));
       } else {
-        await apiPost("/web/knowledgeBases", payload);
+        await kbApi.create(payload);
         toast.success(t("toast.created"));
       }
       setDialogOpen(false);
@@ -121,7 +118,7 @@ export function AgentKnowledgeBasesPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await api("DELETE", `/web/knowledgeBases/${deleteTarget.id}`);
+      await kbApi.delete({ id: deleteTarget.id });
       toast.success(t("toast.deleted"));
       setConfirmOpen(false);
       if (selectedId === deleteTarget.id) {
@@ -145,7 +142,7 @@ export function AgentKnowledgeBasesPage() {
       for (const file of files) {
         formData.append("files", file);
       }
-      await fetchUpload<KnowledgeUploadResponse>(`/web/knowledgeBases/${selectedId}/resources/upload`, formData);
+      const { data } = await kbApi.uploadResources({ id: selectedId }, formData);
       toast.success(t("toast.uploaded"));
       loadDetail(selectedId);
     } catch (e) {
@@ -160,7 +157,7 @@ export function AgentKnowledgeBasesPage() {
     if (!selectedId) return;
     setDeletingResourceId(resourceId);
     try {
-      await api("DELETE", `/web/knowledgeBases/${selectedId}/resources/${resourceId}`);
+      await kbApi.deleteResource({ id: selectedId, resourceId });
       toast.success(t("toast.resourceDeleted"));
       loadDetail(selectedId);
     } catch (e) {

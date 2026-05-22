@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiGet } from "../../../api/client";
+import { sessionApi } from "@/src/api/sdk";
 import { AgentCardList } from "../shared/AgentCardList";
 import { AgentPageHeader } from "../shared/AgentPageHeader";
 
@@ -26,7 +26,11 @@ export function AgentSessionsPage() {
   const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await apiGet<SessionInfo[]>("/web/sessions");
+      const { data: list, error } = await sessionApi.list();
+      if (error) {
+        toast.error(t("loadError", { message: error.message }));
+        return;
+      }
       setSessions(Array.isArray(list) ? list : []);
     } catch (e) {
       console.error("Failed to load sessions", e);

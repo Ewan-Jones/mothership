@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, apiGet, apiPost } from "../api/client";
+import { agentApi, envApi, instanceApi } from "@/src/api/sdk";
 import type { Environment, EnvironmentInstance } from "../types";
 import { AgentsPage } from "./AgentsPage";
 
@@ -77,9 +77,13 @@ export function EnvironmentsPage() {
 
   const loadAgentOptions = useCallback(async () => {
     try {
-      const data = await apiPost<Record<string, unknown>>("/web/config/agents", { action: "list" });
-      const agents = (data?.data as { agents?: Array<{ id: string; name: string }> } | undefined)?.agents;
-      setAgentOptions(Array.isArray(agents) ? agents.map((a) => ({ id: a.id, name: a.name })) : []);
+      const { data } = await agentApi.list();
+      const agents = (data as unknown as Record<string, unknown>)?.agents;
+      setAgentOptions(
+        Array.isArray(agents)
+          ? (agents as Array<{ id: string; name: string }>).map((a) => ({ id: a.id, name: a.name }))
+          : [],
+      );
     } catch {
       /* silent */
     }
@@ -87,20 +91,18 @@ export function EnvironmentsPage() {
 
   const loadEnvs = useCallback(async () => {
     try {
-      const data = await apiGet<unknown>("/web/environments");
-      const list = Array.isArray(data) ? (data as unknown as Environment[]) : [];
+      const { data } = await envApi.list();
+      const list = Array.isArray(data) ? (data as Environment[]) : [];
       setEnvs(list);
       // Load instances for environments that have active instances
       const activeEnvs = list.filter((e) => e.instances_count !== undefined && e.instances_count > 0);
       if (activeEnvs.length > 0) {
-        const instanceEntries = await Promise.allSettled(
-          activeEnvs.map((env) => apiGet(`/web/environments/${env.id}/instances`)),
-        );
+        const instanceEntries = await Promise.allSettled(activeEnvs.map((env) => envApi.listInstances({ id: env.id })));
         const newMap: Record<string, EnvironmentInstance[]> = {};
         activeEnvs.forEach((env, i) => {
           const result = instanceEntries[i];
           if (result.status === "fulfilled") {
-            const instData = result.value as { instances?: EnvironmentInstance[] } | null;
+            const instData = result.value.data as { instances?: EnvironmentInstance[] } | null;
             newMap[env.id] = instData?.instances ?? [];
           }
         });
@@ -153,20 +155,23 @@ export function EnvironmentsPage() {
     setFormSaving(true);
     try {
       if (editingEnv) {
-        await api("PUT", `/web/environments/${editingEnv.id}`, {
-          name: formName,
-          description: formDescription || undefined,
-          agentConfigId: formAgentConfigId || null,
-          autoStart: formAutoStart,
-        });
+        await envApi.update(
+          { id: editingEnv.id },
+          {
+            name: formName,
+            description: formDescription || undefined,
+            agentConfigId: formAgentConfigId || undefined,
+            autoStart: formAutoStart,
+          },
+        );
       } else {
-        const result = await apiPost<{ secret?: string }>("/web/environments", {
+        const { data: result } = await envApi.create({
           name: formName,
           description: formDescription || undefined,
           agentConfigId: formAgentConfigId || undefined,
           autoStart: formAutoStart,
         });
-        setCurrentSecret(result?.secret ?? null);
+        setCurrentSecret((result as { secret?: string } | null)?.secret ?? null);
         setSecretDialogOpen(true);
       }
       setDialogOpen(false);
@@ -183,13 +188,10 @@ export function EnvironmentsPage() {
     async (env: Environment) => {
       setEnteringEnvId(env.id);
       try {
-        const result = await apiPost<{ session_id: string; environment_id: string }>(
-          `/web/environments/${env.id}/enter`,
-          {},
-        );
+        const { data: result } = await envApi.enter({ id: env.id }, {});
         await new Promise((r) => setTimeout(r, 500));
-        navigateToSession(result?.session_id ?? "", {
-          agentId: result?.environment_id ?? env.id,
+        navigateToSession((result as { session_id?: string; environment_id?: string } | null)?.session_id ?? "", {
+          agentId: (result as { session_id?: string; environment_id?: string } | null)?.environment_id ?? env.id,
         });
       } catch (err) {
         console.error("Failed to enter agent:", err);
@@ -205,15 +207,15 @@ export function EnvironmentsPage() {
     async (env: Environment, instanceNumber: number) => {
       setEnteringEnvId(env.id);
       try {
-        const result = await apiPost<{ session_id: string; environment_id: string }>(
-          `/web/environments/${env.id}/enter`,
+        const { data: result } = await envApi.enter(
+          { id: env.id },
           {
             instance_number: instanceNumber,
           },
         );
         await new Promise((r) => setTimeout(r, 500));
-        navigateToSession(result?.session_id ?? "", {
-          agentId: result?.environment_id ?? env.id,
+        navigateToSession((result as { session_id?: string; environment_id?: string } | null)?.session_id ?? "", {
+          agentId: (result as { session_id?: string; environment_id?: string } | null)?.environment_id ?? env.id,
         });
       } catch (err) {
         console.error("Failed to enter instance:", err);
@@ -229,12 +231,12 @@ export function EnvironmentsPage() {
     async (env: Environment) => {
       setEnteringEnvId(env.id);
       try {
-        const spawnResult = await apiPost<{ session_id?: string; environment_id?: string }>("/web/instances", {
+        const { data: spawnResult } = await instanceApi.create({
           environmentId: env.id,
         });
         await new Promise((r) => setTimeout(r, 500));
-        navigateToSession(spawnResult?.session_id ?? "", {
-          agentId: spawnResult?.environment_id ?? env.id,
+        navigateToSession((spawnResult as { session_id?: string; environment_id?: string } | null)?.session_id ?? "", {
+          agentId: (spawnResult as { session_id?: string; environment_id?: string } | null)?.environment_id ?? env.id,
         });
         await loadEnvs();
       } catch (err) {
@@ -250,7 +252,7 @@ export function EnvironmentsPage() {
   const confirmStopInstance = useCallback(async () => {
     if (!stopTarget) return;
     try {
-      await api("DELETE", `/web/instances/${stopTarget.instanceId}`);
+      await instanceApi.delete({ id: stopTarget.instanceId });
       await new Promise((r) => setTimeout(r, 500));
       await loadEnvs();
     } catch (err) {
@@ -270,7 +272,7 @@ export function EnvironmentsPage() {
       if (!instanceId) return;
       setRefreshingEnvId(env.id);
       try {
-        await api("DELETE", `/web/instances/${instanceId}`);
+        await instanceApi.delete({ id: instanceId });
         await new Promise((r) => setTimeout(r, 500));
         await handleEnterAgent(env);
       } catch (err) {
@@ -285,8 +287,8 @@ export function EnvironmentsPage() {
 
   const handleViewSecret = useCallback(async (id: string) => {
     try {
-      const detail = await apiGet<{ secret?: string }>(`/web/environments/${id}`);
-      setCurrentSecret(detail?.secret ?? null);
+      const { data: detail } = await envApi.get({ id });
+      setCurrentSecret((detail as { secret?: string } | null)?.secret ?? null);
       setSecretDialogOpen(true);
     } catch (err) {
       console.error("Failed to get secret:", err);
@@ -296,7 +298,7 @@ export function EnvironmentsPage() {
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     try {
-      await api("DELETE", `/web/environments/${deleteTarget}`);
+      await envApi.delete({ id: deleteTarget });
       setDeleteTarget(null);
       setConfirmOpen(false);
       await loadEnvs();

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-// Client imports
-import { client } from "../api/client";
+// SDK imports
+import { envApi } from "../api/sdk";
 // Component imports
 import { Dashboard } from "../pages/Dashboard";
 // Type imports
@@ -49,10 +49,10 @@ describe("Dashboard Environment Management - Exports", () => {
     expect(updateReq.description).toBe("updated");
   });
 
-  // 测试 Eden Treaty client 正确导出
-  test("Eden Treaty client is exported", () => {
-    expect(client).toBeDefined();
-    expect((client as any).web).toBeDefined();
+  // 测试 SDK envApi 正确导出
+  test("SDK envApi is exported", () => {
+    expect(envApi).toBeDefined();
+    expect(typeof envApi.list).toBe("function");
   });
 
   // 测试 Dashboard 组件是函数

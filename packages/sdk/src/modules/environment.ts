@@ -1,30 +1,27 @@
 import { BaseApi } from "../base";
 import type { ApiResult } from "../result";
 import type {
-  EnvironmentListResponse,
   CreateEnvironmentRequest,
-  EnvironmentDetailResponse,
-  UpdateEnvironmentRequest,
-  UpdateEnvironmentResponse,
   DeleteEnvironmentResponse,
   EnterEnvironmentResponse,
+  EnvironmentDetailResponse,
+  EnvironmentListResponse,
   ListInstancesResponse,
+  UpdateEnvironmentRequest,
+  UpdateEnvironmentResponse,
 } from "../types/schemas";
 
 export class EnvironmentApi extends BaseApi {
   async list(): Promise<ApiResult<EnvironmentListResponse[]>> {
-    return this.get<EnvironmentListResponse[]>("/web/environments");
+    return this._get<EnvironmentListResponse[]>("/web/environments");
   }
   async create(body: CreateEnvironmentRequest): Promise<ApiResult<EnvironmentDetailResponse>> {
     return this.post<EnvironmentDetailResponse>("/web/environments", body);
   }
   async get(params: { id: string }): Promise<ApiResult<EnvironmentDetailResponse>> {
-    return this.get<EnvironmentDetailResponse>("/web/environments/:id", { params });
+    return this._get<EnvironmentDetailResponse>("/web/environments/:id", { params });
   }
-  async update(
-    params: { id: string },
-    body: UpdateEnvironmentRequest,
-  ): Promise<ApiResult<UpdateEnvironmentResponse>> {
+  async update(params: { id: string }, body: UpdateEnvironmentRequest): Promise<ApiResult<UpdateEnvironmentResponse>> {
     return this.put<UpdateEnvironmentResponse>("/web/environments/:id", body, { params });
   }
   async delete(params: { id: string }): Promise<ApiResult<DeleteEnvironmentResponse>> {
@@ -37,6 +34,6 @@ export class EnvironmentApi extends BaseApi {
     return this.post<EnterEnvironmentResponse>("/web/environments/:id/enter", body, { params });
   }
   async listInstances(params: { id: string }): Promise<ApiResult<ListInstancesResponse>> {
-    return this.get<ListInstancesResponse>("/web/environments/:id/instances", { params });
+    return this._get<ListInstancesResponse>("/web/environments/:id/instances", { params });
   }
 }

@@ -4,8 +4,8 @@ import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { getUuid, setUuid } from "@/src/api/helpers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { getUuid, setUuid } from "../api/client";
 import { useTheme } from "../lib/theme";
 import { cn } from "../lib/utils";
 

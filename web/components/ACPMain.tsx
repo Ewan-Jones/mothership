@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ACPClient } from "../src/acp/client";
 import type { AgentSessionInfo } from "../src/acp/types";
-import { client as apiClient } from "../src/api/client";
+import { envApi } from "../src/api/sdk";
 import { cn } from "../src/lib/utils";
 import { ChatInterface, type ChatInterfaceHandle } from "./ChatInterface";
 import { Button } from "./ui/button";
@@ -56,13 +56,11 @@ export function ACPMain({
     }
 
     setCwdReady(false);
-    apiClient.web
-      .environments({ id: agentId })
-      .get()
-      .then((res: { data: unknown; error: { message?: string } | null }) => {
-        if (res.error) throw new Error(res.error.message ?? "加载环境失败");
-        const env = res.data as { workspace_path: string };
-        setCwd(env.workspace_path.replace(/\/+$/, ""));
+    envApi
+      .get({ id: agentId })
+      .then(({ data, error }) => {
+        if (error) throw new Error(error.message ?? "加载环境失败");
+        setCwd(data.workspace_path?.replace(/\/+$/, ""));
         setCwdReady(true);
       })
       .catch(() => {

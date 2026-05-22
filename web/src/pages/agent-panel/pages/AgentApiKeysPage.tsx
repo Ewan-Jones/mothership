@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiPost } from "../../../api/client";
+import { apiKeyApi } from "@/src/api/sdk";
 import { AgentCardList } from "../shared/AgentCardList";
 import { AgentPageHeader } from "../shared/AgentPageHeader";
 
@@ -32,15 +32,14 @@ export function AgentApiKeysPage() {
 
   const loadKeys = useCallback(async () => {
     setLoading(true);
-    try {
-      const list = await apiPost<ApiKeyInfo[]>("/web/apiKeys", { action: "list" });
-      setKeys(Array.isArray(list) ? list : []);
-    } catch (err) {
-      console.error(err);
+    const { data, error } = await apiKeyApi.list();
+    if (error) {
+      console.error(error);
       toast.error(t("toast.loadFailed"));
-    } finally {
-      setLoading(false);
+    } else {
+      setKeys((Array.isArray(data) ? data : []) as unknown as typeof keys);
     }
+    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -59,33 +58,33 @@ export function AgentApiKeysPage() {
       return;
     }
     setFormSaving(true);
-    try {
-      const result = await apiPost<{ key?: string }>("/web/apiKeys", { action: "create", name: formName.trim() });
-      if (result?.key) {
-        setNewKeyValue(result.key);
-      }
-      toast.success(t("toast.created"));
-      loadKeys();
-    } catch (err) {
-      console.error(err);
+    const { data, error } = await apiKeyApi.create({ name: formName.trim() });
+    if (error) {
+      console.error(error);
       toast.error(t("toast.createFailed"));
-    } finally {
       setFormSaving(false);
+      return;
     }
+    if (data?.key) {
+      setNewKeyValue(data.key);
+    }
+    toast.success(t("toast.created"));
+    loadKeys();
+    setFormSaving(false);
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      await apiPost("/web/apiKeys", { action: "delete", id: deleteTarget });
-      toast.success(t("toast.deleted"));
-      setConfirmOpen(false);
-      setDeleteTarget(null);
-      loadKeys();
-    } catch (err) {
-      console.error(err);
+    const { error } = await apiKeyApi.delete(deleteTarget);
+    if (error) {
+      console.error(error);
       toast.error(t("toast.deleteFailed"));
+      return;
     }
+    toast.success(t("toast.deleted"));
+    setConfirmOpen(false);
+    setDeleteTarget(null);
+    loadKeys();
   };
 
   const formatDate = (ts: number | null) => {

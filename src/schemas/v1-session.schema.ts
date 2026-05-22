@@ -1,6 +1,6 @@
 import * as z from "zod/v4";
-import { SessionResponseSchema } from "./session.schema";
 import { StatusOkResponseSchema } from "./common.schema";
+import { SessionResponseSchema } from "./session.schema";
 
 /** POST /v1/sessions — 创建 session 请求体 */
 export const CreateSessionRequestSchema = z.object({

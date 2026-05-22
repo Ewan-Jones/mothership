@@ -13,14 +13,23 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { apiPost } from "../api/client";
+import { modelApi, providerApi } from "@/src/api/sdk";
 import { dispatchConfigChange } from "../lib/config-events";
 import type { ModelConfig, ProviderInfo, ProviderModel } from "../types/config";
 
 const NPM_OPTIONS = [
   { id: "openai-compatible", labelKey: "npmOptions.openaiCompatible", npm: "@ai-sdk/openai-compatible" },
+  { id: "openai", labelKey: "npmOptions.openai", npm: "@ai-sdk/openai" },
   { id: "anthropic", labelKey: "npmOptions.anthropic", npm: "@ai-sdk/anthropic" },
+  { id: "google", labelKey: "npmOptions.google", npm: "@ai-sdk/google" },
   { id: "deepseek", labelKey: "npmOptions.deepseek", npm: "@ai-sdk/deepseek" },
+  { id: "mistral", labelKey: "npmOptions.mistral", npm: "@ai-sdk/mistral" },
+  { id: "cohere", labelKey: "npmOptions.cohere", npm: "@ai-sdk/cohere" },
+  { id: "fireworks", labelKey: "npmOptions.fireworks", npm: "@ai-sdk/fireworks" },
+  { id: "togetherai", labelKey: "npmOptions.togetherai", npm: "@ai-sdk/togetherai" },
+  { id: "perplexity", labelKey: "npmOptions.perplexity", npm: "@ai-sdk/perplexity" },
+  { id: "xai", labelKey: "npmOptions.xai", npm: "@ai-sdk/xai" },
+  { id: "custom", labelKey: "npmOptions.custom", npm: "" },
 ];
 
 const INPUT_MODALITY_OPTIONS = ["text", "image", "audio", "video", "pdf"] as const;
@@ -179,10 +188,18 @@ function ModelSubrow({
     setModelSaving(true);
     try {
       if (isNewModel) {
-        await apiPost("/web/config/providers", buildProviderModelRequest("add_model", providerId, mfId.trim(), data));
+        const { error } = await providerApi.addModel(providerId, data);
+        if (error) {
+          toast.error(t("modelSubrow.saveModel.errorGeneric", { message: error.message }));
+          return;
+        }
         toast.success(t("modelSubrow.saveModel.successCreate"));
       } else {
-        await apiPost("/web/config/providers", buildProviderModelRequest("update_model", providerId, mfId, data));
+        const { error } = await providerApi.updateModel(providerId, { modelId: mfId, ...data });
+        if (error) {
+          toast.error(t("modelSubrow.saveModel.errorGeneric", { message: error.message }));
+          return;
+        }
         toast.success(t("modelSubrow.saveModel.successUpdate"));
       }
       setModelDialogOpen(false);
@@ -200,22 +217,18 @@ function ModelSubrow({
 
   const handleModelDelete = async () => {
     if (!deleteConfirm) return;
-    try {
-      await apiPost("/web/config/providers", {
-        action: "remove_model",
-        name: deleteConfirm.providerId,
-        modelId: deleteConfirm.modelId,
-      });
-      toast.success(t("modelSubrow.deleteModel.success"));
-      const pid = deleteConfirm.providerId;
-      const mid = deleteConfirm.modelId;
-      setDeleteConfirm(null);
-      onModelChange("delete", pid, mid);
-      dispatchConfigChange("models");
-    } catch (e) {
-      console.error(t("modelSubrow.deleteModel.error", { message: "" }), e);
-      toast.error(t("modelSubrow.deleteModel.error", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await providerApi.removeModel(deleteConfirm.providerId, deleteConfirm.modelId);
+    if (error) {
+      console.error(t("modelSubrow.deleteModel.error", { message: "" }), error);
+      toast.error(t("modelSubrow.deleteModel.error", { message: error.message }));
+      return;
     }
+    toast.success(t("modelSubrow.deleteModel.success"));
+    const pid = deleteConfirm.providerId;
+    const mid = deleteConfirm.modelId;
+    setDeleteConfirm(null);
+    onModelChange("delete", pid, mid);
+    dispatchConfigChange("models");
   };
 
   const toggleModality = (list: string[], item: string, setter: (v: string[]) => void) => {
@@ -477,6 +490,7 @@ export function ModelsPage() {
   const [formApiKey, setFormApiKey] = useState("");
   const [formBaseURL, setFormBaseURL] = useState("");
   const [formNpm, setFormNpm] = useState("openai-compatible");
+  const [formCustomNpm, setFormCustomNpm] = useState("");
   const [formDisplayName, setFormDisplayName] = useState("");
   const [formSaving, setFormSaving] = useState(false);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
@@ -489,34 +503,30 @@ export function ModelsPage() {
     try {
       const [providersData, modelConfigData] = await Promise.all([
         (async () => {
-          const listData = await apiPost<{ providers?: ProviderInfo[] } | ProviderInfo[]>("/web/config/providers", {
-            action: "list",
-          });
+          const { data: listData, error: listError } = await providerApi.list();
+          if (listError) throw listError;
 
-          const data = Array.isArray(listData) ? listData : (listData.providers ?? []);
+          const data = (Array.isArray(listData)
+            ? listData
+            : (((listData as unknown as Record<string, unknown>)?.providers ??
+                []) as ProviderInfo[])) as unknown as ProviderInfo[];
           const modelsMap: Record<string, ProviderModel[]> = {};
           await Promise.all(
-            data.map(async (p: ProviderInfo) => {
-              try {
-                const detail = await apiPost<{ models?: ProviderModel[] }>("/web/config/providers", {
-                  action: "get",
-                  name: p.id,
-                });
-
-                modelsMap[p.id] = detail.models ?? [];
-              } catch {
-                modelsMap[p.id] = [];
-              }
+            data.map(async (p) => {
+              const pId = (p as unknown as Record<string, unknown>).id as string;
+              const { data: detail } = await providerApi.get(pId);
+              modelsMap[pId] =
+                ((detail as unknown as Record<string, unknown>)?.models as unknown as ProviderModel[]) ?? [];
             }),
           );
           return { providers: data, providerModels: modelsMap };
         })(),
         (async () => {
-          const modelsData = await apiPost<ModelConfig>("/web/config/models", { action: "get" });
-          return modelsData;
+          const { data: modelsData } = await modelApi.get();
+          return modelsData as unknown as ModelConfig;
         })(),
       ]);
-      setProviders(providersData.providers);
+      setProviders(providersData.providers as unknown as ProviderInfo[]);
       setProviderModels(providersData.providerModels);
       setModelConfig(modelConfigData);
     } catch (e) {
@@ -594,6 +604,7 @@ export function ModelsPage() {
     setFormApiKey("");
     setFormBaseURL("");
     setFormNpm("openai-compatible");
+    setFormCustomNpm("");
     setFormDisplayName("");
     setDialogOpen(true);
   };
@@ -604,7 +615,13 @@ export function ModelsPage() {
     setFormApiKey("");
     setFormBaseURL(provider.baseURL ?? "");
     const matchOpt = NPM_OPTIONS.find((o) => o.npm === provider.npm);
-    setFormNpm(matchOpt ? matchOpt.id : "openai-compatible");
+    if (matchOpt) {
+      setFormNpm(matchOpt.id);
+      setFormCustomNpm("");
+    } else {
+      setFormNpm("custom");
+      setFormCustomNpm(provider.npm ?? "");
+    }
     setFormDisplayName(provider.name !== provider.id ? provider.name : "");
     setDialogOpen(true);
   };
@@ -618,9 +635,16 @@ export function ModelsPage() {
     }
     setFormSaving(true);
     try {
-      const npmPackage = NPM_OPTIONS.find((o) => o.id === formNpm)?.npm ?? "@ai-sdk/openai-compatible";
-      const data = buildProviderPayload(formApiKey, formBaseURL, npmPackage, formDisplayName);
-      await apiPost("/web/config/providers", { action: "set", name: formName, data });
+      const resolvedNpm =
+        formNpm === "custom"
+          ? formCustomNpm.trim() || "@ai-sdk/openai-compatible"
+          : (NPM_OPTIONS.find((o) => o.id === formNpm)?.npm ?? "@ai-sdk/openai-compatible");
+      const data = buildProviderPayload(formApiKey, formBaseURL, resolvedNpm, formDisplayName);
+      const { error } = await providerApi.set(formName, data);
+      if (error) {
+        toast.error(t("saveProvider.errorGeneric", { message: error.message }));
+        return;
+      }
       toast.success(editingProvider ? t("saveProvider.successUpdate") : t("saveProvider.successCreate"));
       setDialogOpen(false);
       loadAll();
@@ -635,47 +659,37 @@ export function ModelsPage() {
 
   const handleTest = async (name: string) => {
     setTesting(name);
-    try {
-      const result = await apiPost<{ models: string[]; warning?: string }>("/web/config/providers", {
-        action: "test",
-        name,
-      });
-
-      setTestResult({ name, models: result.models, warning: result.warning });
+    const { data: result, error } = await providerApi.test(name);
+    if (error) {
+      setTestResult({ name, error: error.message });
+    } else {
+      const d = result as Record<string, unknown>;
+      setTestResult({ name, models: (d?.models ?? []) as string[], warning: d?.warning as string | undefined });
       const existing = (providerModels[name] ?? []).map((m) => m.id);
       setAddedModelIds(new Set(existing));
-    } catch (e) {
-      const message = e instanceof Error ? e.message : t("unknownError");
-      setTestResult({ name, error: message });
-    } finally {
-      setTesting(null);
     }
+    setTesting(null);
   };
 
   const handleAddFromTest = async (modelId: string) => {
     if (!testResult || "error" in testResult) return;
-    try {
-      await apiPost("/web/config/providers", {
-        action: "add_model",
-        name: testResult.name,
-        modelId,
-        data: { modelId, name: modelId },
-      });
-      setAddedModelIds((prev) => new Set(prev).add(modelId));
-      setProviderModels((prev) => ({
-        ...prev,
-        [testResult.name]: [
-          ...(prev[testResult.name] ?? []),
-          { id: modelId, name: modelId, modalities: null, limit: null, cost: null },
-        ],
-      }));
-      setProviders((prev) => prev.map((p) => (p.id === testResult.name ? { ...p, modelCount: p.modelCount + 1 } : p)));
-      toast.success(t("testDialog.addModelSuccess", { modelId }));
-      dispatchConfigChange("models");
-    } catch (e) {
-      console.error(t("testDialog.addModelError", { message: "" }), e);
-      toast.error(t("testDialog.addModelError", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await providerApi.addModel(testResult.name, { modelId, name: modelId });
+    if (error) {
+      console.error(t("testDialog.addModelError", { message: "" }), error);
+      toast.error(t("testDialog.addModelError", { message: error.message }));
+      return;
     }
+    setAddedModelIds((prev) => new Set(prev).add(modelId));
+    setProviderModels((prev) => ({
+      ...prev,
+      [testResult.name]: [
+        ...(prev[testResult.name] ?? []),
+        { id: modelId, name: modelId, modalities: null, limit: null, cost: null },
+      ],
+    }));
+    setProviders((prev) => prev.map((p) => (p.id === testResult.name ? { ...p, modelCount: p.modelCount + 1 } : p)));
+    toast.success(t("testDialog.addModelSuccess", { modelId }));
+    dispatchConfigChange("models");
   };
 
   const handleDelete = (name: string) => {
@@ -684,33 +698,28 @@ export function ModelsPage() {
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      await apiPost("/web/config/providers", { action: "delete", name: deleteTarget });
-      toast.success(t("deleteProvider.success"));
-      setConfirmOpen(false);
-      loadAll();
-      dispatchConfigChange("providers");
-    } catch (e) {
-      console.error(t("deleteProvider.error", { message: "" }), e);
-      toast.error(t("deleteProvider.error", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await providerApi.delete(deleteTarget);
+    if (error) {
+      console.error(t("deleteProvider.error", { message: "" }), error);
+      toast.error(t("deleteProvider.error", { message: error.message }));
+      return;
     }
+    toast.success(t("deleteProvider.success"));
+    setConfirmOpen(false);
+    loadAll();
+    dispatchConfigChange("providers");
   };
 
   const handleBatchDelete = () => {
     setBatchConfirmOpen(true);
   };
   const confirmBatchDelete = async () => {
-    try {
-      await Promise.all(selected.map((p) => apiPost("/web/config/providers", { action: "delete", name: p.id })));
-      toast.success(t("batchDeleteCount", { count: selected.length }));
-      setBatchConfirmOpen(false);
-      setSelected([]);
-      loadAll();
-      dispatchConfigChange("providers");
-    } catch (e) {
-      console.error(t("batchDeleteError", { message: "" }), e);
-      toast.error(t("batchDeleteError", { message: e instanceof Error ? e.message : t("unknownError") }));
-    }
+    await Promise.all(selected.map((p) => providerApi.delete(p.id)));
+    toast.success(t("batchDeleteCount", { count: selected.length }));
+    setBatchConfirmOpen(false);
+    setSelected([]);
+    loadAll();
+    dispatchConfigChange("providers");
   };
 
   if (loading) {
@@ -841,9 +850,19 @@ export function ModelsPage() {
             <p className="text-xs text-text-muted mt-1">
               {t("form.sdkPackage")}{" "}
               <code className="font-mono bg-surface-2 px-1 rounded">
-                {NPM_OPTIONS.find((o) => o.id === formNpm)?.npm ?? ""}
+                {formNpm === "custom"
+                  ? formCustomNpm.trim() || "—"
+                  : (NPM_OPTIONS.find((o) => o.id === formNpm)?.npm ?? "")}
               </code>
             </p>
+            {formNpm === "custom" && (
+              <Input
+                value={formCustomNpm}
+                onChange={(e) => setFormCustomNpm(e.target.value)}
+                placeholder={t("form.customNpmPlaceholder")}
+                className="mt-2 font-mono text-sm"
+              />
+            )}
           </div>
           <div>
             <label className="text-sm font-medium text-text-primary">{t("form.apiKey")}</label>

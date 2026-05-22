@@ -12,8 +12,17 @@
   "unknownError": "未知错误",
   "npmOptions": {
     "openaiCompatible": "OpenAI 兼容",
+    "openai": "OpenAI",
     "anthropic": "Anthropic",
-    "deepseek": "DeepSeek"
+    "google": "Google",
+    "deepseek": "DeepSeek",
+    "mistral": "Mistral",
+    "cohere": "Cohere",
+    "fireworks": "Fireworks",
+    "togetherai": "Together AI",
+    "perplexity": "Perplexity",
+    "xai": "xAI",
+    "custom": "自定义"
   },
   "columns": {
     "id": "ID",
@@ -63,6 +72,7 @@
     "displayNamePlaceholder": "例如 阿里百炼",
     "protocol": "协议",
     "sdkPackage": "SDK 包:",
+    "customNpmPlaceholder": "例如 @ai-sdk/your-provider",
     "apiKey": "API Key",
     "apiKeyEditPlaceholder": "留空表示不修改",
     "apiKeyCreatePlaceholder": "输入 API Key",

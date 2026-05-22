@@ -1,10 +1,6 @@
 import { BaseApi } from "../base";
 import type { ApiResult } from "../result";
-import type {
-  BridgeRegistrationRequest,
-  BridgeRegistrationResponse,
-  StatusOkResponse,
-} from "../types/schemas";
+import type { BridgeRegistrationRequest, BridgeRegistrationResponse, StatusOkResponse } from "../types/schemas";
 
 export class V1EnvironmentApi extends BaseApi {
   async registerBridge(body: BridgeRegistrationRequest): Promise<ApiResult<BridgeRegistrationResponse>> {
@@ -17,7 +13,7 @@ export class V1EnvironmentApi extends BaseApi {
     return this.post("/v1/environments/:id/bridge/reconnect", undefined, { params });
   }
   async pollWork(params: { id: string }): Promise<ApiResult<unknown>> {
-    return this.get("/v1/environments/:id/work/poll", { params });
+    return this._get("/v1/environments/:id/work/poll", { params });
   }
   async ackWork(params: { id: string; workId: string }): Promise<ApiResult<StatusOkResponse>> {
     return this.post("/v1/environments/:id/work/:workId/ack", undefined, { params });

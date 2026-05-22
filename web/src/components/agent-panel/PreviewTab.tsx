@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "../../api/client";
+import { fileApi } from "@/src/api/sdk";
 
 interface PreviewTabProps {
   envId: string | null;
@@ -25,31 +25,25 @@ export function PreviewTab({ envId, filePath }: PreviewTabProps) {
 
     setLoading(true);
     setError(null);
-    try {
-      const normalized = filePath.endsWith("/") ? filePath.slice(0, -1) : filePath;
-      const result = await api<{ content?: string; name?: string }>(
-        "GET",
-        `/web/environments/${envId}/user/${normalized}`,
-      );
-      if (result && typeof result.content === "string") {
-        setContent(result.content);
-        setFileName(result.name || normalized.split("/").pop() || normalized);
-      } else if (result && typeof result.name === "string") {
-        setContent(null);
-        setError(t("fileTree.preview.notTextFile"));
-        setFileName(result.name);
-      } else {
-        setContent(null);
-        setError(t("fileTree.preview.notTextFile"));
-        setFileName(normalized.split("/").pop() || normalized);
-      }
-    } catch (err) {
+    const normalized = filePath.endsWith("/") ? filePath.slice(0, -1) : filePath;
+    const { data, error: err } = await fileApi.readFile({ id: envId, path: normalized });
+    if (err) {
       console.error("Failed to load file:", err);
       setError(t("fileTree.preview.fetchFailed"));
       setContent(null);
-    } finally {
-      setLoading(false);
+    } else if (data && typeof data.content === "string") {
+      setContent(data.content);
+      setFileName(data.name || normalized.split("/").pop() || normalized);
+    } else if (data && typeof data.name === "string") {
+      setContent(null);
+      setError(t("fileTree.preview.notTextFile"));
+      setFileName(data.name);
+    } else {
+      setContent(null);
+      setError(t("fileTree.preview.notTextFile"));
+      setFileName(normalized.split("/").pop() || normalized);
     }
+    setLoading(false);
   }, [envId, filePath, t]);
 
   useEffect(() => {

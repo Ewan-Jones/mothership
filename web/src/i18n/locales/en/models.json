@@ -12,8 +12,17 @@
   "unknownError": "Unknown error",
   "npmOptions": {
     "openaiCompatible": "OpenAI Compatible",
+    "openai": "OpenAI",
     "anthropic": "Anthropic",
-    "deepseek": "DeepSeek"
+    "google": "Google",
+    "deepseek": "DeepSeek",
+    "mistral": "Mistral",
+    "cohere": "Cohere",
+    "fireworks": "Fireworks",
+    "togetherai": "Together AI",
+    "perplexity": "Perplexity",
+    "xai": "xAI",
+    "custom": "Custom"
   },
   "columns": {
     "id": "ID",
@@ -63,6 +72,7 @@
     "displayNamePlaceholder": "e.g. Alibaba Bailian",
     "protocol": "Protocol",
     "sdkPackage": "SDK Package:",
+    "customNpmPlaceholder": "e.g. @ai-sdk/your-provider",
     "apiKey": "API Key",
     "apiKeyEditPlaceholder": "Leave empty to keep unchanged",
     "apiKeyCreatePlaceholder": "Enter API Key",

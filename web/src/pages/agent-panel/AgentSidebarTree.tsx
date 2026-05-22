@@ -2,7 +2,7 @@ import { Bot, ChevronDown, ChevronRight, Loader2, Plus, Settings } from "lucide-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { api, apiGet, apiPost } from "../../api/client";
+import { envApi, instanceApi } from "@/src/api/sdk";
 import { NS } from "../../i18n";
 import type { Environment, EnvironmentInstance } from "../../types/index";
 
@@ -27,22 +27,20 @@ export function AgentSidebarTree({
 
   const loadData = useCallback(async () => {
     try {
-      const data = await apiGet<Environment[]>("/web/environments");
-      const list = Array.isArray(data) ? data : [];
+      const { data } = await envApi.list();
+      const list = Array.isArray(data) ? (data as Environment[]) : [];
       setEnvs(list);
 
       const activeEnvs = list.filter((e: Environment) => (e.instances_count ?? 0) > 0);
       if (activeEnvs.length > 0) {
         const results = await Promise.allSettled(
-          activeEnvs.map((env: Environment) =>
-            apiGet<{ instances?: EnvironmentInstance[] }>(`/web/environments/${env.id}/instances`),
-          ),
+          activeEnvs.map((env: Environment) => envApi.listInstances({ id: env.id })),
         );
         const newMap: Record<string, EnvironmentInstance[]> = {};
         activeEnvs.forEach((env: Environment, i: number) => {
           const r = results[i];
           if (r.status === "fulfilled") {
-            const instData = r.value;
+            const instData = r.value.data as { instances?: EnvironmentInstance[] } | null;
             newMap[env.id] = instData?.instances ?? [];
           }
         });
@@ -78,7 +76,7 @@ export function AgentSidebarTree({
   const _handleStopInstance = useCallback(
     async (instanceId: string) => {
       try {
-        await api<void>(`/web/instances/${instanceId}`, "DELETE");
+        await instanceApi.delete({ id: instanceId });
         await loadData();
       } catch (err) {
         console.error("Failed to stop instance:", err);
@@ -96,12 +94,13 @@ export function AgentSidebarTree({
     async (env: Environment, instanceNumber?: number) => {
       try {
         const body = instanceNumber !== undefined ? { instance_number: instanceNumber } : {};
-        const result = await apiPost<{
-          session_id: string;
-          instance_id: string;
-          environment_id: string;
-        }>(`/web/environments/${env.id}/enter`, body);
-        onSelectInstance(result?.instance_id ?? "", result?.environment_id ?? env.id, result?.session_id ?? null);
+        const { data: result } = await envApi.enter({ id: env.id }, body);
+        const enterResult = result as { session_id?: string; instance_id?: string; environment_id?: string } | null;
+        onSelectInstance(
+          enterResult?.instance_id ?? "",
+          enterResult?.environment_id ?? env.id,
+          enterResult?.session_id ?? null,
+        );
       } catch (err) {
         console.error("Failed to enter instance:", err);
         toast.error(

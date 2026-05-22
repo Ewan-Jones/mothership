@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api, apiGet, apiPost } from "../../../api/client";
+import { channelApi, envApi } from "@/src/api/sdk";
 import { AgentCardList } from "../shared/AgentCardList";
 import { AgentPageHeader } from "../shared/AgentPageHeader";
 
@@ -40,15 +40,14 @@ export function AgentChannelsPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [bindingsData, envsData] = await Promise.all([
-        apiGet<ChannelBinding[]>("/web/channels/bindings"),
-        apiGet<EnvironmentSummary[]>("/web/environments"),
-      ]);
-      if (bindingsData) setBindings(bindingsData as ChannelBinding[]);
-      if (envsData) setEnvironments((envsData as EnvironmentSummary[]) ?? []);
-    } catch (e) {
-      console.error("Failed to load channels", e);
-      toast.error(t("loadBindingsFailed"));
+      const [bindingsResult, envsResult] = await Promise.all([channelApi.listBindings(), envApi.list()]);
+      if (bindingsResult.data) setBindings(bindingsResult.data as ChannelBinding[]);
+      if (envsResult.data) setEnvironments((envsResult.data as EnvironmentSummary[]) ?? []);
+      const firstErr = bindingsResult.error ?? envsResult.error;
+      if (firstErr) {
+        console.error("Failed to load channels", firstErr);
+        toast.error(t("loadBindingsFailed"));
+      }
     } finally {
       setLoading(false);
     }
@@ -71,35 +70,35 @@ export function AgentChannelsPage() {
       return;
     }
     setFormSaving(true);
-    try {
-      await apiPost("/web/channels/bindings", {
-        platform: formPlatform.trim(),
-        chatId: formChatId.trim() || null,
-        agentId: formAgentId,
-      });
-      toast.success(t("toast.created"));
-      setDialogOpen(false);
-      loadData();
-    } catch (e) {
-      console.error("Save failed", e);
+    const { error } = await channelApi.createBinding({
+      platform: formPlatform.trim(),
+      chatId: formChatId.trim() || "",
+      agentId: formAgentId,
+    });
+    if (error) {
+      console.error("Save failed", error);
       toast.error(t("toast.saveFailed"));
-    } finally {
       setFormSaving(false);
+      return;
     }
+    toast.success(t("toast.created"));
+    setDialogOpen(false);
+    loadData();
+    setFormSaving(false);
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      await api("DELETE", `/web/channels/bindings/${deleteTarget}`);
-      toast.success(t("toast.deleted"));
-      setConfirmOpen(false);
-      setDeleteTarget(null);
-      loadData();
-    } catch (e) {
-      console.error("Delete failed", e);
+    const { error } = await channelApi.deleteBinding({ id: deleteTarget });
+    if (error) {
+      console.error("Delete failed", error);
       toast.error(t("toast.deleteFailed"));
+      return;
     }
+    toast.success(t("toast.deleted"));
+    setConfirmOpen(false);
+    setDeleteTarget(null);
+    loadData();
   };
 
   if (loading) {

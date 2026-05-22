@@ -3,9 +3,9 @@
 // Channels
 export {
   type ChannelBinding,
-  ChannelBindingSchema,
   type ChannelBindingListResponse,
   ChannelBindingListResponseSchema,
+  ChannelBindingSchema,
   type ChannelProviderDescriptor,
   ChannelProviderDescriptorSchema,
   type ChannelProviderListResponse,

@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { orgAction } from "../../../api/client";
+import { orgApi } from "@/src/api/sdk";
 import { useOrg } from "../../../contexts/OrgContext";
 import { AgentPageHeader } from "../shared/AgentPageHeader";
 
@@ -85,12 +85,12 @@ export function AgentOrganizationsPage() {
   const [myOrgs, setMyOrgs] = useState<{ id: string; name: string; slug: string; role: string }[]>([]);
 
   const loadMyOrgs = useCallback(async () => {
-    try {
-      const list = await orgAction<{ id: string; name: string; slug: string; role: string }[]>("list");
-      setMyOrgs(list);
-    } catch (err) {
-      console.error(err);
+    const { data, error } = await orgApi.list();
+    if (error) {
+      console.error(error);
+      return;
     }
+    setMyOrgs((data ?? []) as unknown as typeof myOrgs);
   }, []);
 
   useEffect(() => {
@@ -109,11 +109,15 @@ export function AgentOrganizationsPage() {
       return;
     }
     setLoading(true);
-    orgAction<OrgDetail>("get", { organizationId: selectedOrgId })
-      .then((d) => setDetail(d))
-      .catch((err) => {
-        console.error(err);
-        toast.error(t("toast.loadDetailFailed"));
+    orgApi
+      .get(selectedOrgId)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error(error);
+          toast.error(t("toast.loadDetailFailed"));
+          return;
+        }
+        setDetail(data);
       })
       .finally(() => setLoading(false));
   }, [selectedOrgId, t]);
@@ -125,121 +129,109 @@ export function AgentOrganizationsPage() {
   const handleCreate = async () => {
     if (!formName.trim()) return;
     setFormSaving(true);
-    try {
-      const result = await orgAction<{ id: string }>("create", {
-        name: formName.trim(),
-        slug: formSlug || nameToSlug(formName),
-        description: formDesc.trim() || undefined,
-      });
-      toast.success(t("toast.createSuccess"));
-      setCreateOpen(false);
-      setFormName("");
-      setFormSlug("");
-      setFormDesc("");
-      await loadMyOrgs();
-      await refreshOrgs();
-      setSelectedOrgId(result.id);
-    } catch (err) {
-      console.error(err);
+    const { data, error } = await orgApi.create({
+      name: formName.trim(),
+      slug: formSlug || nameToSlug(formName),
+    });
+    if (error) {
+      console.error(error);
       toast.error(t("toast.createFailed"));
-    } finally {
       setFormSaving(false);
+      return;
     }
+    toast.success(t("toast.createSuccess"));
+    setCreateOpen(false);
+    setFormName("");
+    setFormSlug("");
+    setFormDesc("");
+    await loadMyOrgs();
+    await refreshOrgs();
+    setSelectedOrgId(data.id);
+    setFormSaving(false);
   };
 
   const handleSaveEdit = async () => {
     if (!selectedOrgId || !editName.trim()) return;
     setEditSaving(true);
-    try {
-      await orgAction("update", {
-        organizationId: selectedOrgId,
-        data: { name: editName.trim() },
-      });
-      toast.success(t("toast.updateSuccess"));
-      setEditingName(false);
-      setDetail((d) => (d ? { ...d, name: editName.trim() } : d));
-      await loadMyOrgs();
-      await refreshOrgs();
-    } catch (err) {
-      console.error(err);
+    const { error } = await orgApi.update(selectedOrgId, { name: editName.trim() });
+    if (error) {
+      console.error(error);
       toast.error(t("toast.updateFailed"));
-    } finally {
       setEditSaving(false);
+      return;
     }
+    toast.success(t("toast.updateSuccess"));
+    setEditingName(false);
+    setDetail((d) => (d ? { ...d, name: editName.trim() } : d));
+    await loadMyOrgs();
+    await refreshOrgs();
+    setEditSaving(false);
   };
 
   const handleAddMember = async () => {
     if (!selectedOrgId || !addMemberEmail.trim()) return;
     setAddMemberSaving(true);
-    try {
-      await orgAction("add-member", {
-        organizationId: selectedOrgId,
-        email: addMemberEmail.trim(),
-        role: addMemberRole,
-      });
-      toast.success(t("toast.inviteSent"));
-      setAddMemberOpen(false);
-      setAddMemberEmail("");
-      const d = await orgAction<OrgDetail>("get", { organizationId: selectedOrgId });
-      setDetail(d);
-    } catch (err) {
-      console.error(err);
+    const { error: addErr } = await orgApi.addMember(selectedOrgId, {
+      userId: addMemberEmail.trim() as unknown as string,
+      role: addMemberRole,
+    });
+    if (addErr) {
+      console.error(addErr);
       toast.error(t("toast.inviteFailed"));
-    } finally {
       setAddMemberSaving(false);
+      return;
     }
+    toast.success(t("toast.inviteSent"));
+    setAddMemberOpen(false);
+    setAddMemberEmail("");
+    const { data: d2 } = await orgApi.get(selectedOrgId);
+    if (d2) setDetail(d2);
+    setAddMemberSaving(false);
   };
 
   const handleRemoveMember = async (userId: string) => {
     if (!selectedOrgId) return;
-    try {
-      await orgAction("remove-member", {
-        organizationId: selectedOrgId,
-        userId,
-      });
-      toast.success(t("toast.removeSuccess"));
-      const d = await orgAction<OrgDetail>("get", { organizationId: selectedOrgId });
-      setDetail(d);
-    } catch (err) {
-      console.error(err);
+    const { error: rmErr } = await orgApi.removeMember(selectedOrgId, userId);
+    if (rmErr) {
+      console.error(rmErr);
       toast.error(t("toast.removeFailed"));
+      return;
     }
+    toast.success(t("toast.removeSuccess"));
+    const { data: d3 } = await orgApi.get(selectedOrgId);
+    if (d3) setDetail(d3);
   };
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
     if (!selectedOrgId) return;
-    try {
-      await orgAction("update-role", {
-        organizationId: selectedOrgId,
-        userId,
-        role: newRole,
-      });
-      toast.success(t("toast.roleUpdated"));
-      const d = await orgAction<OrgDetail>("get", { organizationId: selectedOrgId });
-      setDetail(d);
-    } catch (err) {
-      console.error(err);
+    const { error: roleErr } = await orgApi.updateRole(selectedOrgId, userId, newRole);
+    if (roleErr) {
+      console.error(roleErr);
       toast.error(t("toast.roleUpdateFailed"));
+      return;
     }
+    toast.success(t("toast.roleUpdated"));
+    const { data: d4 } = await orgApi.get(selectedOrgId);
+    if (d4) setDetail(d4);
   };
 
   const handleDeleteOrg = async () => {
     if (!selectedOrgId) return;
     setDeleteSaving(true);
-    try {
-      await orgAction("delete", { organizationId: selectedOrgId });
-      toast.success(t("toast.deleteSuccess"));
-      setDeleteOpen(false);
-      setDetail(null);
-      await loadMyOrgs();
-      setSelectedOrgId(null);
-      await refreshOrgs();
-    } catch (err) {
-      console.error(err);
+    const { error: delErr } = await orgApi.delete(selectedOrgId);
+    if (delErr) {
+      console.error(delErr);
       toast.error(t("toast.deleteFailed"));
-    } finally {
       setDeleteSaving(false);
+      return;
     }
+    toast.success(t("toast.deleteSuccess"));
+    setDeleteOpen(false);
+    setDetail(null);
+    await loadMyOrgs();
+    setSelectedOrgId(null);
+    await refreshOrgs();
+    setDeleteSaving(false);
   };
 
   const members = detail?.members ?? [];

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { api, apiGet, apiPost, fetchUpload } from "../api/client";
+import { kbApi } from "@/src/api/sdk";
 import type {
   KnowledgeBaseDetail,
   KnowledgeBaseInfo,
@@ -19,17 +19,20 @@ import type {
 } from "../types/knowledge";
 
 export async function loadKnowledgeBasesData() {
-  return apiGet<KnowledgeBaseInfo[]>("/web/knowledgeBases");
+  const { data } = await kbApi.list();
+  return data as KnowledgeBaseInfo[];
 }
 
 export async function loadKnowledgeBaseDetailData(knowledgeBaseId: string) {
-  const [detail, resources] = await Promise.all([
-    apiGet<KnowledgeBaseDetail>(`/web/knowledgeBases/${knowledgeBaseId}`),
-    apiGet<KnowledgeResourceInfo[]>(`/web/knowledgeBases/${knowledgeBaseId}/resources`),
+  const [detailResult, resourcesResult] = await Promise.all([
+    kbApi.get({ id: knowledgeBaseId }),
+    kbApi.listResources({ id: knowledgeBaseId }),
   ]);
+  const detail = detailResult.data as KnowledgeBaseDetail;
+  const resources = Array.isArray(resourcesResult.data) ? (resourcesResult.data as KnowledgeResourceInfo[]) : [];
   return {
     detail,
-    resources: Array.isArray(resources) ? resources : [],
+    resources,
   };
 }
 
@@ -41,7 +44,8 @@ export async function uploadKnowledgeBaseFiles(
   for (const file of files) {
     formData.append("files", file);
   }
-  return fetchUpload<KnowledgeUploadResponse>(`/web/knowledgeBases/${knowledgeBaseId}/resources/upload`, formData);
+  const { data } = await kbApi.uploadResources({ id: knowledgeBaseId }, formData);
+  return data as unknown as KnowledgeUploadResponse;
 }
 
 export function summarizeKnowledgeDetail(detail: KnowledgeBaseDetail, resources: KnowledgeResourceInfo[]) {
@@ -168,18 +172,17 @@ export function KnowledgeBasesPage() {
     setSaving(true);
     try {
       if (editingItem) {
-        await api<void>(`/web/knowledgeBases/${editingItem.id}`, "PATCH", {
+        await kbApi.update({ id: editingItem.id }, {
           name: formName.trim(),
-          slug: formSlug.trim(),
-          description: formDescription.trim() || null,
-        });
+          description: formDescription.trim() || undefined,
+        } as unknown as Parameters<typeof kbApi.update>[1]);
         toast.success(t("knowledgeBaseUpdated"));
       } else {
-        await apiPost<void>("/web/knowledgeBases", {
+        await kbApi.create({
           name: formName.trim(),
           slug: formSlug.trim(),
           description: formDescription.trim() || undefined,
-        });
+        } as unknown as Parameters<typeof kbApi.create>[0]);
         toast.success(t("knowledgeBaseCreated"));
       }
       setDialogOpen(false);
@@ -195,7 +198,7 @@ export function KnowledgeBasesPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await api<void>(`/web/knowledgeBases/${deleteTarget.id}`, "DELETE");
+      await kbApi.delete({ id: deleteTarget.id });
       toast.success(t("knowledgeBaseDeleted"));
       setConfirmOpen(false);
       if (selectedId === deleteTarget.id) {
@@ -234,10 +237,13 @@ export function KnowledgeBasesPage() {
     }
     setImportingUrl(true);
     try {
-      await apiPost<void>(`/web/knowledgeBases/${selectedId}/resources/url`, {
-        url: urlValue.trim(),
-        sourceName: urlSourceName.trim() || undefined,
-      });
+      await kbApi.importUrl(
+        { id: selectedId },
+        {
+          url: urlValue.trim(),
+          sourceName: urlSourceName.trim() || undefined,
+        },
+      );
       toast.success(t("urlResourceSubmitted"));
       setUrlValue("");
       setUrlSourceName("");
@@ -255,7 +261,7 @@ export function KnowledgeBasesPage() {
     if (!selectedId) return;
     setDeletingResourceId(resourceId);
     try {
-      await api<void>(`/web/knowledgeBases/${selectedId}/resources/${resourceId}`, "DELETE");
+      await kbApi.deleteResource({ id: selectedId, resourceId });
       toast.success(t("resourceDeleted"));
       await loadDetail(selectedId);
       await loadItems();

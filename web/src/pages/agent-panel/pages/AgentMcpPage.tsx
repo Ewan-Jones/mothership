@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiPost } from "../../../api/client";
+import { mcpApi } from "@/src/api/sdk";
 import type { McpInspectResult, McpServerConfig, McpServerInfo, McpToolInfo } from "../../../types/config";
 import { AgentCardList } from "../shared/AgentCardList";
 import { AgentPageHeader } from "../shared/AgentPageHeader";
@@ -138,16 +138,17 @@ export function AgentMcpPage() {
 
   const loadServers = useCallback(async () => {
     setLoading(true);
-    try {
-      const result = await apiPost<{ servers: McpServerInfo[] }>("/web/config/mcp", { action: "list" });
-      const data = Array.isArray(result) ? result : (result?.servers ?? []);
-      setServers(data);
-    } catch (e) {
-      console.error(t("toast.loadListFailed"), e);
-      toast.error(t("toast.loadListFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
-    } finally {
-      setLoading(false);
+    const { data: result, error } = await mcpApi.list();
+    if (error) {
+      console.error(t("toast.loadListFailed"), error);
+      toast.error(t("toast.loadListFailedWith", { message: error.message }));
+    } else {
+      const data = Array.isArray(result)
+        ? result
+        : (((result as unknown as Record<string, unknown>)?.servers ?? []) as unknown as McpServerInfo[]);
+      setServers(data as unknown as typeof servers);
     }
+    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -174,12 +175,12 @@ export function AgentMcpPage() {
   const handleOpenEdit = async (server: McpServerInfo) => {
     setEditingServer(server);
     setFormName(server.name);
-    try {
-      const detail = await apiPost<{ name: string; config: McpServerConfig }>("/web/config/mcp", {
-        action: "get",
-        name: server.name,
-      });
-      const config = detail.config as McpServerConfig;
+    const { data: detail, error: detailError } = await mcpApi.get(server.name);
+    if (detailError) {
+      console.error(t("toast.loadDetailFailed"), detailError);
+      toast.error(t("toast.loadDetailFailed"));
+    } else {
+      const config = ((detail as Record<string, unknown>)?.config ?? detail) as McpServerConfig;
       if ("type" in config && config.type === "local") {
         setFormType("local");
         setFormCommand(commandToString(config.command));
@@ -221,9 +222,6 @@ export function AgentMcpPage() {
           setOauthExpanded(false);
         }
       }
-    } catch (e) {
-      console.error(t("toast.loadDetailFailed"), e);
-      toast.error(t("toast.loadDetailFailed"));
     }
     setDialogOpen(true);
   };
@@ -236,147 +234,141 @@ export function AgentMcpPage() {
       return;
     }
     setFormSaving(true);
-    try {
-      const payload = buildMcpPayload(
-        formType,
-        formCommand,
-        formUrl,
-        formEnvironment,
-        formHeaders,
-        formOauthClientId,
-        formOauthClientSecret,
-        formOauthScope,
-        formOauthRedirectUri,
-        formTimeout,
-      );
-      if (editingServer) {
-        await apiPost("/web/config/mcp", { action: "set", name: formName, data: payload });
-        toast.success(t("toast.serverUpdated"));
-      } else {
-        await apiPost("/web/config/mcp", { action: "create", name: formName, data: payload });
-        toast.success(t("toast.serverCreated"));
+    const payload = buildMcpPayload(
+      formType,
+      formCommand,
+      formUrl,
+      formEnvironment,
+      formHeaders,
+      formOauthClientId,
+      formOauthClientSecret,
+      formOauthScope,
+      formOauthRedirectUri,
+      formTimeout,
+    );
+    if (editingServer) {
+      const { error } = await mcpApi.set(formName, payload as unknown as Record<string, unknown>);
+      if (error) {
+        console.error(t("toast.saveFailed"), error);
+        toast.error(t("toast.saveFailedWith", { message: error.message }));
+        setFormSaving(false);
+        return;
       }
-      setDialogOpen(false);
-      loadServers();
-    } catch (e) {
-      console.error(t("toast.saveFailed"), e);
-      toast.error(t("toast.saveFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
-    } finally {
-      setFormSaving(false);
+      toast.success(t("toast.serverUpdated"));
+    } else {
+      const { error } = await mcpApi.create(formName, payload as unknown as Record<string, unknown>);
+      if (error) {
+        console.error(t("toast.saveFailed"), error);
+        toast.error(t("toast.saveFailedWith", { message: error.message }));
+        setFormSaving(false);
+        return;
+      }
+      toast.success(t("toast.serverCreated"));
     }
+    setFormSaving(false);
+    setDialogOpen(false);
+    loadServers();
   };
 
   const handleToggle = async (server: McpServerInfo) => {
-    try {
-      if (server.enabled) {
-        await apiPost("/web/config/mcp", { action: "disable", name: server.name });
-        toast.success(t("toast.disabled", { name: server.name }));
-      } else {
-        await apiPost("/web/config/mcp", { action: "enable", name: server.name });
-        toast.success(t("toast.enabled", { name: server.name }));
+    if (server.enabled) {
+      const { error } = await mcpApi.disable(server.name);
+      if (error) {
+        console.error(t("toast.operationFailed"), error);
+        toast.error(t("toast.operationFailedWith", { message: error.message }));
+        return;
       }
-      loadServers();
-    } catch (e) {
-      console.error(t("toast.operationFailed"), e);
-      toast.error(t("toast.operationFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
+      toast.success(t("toast.disabled", { name: server.name }));
+    } else {
+      const { error } = await mcpApi.enable(server.name);
+      if (error) {
+        console.error(t("toast.operationFailed"), error);
+        toast.error(t("toast.operationFailedWith", { message: error.message }));
+        return;
+      }
+      toast.success(t("toast.enabled", { name: server.name }));
     }
+    loadServers();
   };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      await apiPost("/web/config/mcp", { action: "delete", name: deleteTarget });
-      toast.success(t("toast.serverDeleted"));
-      setConfirmOpen(false);
-      loadServers();
-    } catch (e) {
-      console.error(t("toast.deleteFailed"), e);
-      toast.error(t("toast.deleteFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
+    const { error } = await mcpApi.delete(deleteTarget);
+    if (error) {
+      console.error(t("toast.deleteFailed"), error);
+      toast.error(t("toast.deleteFailedWith", { message: error.message }));
+      return;
     }
+    toast.success(t("toast.serverDeleted"));
+    setConfirmOpen(false);
+    loadServers();
   };
 
   const handleInspect = async (server: McpServerInfo) => {
     setInspectingServer(server.name);
-    try {
-      const result = await apiPost<McpInspectResult>("/web/config/mcp", {
-        action: "inspect",
-        name: server.name,
-      });
-      if (!result) {
-        throw new Error(t("toast.inspectFailed"));
-      }
-      toast.success(
-        t("toast.inspectSuccess", {
-          name: server.name,
-          serverInfo: result.serverInfo.name ?? "",
-          version: result.serverInfo.version ?? "",
-          toolCount: result.tools.length,
-        }),
-      );
-      loadServers();
-      setToolsCache((prev) => ({
-        ...prev,
-        [server.name]: result.tools.map((toolItem) => ({
-          id: `${server.name}:${toolItem.name}`,
-          toolName: toolItem.name,
-          description: toolItem.description ?? null,
-          inputSchema: toolItem.inputSchema ? JSON.stringify(toolItem.inputSchema) : null,
-          inspectedAt: Date.now(),
-        })),
-      }));
-      setExpandedServer(server.name);
-    } catch (e) {
-      console.error(t("toast.inspectFailed"), e);
-      toast.error(t("toast.inspectFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
-    } finally {
+    const { data: result, error } = (await mcpApi.inspect(server.name)) as unknown as {
+      data: McpInspectResult;
+      error: { message: string } | null;
+    };
+    if (error || !result) {
+      console.error(t("toast.inspectFailed"), error);
+      toast.error(t("toast.inspectFailedWith", { message: error?.message ?? t("toast.saveFailed") }));
       setInspectingServer(null);
+      return;
     }
+    toast.success(
+      t("toast.inspectSuccess", {
+        name: server.name,
+        serverInfo: result.serverInfo.name ?? "",
+        version: result.serverInfo.version ?? "",
+        toolCount: result.tools.length,
+      }),
+    );
+    loadServers();
+    setToolsCache((prev) => ({
+      ...prev,
+      [server.name]: result.tools.map((toolItem) => ({
+        id: `${server.name}:${toolItem.name}`,
+        toolName: toolItem.name,
+        description: toolItem.description ?? null,
+        inputSchema: toolItem.inputSchema ? JSON.stringify(toolItem.inputSchema) : null,
+        inspectedAt: Date.now(),
+      })),
+    }));
+    setExpandedServer(server.name);
+    setInspectingServer(null);
   };
 
   const handleTestFormUrl = async () => {
     if (!formUrl.trim()) return;
     setTestingUrl(true);
-    try {
-      const headersObj =
-        formHeaders.filter((h) => h.key.trim()).length > 0
-          ? Object.fromEntries(formHeaders.filter((h) => h.key.trim()).map((h) => [h.key, h.value]))
-          : undefined;
-      const timeoutNum = formTimeout ? parseInt(formTimeout, 10) : undefined;
-      const result = await apiPost<{
-        reachable: boolean;
-        protocol: boolean;
-        serverName?: string | null;
-        serverVersion?: string | null;
-        toolsCount?: number | null;
-        transport?: string | null;
-        message?: string | null;
-      }>("/web/config/mcp", {
-        action: "test_url",
-        url: formUrl,
-        headers: headersObj,
-        timeout: timeoutNum,
-      });
-
-      if (result.reachable && result.protocol) {
-        const toolsInfo = result.toolsCount != null ? `，${result.toolsCount} ${t("column.tools").toLowerCase()}` : "";
+    const headersObj =
+      formHeaders.filter((h) => h.key.trim()).length > 0
+        ? Object.fromEntries(formHeaders.filter((h) => h.key.trim()).map((h) => [h.key, h.value]))
+        : undefined;
+    const timeoutNum = formTimeout ? parseInt(formTimeout, 10) : undefined;
+    const { data: result, error: testError } = await mcpApi.testUrl(formUrl);
+    if (testError) {
+      console.error(t("toast.testFailed"), testError);
+      toast.error(t("toast.testFailedWith", { message: testError.message }));
+    } else {
+      const d = result as Record<string, unknown>;
+      if (d?.reachable && d?.protocol) {
+        const toolsInfo = d.toolsCount != null ? `，${d.toolsCount} ${t("column.tools").toLowerCase()}` : "";
         toast.success(
           t("toast.testSuccess", {
-            serverName: result.serverName ?? "",
-            serverVersion: result.serverVersion ?? "",
+            serverName: (d.serverName as string) ?? "",
+            serverVersion: (d.serverVersion as string) ?? "",
             toolsInfo,
           }),
         );
-      } else if (result.reachable) {
-        toast.warning(t("toast.testReachable", { message: result.message ?? "" }));
+      } else if (d?.reachable) {
+        toast.warning(t("toast.testReachable", { message: (d.message as string) ?? "" }));
       } else {
-        toast.error(t("toast.testFailed", { message: result.message ?? t("toast.saveFailed") }));
+        toast.error(t("toast.testFailed", { message: (d?.message as string) ?? t("toast.saveFailed") }));
       }
-    } catch (e) {
-      console.error(t("toast.testFailed"), e);
-      toast.error(t("toast.testFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
-    } finally {
-      setTestingUrl(false);
     }
+    setTestingUrl(false);
   };
 
   const handleBatchAction = (action: "enable" | "disable" | "delete") => {
@@ -385,28 +377,19 @@ export function AgentMcpPage() {
   };
 
   const confirmBatchAction = async () => {
-    try {
-      if (batchAction === "delete") {
-        await Promise.all(selected.map((s) => apiPost("/web/config/mcp", { action: "delete", name: s.name })));
-        toast.success(t("toast.batchDeleted", { count: selected.length }));
-      } else if (batchAction === "enable") {
-        await Promise.all(
-          selected.filter((s) => !s.enabled).map((s) => apiPost("/web/config/mcp", { action: "enable", name: s.name })),
-        );
-        toast.success(t("toast.batchEnabled", { count: selected.length }));
-      } else {
-        await Promise.all(
-          selected.filter((s) => s.enabled).map((s) => apiPost("/web/config/mcp", { action: "disable", name: s.name })),
-        );
-        toast.success(t("toast.batchDisabled", { count: selected.length }));
-      }
-      setBatchConfirmOpen(false);
-      setSelected([]);
-      loadServers();
-    } catch (e) {
-      console.error(t("toast.batchFailed"), e);
-      toast.error(t("toast.batchFailedWith", { message: e instanceof Error ? e.message : t("toast.saveFailed") }));
+    if (batchAction === "delete") {
+      await Promise.all(selected.map((s) => mcpApi.delete(s.name)));
+      toast.success(t("toast.batchDeleted", { count: selected.length }));
+    } else if (batchAction === "enable") {
+      await Promise.all(selected.filter((s) => !s.enabled).map((s) => mcpApi.enable(s.name)));
+      toast.success(t("toast.batchEnabled", { count: selected.length }));
+    } else {
+      await Promise.all(selected.filter((s) => s.enabled).map((s) => mcpApi.disable(s.name)));
+      toast.success(t("toast.batchDisabled", { count: selected.length }));
     }
+    setBatchConfirmOpen(false);
+    setSelected([]);
+    loadServers();
   };
 
   if (loading) {

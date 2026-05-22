@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { apiGet, apiPost } from "../api/client";
+import { agentApi, envApi, mcpApi, modelApi, sessionApi, skillConfigApi, taskApi } from "@/src/api/sdk";
 import { useConfigChangeListener } from "../lib/config-events";
 import { cn } from "../lib/utils";
 import type { Environment, Session } from "../types";
@@ -47,32 +47,28 @@ function useStats() {
   });
   const load = useCallback(async () => {
     const results = await Promise.allSettled([
-      apiGet<unknown[]>("/web/environments").then((d) => (Array.isArray(d) ? (d as Environment[]) : [])),
-      apiGet<unknown[]>("/web/sessions").then((d) => (Array.isArray(d) ? (d as Session[]) : [])),
-      apiPost<{ agents?: AgentInfo[]; data?: { agents?: AgentInfo[] } }>("/web/config/agents", { action: "list" }).then(
-        (d) => {
-          const agents = d?.agents ?? d?.data?.agents;
-          return Array.isArray(agents) ? agents : [];
-        },
-      ),
-      apiPost<{ available: { fullId: string }[] }>("/web/config/models", { action: "get" }).then((d) => d ?? null),
-      apiPost<{ skills?: { name: string; enabled: boolean }[] }>("/web/config/skills", { action: "list" }).then((d) => {
-        const skills = (d as Record<string, unknown>)?.skills;
-        return Array.isArray(skills) ? skills : [];
+      envApi.list().then(({ data }) => (Array.isArray(data) ? (data as Environment[]) : [])),
+      sessionApi.list().then(({ data }) => (Array.isArray(data) ? (data as Session[]) : [])),
+      agentApi.list().then(({ data }) => {
+        const agents = (data as unknown as Record<string, unknown>)?.agents;
+        return Array.isArray(agents) ? (agents as AgentInfo[]) : [];
       }),
-      apiPost<unknown>("/web/config/mcp", { action: "list" }).then((d) => (Array.isArray(d) ? d : [])),
-      apiGet<{ id: string; enabled: boolean; lastStatus: string | null }[]>("/web/tasks").then((d) =>
-        Array.isArray(d) ? d : [],
-      ),
+      modelApi.get().then(({ data }) => data ?? null),
+      skillConfigApi.list().then(({ data }) => {
+        const skills = (data as unknown as Record<string, unknown>)?.skills;
+        return Array.isArray(skills) ? (skills as { name: string; enabled: boolean }[]) : [];
+      }),
+      mcpApi.list().then(({ data }) => (Array.isArray(data) ? data : [])),
+      taskApi.list().then(({ data }) => (Array.isArray(data) ? data : [])),
     ]);
     setState({
       environments: results[0].status === "fulfilled" ? results[0].value : [],
       sessions: results[1].status === "fulfilled" ? results[1].value : [],
       agents: results[2].status === "fulfilled" ? results[2].value : [],
-      models: results[3].status === "fulfilled" ? results[3].value : null,
-      skills: results[4].status === "fulfilled" ? results[4].value : [],
-      mcpServers: results[5].status === "fulfilled" ? results[5].value : [],
-      tasks: results[6].status === "fulfilled" ? results[6].value : [],
+      models: results[3].status === "fulfilled" ? (results[3].value as StatsState["models"]) : null,
+      skills: results[4].status === "fulfilled" ? (results[4].value as StatsState["skills"]) : [],
+      mcpServers: results[5].status === "fulfilled" ? (results[5].value as StatsState["mcpServers"]) : [],
+      tasks: results[6].status === "fulfilled" ? (results[6].value as StatsState["tasks"]) : [],
       loading: false,
     });
   }, []);

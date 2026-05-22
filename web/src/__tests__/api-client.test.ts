@@ -52,124 +52,118 @@ beforeEach(() => {
   } as unknown as Response;
 };
 
-const apiClient = await import("../api/client");
-const client = apiClient.client as any;
+const sdk = await import("../api/sdk");
 
 // =============================================================================
-// Eden Treaty session API — 通过 client 代理调用测试
+// Session SDK — 通过 SDK 模块调用测试
 // =============================================================================
 
-describe("session API functions (Eden Treaty)", () => {
+describe("session SDK functions", () => {
   // 测试创建 session 发送 POST 请求
-  test("createSession — POST /web/sessions", async () => {
-    fetchMock.responseData = { id: "sess_1", title: "test" };
-    await client.client.web.sessions.post({ title: "test" });
+  test("sessionApi.create — POST /web/sessions", async () => {
+    fetchMock.responseData = { success: true, data: { id: "sess_1", title: "test" } };
+    await sdk.sessionApi.create({ title: "test" });
     expect(fetchMock.lastUrl).toContain("/web/sessions");
     expect(fetchMock.lastOpts.method).toBe("POST");
   });
 
   // 测试获取 session 详情发送 GET 请求
-  test("fetchSession — GET /web/sessions/:id", async () => {
-    fetchMock.responseData = { id: "sess_1", title: "test" };
-    await client.client.web.sessions({ id: "sess_1" }).get();
+  test("sessionApi.get — GET /web/sessions/:id", async () => {
+    fetchMock.responseData = { success: true, data: { id: "sess_1", title: "test" } };
+    await sdk.sessionApi.get({ id: "sess_1" });
     expect(fetchMock.lastUrl).toContain("/web/sessions/sess_1");
     expect(fetchMock.lastOpts.method).toBe("GET");
   });
 
   // 测试获取 session 历史发送 GET 请求
-  test("fetchSessionHistory — GET /web/sessions/:id/history", async () => {
-    fetchMock.responseData = { events: [] };
-    await client.client.web.sessions({ id: "sess_1" }).history.get();
+  test("sessionApi.history — GET /web/sessions/:id/history", async () => {
+    fetchMock.responseData = { success: true, data: { events: [] } };
+    await sdk.sessionApi.history({ id: "sess_1" });
     expect(fetchMock.lastUrl).toContain("/web/sessions/sess_1/history");
     expect(fetchMock.lastOpts.method).toBe("GET");
   });
 
   // 测试发送事件包含 JSON body
-  test("sendEvent — POST with JSON body", async () => {
-    fetchMock.responseData = {};
-    await client.client.web.sessions({ id: "sess_1" }).events.post({ type: "user", content: "hello" });
+  test("controlApi.sendEvent — POST with JSON body", async () => {
+    fetchMock.responseData = { success: true, data: {} };
+    await sdk.controlApi.sendEvent({ id: "sess_1" }, { type: "user", content: "hello" });
     expect(fetchMock.lastUrl).toContain("/web/sessions/sess_1/events");
     expect(fetchMock.lastOpts.method).toBe("POST");
     expect(JSON.parse(fetchMock.lastOpts.body as string)).toEqual({ type: "user", content: "hello" });
   });
 
   // 测试发送控制命令包含 JSON body
-  test("sendControl — POST with JSON body", async () => {
-    fetchMock.responseData = {};
-    await client.client.web.sessions({ id: "sess_1" }).control.post({ type: "resume" });
+  test("controlApi.control — POST with JSON body", async () => {
+    fetchMock.responseData = { success: true, data: {} };
+    await sdk.controlApi.control({ id: "sess_1" }, { type: "resume" });
     expect(fetchMock.lastUrl).toContain("/web/sessions/sess_1/control");
     expect(fetchMock.lastOpts.method).toBe("POST");
   });
 
   // 测试中断命令
-  test("interrupt — POST interrupt", async () => {
-    fetchMock.responseData = {};
-    await client.client.web.sessions({ id: "sess_1" }).control.post({ type: "interrupt" });
-    expect(fetchMock.lastUrl).toContain("/web/sessions/sess_1/control");
-    expect(JSON.parse(fetchMock.lastOpts.body as string)).toEqual({ type: "interrupt" });
+  test("controlApi.interrupt — POST interrupt", async () => {
+    fetchMock.responseData = { success: true, data: {} };
+    await sdk.controlApi.interrupt({ id: "sess_1" });
+    expect(fetchMock.lastUrl).toContain("/web/sessions/sess_1/interrupt");
   });
 });
 
 // =============================================================================
-// File API functions (Eden Treaty)
+// File SDK functions
 // =============================================================================
 
-describe("file API functions (Eden Treaty)", () => {
+describe("file SDK functions", () => {
   // 测试列出文件发送 GET 请求
-  test("listFiles — GET /web/sessions/:id/user", async () => {
-    fetchMock.responseData = { entries: [] };
-    await client.client.web.sessions({ id: "s1" }).user.get();
-    expect(fetchMock.lastUrl).toContain("/web/sessions/s1/user");
+  test("fileApi.listDir — GET /web/environments/:id/user", async () => {
+    fetchMock.responseData = { success: true, data: { entries: [] } };
+    await sdk.fileApi.listDir({ id: "s1" });
+    expect(fetchMock.lastUrl).toContain("/web/environments/s1/user");
     expect(fetchMock.lastOpts.method).toBe("GET");
   });
 
   // 测试列出文件带路径参数
-  test("listFiles — with path query param", async () => {
-    fetchMock.responseData = { entries: [] };
-    await client.client.web.sessions({ id: "s1" }).user.get({ path: "docs/" });
-    expect(fetchMock.lastUrl).toContain("/web/sessions/s1/user");
-    // Eden Treaty passes query params via fetch options, verify the call was made
+  test("fileApi.listDir — with path query param", async () => {
+    fetchMock.responseData = { success: true, data: { entries: [] } };
+    await sdk.fileApi.listDir({ id: "s1" }, { path: "docs/" });
+    expect(fetchMock.lastUrl).toContain("/web/environments/s1/user");
+    expect(fetchMock.lastUrl).toContain("path=docs");
     expect(fetchMock.lastOpts.method).toBe("GET");
   });
 
-  // 测试上传文件使用 fetchUpload 和 FormData
-  test("fetchUpload — uses FormData and POST", async () => {
-    fetchMock.responseData = { files: [] };
+  // 测试上传文件使用 upload 和 FormData
+  test("fileApi.upload — uses FormData and POST", async () => {
+    fetchMock.responseData = { success: true, data: { files: [] } };
     const file = new File(["content"], "test.txt");
     const formData = new FormData();
     formData.append("files", file);
-    await apiClient.fetchUpload("/web/sessions/s1/user/docs/", formData);
-    expect(fetchMock.lastUrl).toBe("/web/sessions/s1/user/docs/");
+    await sdk.fileApi.upload({ id: "s1", path: "docs/" }, formData);
+    expect(fetchMock.lastUrl).toContain("/web/environments/s1/user/docs/");
     expect(fetchMock.lastOpts.method).toBe("POST");
     expect(fetchMock.lastOpts.body).toBeInstanceOf(FormData);
   });
 });
 
 // =============================================================================
-// Error handling
+// Error handling — SDK Result pattern
 // =============================================================================
 
 describe("error handling", () => {
-  // 测试非 ok 响应 Eden Treaty 仍然返回数据（不自动抛错）
-  test("Eden Treaty returns data even on non-ok response", async () => {
+  // 测试非 ok 响应 SDK 返回 error 对象
+  test("SDK returns error object on non-ok response", async () => {
     fetchMock.response = { ok: false, status: 401, statusText: "Unauthorized" };
-    fetchMock.responseData = { error: { message: "Not authenticated" } };
-    const result = await (apiClient.client as any).web.sessions({ id: "sess-1" }).get();
-    expect(result).toBeDefined();
+    fetchMock.responseData = { success: false, error: { message: "Not authenticated" } };
+    const { data, error } = await sdk.sessionApi.get({ id: "sess-1" });
+    expect(error).not.toBeNull();
+    expect(data).toBeUndefined();
   });
 
-  // 测试 fetchUpload 在非 ok 响应时抛出错误
-  test("fetchUpload throws error on non-ok response", async () => {
-    fetchMock.response = { ok: false, status: 401, statusText: "Unauthorized" };
-    fetchMock.responseData = { error: { message: "Not authenticated" } };
-    await expect(apiClient.fetchUpload("/web/test", new FormData())).rejects.toThrow("Not authenticated");
-  });
-
-  // 测试 fetchUpload 在缺少错误消息时使用 statusText
-  test("fetchUpload throws with statusText when error message is missing", async () => {
+  // 测试 500 错误 SDK 返回 SERVER_ERROR
+  test("SDK returns SERVER_ERROR on 500 response", async () => {
     fetchMock.response = { ok: false, status: 500, statusText: "Internal Server Error" };
     fetchMock.responseData = {};
-    await expect(apiClient.fetchUpload("/web/test", new FormData())).rejects.toThrow("Internal Server Error");
+    const { data, error } = await sdk.sessionApi.list();
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe("SERVER_ERROR");
   });
 });
 
@@ -179,13 +173,15 @@ describe("error handling", () => {
 
 describe("UUID helpers", () => {
   // 测试默认返回空字符串
-  test("getUuid returns empty string by default", () => {
-    expect(apiClient.getUuid()).toBe("");
+  test("getUuid returns empty string by default", async () => {
+    const { getUuid } = await import("../api/helpers");
+    expect(getUuid()).toBe("");
   });
 
   // 测试设置和获取 UUID
-  test("setUuid and getUuid roundtrip", () => {
-    apiClient.setUuid("test-uuid-123");
-    expect(apiClient.getUuid()).toBe("test-uuid-123");
+  test("setUuid and getUuid roundtrip", async () => {
+    const { getUuid, setUuid } = await import("../api/helpers");
+    setUuid("test-uuid-123");
+    expect(getUuid()).toBe("test-uuid-123");
   });
 });

@@ -1,17 +1,17 @@
 import { BaseApi } from "../base";
 import type { ApiResult } from "../result";
 import type {
-  ProviderInfo,
-  ProviderDetail,
-  ModelEntry,
-  ModelConfig,
-  AgentInfo,
   AgentDetail,
-  SkillInfo,
-  McpServerInfo,
-  McpServerDetail,
-  McpToolInfo,
+  AgentInfo,
   McpInspectResult,
+  McpServerDetail,
+  McpServerInfo,
+  McpToolInfo,
+  ModelConfig,
+  ModelEntry,
+  ProviderDetail,
+  ProviderInfo,
+  SkillInfo,
 } from "../types/schemas";
 
 export class ProviderApi extends BaseApi {
@@ -88,7 +88,7 @@ export class SkillConfigApi extends BaseApi {
     return this.post("/web/config/skills", { action: "delete", name });
   }
   async upload(formData: FormData): Promise<ApiResult<SkillInfo>> {
-    return this.upload<SkillInfo>("/web/config/skills/upload", formData);
+    return this._upload<SkillInfo>("/web/config/skills/upload", formData);
   }
 }
 

@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { orgAction } from "../api/client";
+import { orgApi } from "@/src/api/sdk";
 
 interface OrgInfo {
   id: string;
@@ -50,14 +50,19 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
   const refreshOrgs = useCallback(async () => {
     try {
-      const list = await orgAction<OrgWithRole[]>("list");
+      const { data: _list, error } = await orgApi.list();
+      if (error) {
+        console.error("Failed to load org context:", error.message);
+        return;
+      }
+      const list = (_list ?? []) as unknown as OrgWithRole[];
       setOrgs(list);
       // 取当前 active org 或第一个
       const activeOrgId = localStorage.getItem(STORAGE_KEY);
       const current = list.find((o) => o.id === activeOrgId) || list[0];
       if (current) {
         setOrg(current);
-        setRole(current.role);
+        setRole(current.role ?? "");
         localStorage.setItem(STORAGE_KEY, current.id);
       }
     } catch (err) {
@@ -74,7 +79,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
   const switchOrg = useCallback(async (orgId: string) => {
     localStorage.setItem(STORAGE_KEY, orgId);
-    await orgAction("set-active", { organizationId: orgId });
+    await orgApi.setActive(orgId);
     window.location.reload();
   }, []);
 

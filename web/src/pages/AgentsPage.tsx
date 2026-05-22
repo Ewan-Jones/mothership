@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { apiGet, apiPost } from "../api/client";
+import { agentApi, kbApi, modelApi, skillConfigApi } from "@/src/api/sdk";
 import { PermissionTab } from "../components/PermissionTab";
 import { dispatchConfigChange } from "../lib/config-events";
 import type { AgentDetail, AgentInfo } from "../types/config";
@@ -166,65 +166,48 @@ export function AgentsPage() {
 
   const loadAgents = useCallback(async () => {
     setLoading(true);
-    try {
-      const listData = await apiPost<{ agents?: AgentInfo[]; default_agent?: AgentInfo }>("/web/config/agents", {
-        action: "list",
-      });
-      const agentsList = (listData as Record<string, unknown>)?.agents;
-      setAgents(Array.isArray(agentsList) ? agentsList : []);
-      const defaultAgentName = (listData as Record<string, unknown>)?.default_agent;
-      setDefaultAgent(
-        typeof defaultAgentName === "string"
-          ? defaultAgentName
-          : ((defaultAgentName as { name?: string })?.name ?? null),
-      );
-    } catch (e) {
-      console.error(t("loadErrorShort"), e);
-      toast.error(t("loadError", { message: e instanceof Error ? e.message : t("unknownError") }));
-    } finally {
+    const { data: listData, error } = await agentApi.list();
+    if (error) {
+      console.error(t("loadErrorShort"), error);
+      toast.error(t("loadError", { message: error.message }));
       setLoading(false);
+      return;
     }
+    const agentsList = (listData as unknown as Record<string, unknown>)?.agents;
+    setAgents(Array.isArray(agentsList) ? agentsList : []);
+    const defaultAgentName = (listData as unknown as Record<string, unknown>)?.default_agent;
+    setDefaultAgent(
+      typeof defaultAgentName === "string" ? defaultAgentName : ((defaultAgentName as { name?: string })?.name ?? null),
+    );
+    setLoading(false);
   }, [t]);
 
   const loadModelOptions = useCallback(async () => {
-    try {
-      const modelsData = await apiPost<{ available?: { fullId: string }[] }>("/web/config/models", { action: "get" });
-      setModelOptions(
-        Array.isArray(modelsData?.available) ? modelsData.available.map((m: { fullId: string }) => m.fullId) : [],
-      );
-    } catch {
-      /* silent */
-    }
+    const { data: modelsData, error } = await modelApi.get();
+    if (error) return;
+    const available = (modelsData as unknown as Record<string, unknown>)?.available;
+    setModelOptions(Array.isArray(available) ? (available as { fullId: string }[]).map((m) => m.fullId) : []);
   }, []);
 
   const loadKnowledgeOptions = useCallback(async () => {
-    try {
-      const kbData = await apiGet<KnowledgeBaseInfo[]>("/web/knowledgeBases");
-      setKnowledgeOptions(Array.isArray(kbData) ? kbData : []);
-    } catch {
-      /* silent */
-    }
+    const { data: kbData, error } = await kbApi.list();
+    if (error) return;
+    setKnowledgeOptions((Array.isArray(kbData) ? kbData : []) as unknown as typeof knowledgeOptions);
   }, []);
 
   const loadSkillOptions = useCallback(async () => {
-    try {
-      const skillsData = await apiPost<{ skills?: { id: string; name: string; description?: string }[] }>(
-        "/web/config/skills",
-        { action: "list" },
-      );
-      const skills = (skillsData as Record<string, unknown>)?.skills;
-      setSkillOptions(
-        Array.isArray(skills)
-          ? (skills as { id: string; name: string; description?: string }[]).map((s) => ({
-              id: s.id,
-              name: s.name,
-              description: s.description ?? "",
-            }))
-          : [],
-      );
-    } catch {
-      /* silent */
-    }
+    const { data: skillsData, error } = await skillConfigApi.list();
+    if (error) return;
+    const skills = (skillsData as unknown as Record<string, unknown>)?.skills;
+    setSkillOptions(
+      Array.isArray(skills)
+        ? (skills as { id: string; name: string; description?: string }[]).map((s) => ({
+            id: s.id,
+            name: s.name,
+            description: s.description ?? "",
+          }))
+        : [],
+    );
   }, []);
 
   useEffect(() => {
@@ -306,12 +289,11 @@ export function AgentsPage() {
     setFormKnowledgeSearchFirst(knowledgeDefaults.searchFirst);
     setFormKnowledgeMaxResults(knowledgeDefaults.maxResults);
     setFormPermission(null);
-    try {
-      const detail = await apiPost<Record<string, unknown>>("/web/config/agents", {
-        action: "get",
-        name: agent.name,
-      });
-      const d = detail as Record<string, unknown>;
+    const { data: detail, error } = await agentApi.get(agent.name);
+    if (error) {
+      setFormSteps("50");
+    } else {
+      const d = detail as unknown as Record<string, unknown>;
 
       setFormSteps(String(d.steps ?? 50));
       setFormPrompt(String(d.prompt ?? ""));
@@ -330,12 +312,10 @@ export function AgentsPage() {
         d.permission
           ? typeof d.permission === "string"
             ? (d.permission as unknown as Record<string, unknown>)
-            : (d.permission as Record<string, unknown>)
+            : (d.permission as unknown as Record<string, unknown>)
           : null,
       );
       setFormSkillIds(Array.isArray(d.skillIds) ? (d.skillIds as string[]) : []);
-    } catch {
-      setFormSteps("50");
     }
     setActiveTab("basic");
     setDialogOpen(true);
@@ -373,13 +353,11 @@ export function AgentsPage() {
     setFormSaving(true);
     try {
       let latestKnowledgeOptions = knowledgeOptions;
-      try {
-        const kbData = await apiGet<KnowledgeBaseInfo[]>("/web/knowledgeBases");
-        latestKnowledgeOptions = Array.isArray(kbData) ? kbData : [];
-      } catch {
-        latestKnowledgeOptions = knowledgeOptions;
+      const { data: kbData } = await kbApi.list();
+      if (kbData) {
+        latestKnowledgeOptions = Array.isArray(kbData) ? (kbData as unknown as KnowledgeBaseInfo[]) : [];
+        setKnowledgeOptions(latestKnowledgeOptions);
       }
-      setKnowledgeOptions(latestKnowledgeOptions);
       const validKnowledgeBaseIds = filterKnowledgeBaseIds(formKnowledgeBaseIds, latestKnowledgeOptions);
       if (validKnowledgeBaseIds.length !== formKnowledgeBaseIds.length) {
         setFormKnowledgeBaseIds(validKnowledgeBaseIds);
@@ -407,10 +385,18 @@ export function AgentsPage() {
         skillIds: formSkillIds,
       };
       if (editingAgent) {
-        await apiPost("/web/config/agents", { action: "set", name, data });
+        const { error } = await agentApi.set(name, data);
+        if (error) {
+          toast.error(t("save.errorGeneric", { message: error.message }));
+          return;
+        }
         toast.success(t("save.successUpdate"));
       } else {
-        await apiPost("/web/config/agents", { action: "create", name, data });
+        const { error } = await agentApi.create(name, data);
+        if (error) {
+          toast.error(t("save.errorGeneric", { message: error.message }));
+          return;
+        }
         toast.success(t("save.successCreate"));
       }
       setDialogOpen(false);
@@ -425,43 +411,38 @@ export function AgentsPage() {
   };
 
   const handleSetDefault = async (name: string) => {
-    try {
-      await apiPost("/web/config/agents", { action: "set_default", name });
-      setDefaultAgent(name);
-      toast.success(t("setDefault.success", { name }));
-    } catch (e) {
-      console.error(t("setDefault.error", { message: "" }), e);
-      toast.error(t("setDefault.error", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await agentApi.setDefault(name);
+    if (error) {
+      console.error(t("setDefault.error", { message: "" }), error);
+      toast.error(t("setDefault.error", { message: error.message }));
+      return;
     }
+    setDefaultAgent(name);
+    toast.success(t("setDefault.success", { name }));
   };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      await apiPost("/web/config/agents", { action: "delete", name: deleteTarget });
-      toast.success(t("delete.success"));
-      setConfirmOpen(false);
-      loadAgents();
-      dispatchConfigChange("agents");
-    } catch (e) {
-      console.error(t("delete.error", { message: "" }), e);
-      toast.error(t("delete.error", { message: e instanceof Error ? e.message : t("unknownError") }));
+    const { error } = await agentApi.delete(deleteTarget);
+    if (error) {
+      console.error(t("delete.error", { message: "" }), error);
+      toast.error(t("delete.error", { message: error.message }));
+      return;
     }
+    toast.success(t("delete.success"));
+    setConfirmOpen(false);
+    loadAgents();
+    dispatchConfigChange("agents");
   };
 
   const confirmBatchDelete = async () => {
     const customAgents = selected.filter((a) => !a.builtIn);
-    try {
-      await Promise.all(customAgents.map((a) => apiPost("/web/config/agents", { action: "delete", name: a.name })));
-      toast.success(t("batchDeleteCount", { count: customAgents.length }));
-      setBatchConfirmOpen(false);
-      setSelected([]);
-      loadAgents();
-      dispatchConfigChange("agents");
-    } catch (e) {
-      console.error(t("batchDeleteError", { message: "" }), e);
-      toast.error(t("batchDeleteError", { message: e instanceof Error ? e.message : t("unknownError") }));
-    }
+    await Promise.all(customAgents.map((a) => agentApi.delete(a.name)));
+    toast.success(t("batchDeleteCount", { count: customAgents.length }));
+    setBatchConfirmOpen(false);
+    setSelected([]);
+    loadAgents();
+    dispatchConfigChange("agents");
   };
 
   if (loading) {

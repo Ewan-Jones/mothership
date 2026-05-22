@@ -1,10 +1,6 @@
 import { BaseApi } from "../base";
 import type { ApiResult } from "../result";
-import type {
-  CreateCodeSessionRequest,
-  CreateCodeSessionResponse,
-  CodeSessionBridgeResponse,
-} from "../types/schemas";
+import type { CodeSessionBridgeResponse, CreateCodeSessionRequest, CreateCodeSessionResponse } from "../types/schemas";
 
 export class V2CodeSessionApi extends BaseApi {
   async create(body: CreateCodeSessionRequest): Promise<ApiResult<CreateCodeSessionResponse>> {

@@ -22,9 +22,7 @@ export class BaseApi {
     if (!query) return "";
     const entries = Object.entries(query).filter(([, v]) => v !== undefined);
     if (entries.length === 0) return "";
-    const qs = entries
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-      .join("&");
+    const qs = entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
     return `?${qs}`;
   }
 
@@ -68,7 +66,7 @@ export class BaseApi {
     return ok(json as T);
   }
 
-  protected async get<T>(path: string, options?: RequestOptions): Promise<ApiResult<T>> {
+  protected async _get<T>(path: string, options?: RequestOptions): Promise<ApiResult<T>> {
     try {
       const url = this.replaceParams(path, options?.params) + this.buildQuery(options?.query);
       const response = await fetch(url, { method: "GET", credentials: "include" });
@@ -123,10 +121,7 @@ export class BaseApi {
     }
   }
 
-  protected async del<T>(
-    path: string,
-    options?: RequestOptions & { body?: unknown },
-  ): Promise<ApiResult<T>> {
+  protected async del<T>(path: string, options?: RequestOptions & { body?: unknown }): Promise<ApiResult<T>> {
     try {
       const url = this.replaceParams(path, options?.params) + this.buildQuery(options?.query);
       const response = await fetch(url, {
@@ -141,11 +136,7 @@ export class BaseApi {
     }
   }
 
-  protected async upload<T>(
-    path: string,
-    formData: FormData,
-    options?: RequestOptions,
-  ): Promise<ApiResult<T>> {
+  protected async _upload<T>(path: string, formData: FormData, options?: RequestOptions): Promise<ApiResult<T>> {
     try {
       const url = this.replaceParams(path, options?.params) + this.buildQuery(options?.query);
       const response = await fetch(url, {

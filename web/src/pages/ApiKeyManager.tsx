@@ -2,12 +2,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/config/ConfirmDialog";
-import { api, apiGet, apiPost } from "../api/client";
+import { apiKeyApi } from "@/src/api/sdk";
 
 interface ApiKeyInfo {
   id: string;
-  label: string;
-  keyPrefix: string;
+  name: string;
+  prefix: string;
   createdAt: number;
   lastUsedAt: number | null;
 }
@@ -26,14 +26,13 @@ export function ApiKeyManager() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const loadKeys = useCallback(async () => {
-    try {
-      const data = await apiGet<ApiKeyInfo[]>("/web/apiKeys");
-      setKeys(Array.isArray(data) ? data : []);
-    } catch {
+    const { data, error } = await apiKeyApi.list();
+    if (error) {
       setError(t("toast.loadFailed"));
-    } finally {
-      setLoading(false);
+    } else {
+      setKeys((Array.isArray(data) ? data : []) as unknown as typeof keys);
     }
+    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -42,33 +41,33 @@ export function ApiKeyManager() {
 
   const handleCreate = async () => {
     setError("");
-    try {
-      const data = await apiPost<{ full_key?: string }>("/web/apiKeys", { label: newLabel || undefined });
-      setCreatedKey(data?.full_key ?? null);
-      setNewLabel("");
-      await loadKeys();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("toast.createFailed"));
+    const { data, error } = await apiKeyApi.create({ name: newLabel || "" });
+    if (error) {
+      setError(error.message);
+      return;
     }
+    setCreatedKey(data?.key ?? null);
+    setNewLabel("");
+    await loadKeys();
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await api<void>(`/web/apiKeys/${id}`, "DELETE");
-      await loadKeys();
-    } catch {
+    const { error } = await apiKeyApi.delete(id);
+    if (error) {
       setError(t("toast.deleteFailed"));
+      return;
     }
+    await loadKeys();
   };
 
   const handleUpdateLabel = async (id: string) => {
-    try {
-      await api<void>(`/web/apiKeys/${id}`, "PATCH", { label: editLabel });
-      setEditingId(null);
-      await loadKeys();
-    } catch {
+    const { error } = await apiKeyApi.update(id, { name: editLabel });
+    if (error) {
       setError(t("toast.updateLabelFailed"));
+      return;
     }
+    setEditingId(null);
+    await loadKeys();
   };
 
   if (loading) {
@@ -173,10 +172,8 @@ export function ApiKeyManager() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium text-text-primary truncate">
-                      {key.label || t("keyList.unnamed")}
-                    </p>
-                    <p className="text-xs text-text-muted font-mono">{key.keyPrefix}</p>
+                    <p className="text-sm font-medium text-text-primary truncate">{key.name || t("keyList.unnamed")}</p>
+                    <p className="text-xs text-text-muted font-mono">{key.prefix}</p>
                   </>
                 )}
               </div>
@@ -186,7 +183,7 @@ export function ApiKeyManager() {
                     <button
                       onClick={() => {
                         setEditingId(key.id);
-                        setEditLabel(key.label);
+                        setEditLabel(key.name);
                       }}
                       className="text-xs text-text-muted hover:text-text-primary"
                     >

@@ -2,6 +2,7 @@ import { ArrowLeft, Clock, Cpu, Hash, Info, Wrench } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { controlApi, sessionApi } from "@/src/api/sdk";
 import { ACPMain } from "../../components/ACPMain";
 import { ContextPanel } from "../../components/ContextPanel";
 import { ChatInput } from "../../components/chat/ChatInput";
@@ -12,7 +13,6 @@ import { TooltipProvider } from "../../components/ui/tooltip";
 import { type ACPClient, DisconnectRequestedError } from "../acp/client";
 import { createRelayClient } from "../acp/relay-client";
 import type { ConnectionState } from "../acp/types";
-import { api, apiGet } from "../api/client";
 import { AskUserPanelView, PermissionPromptView, PlanPanelView } from "../components/PermissionViews";
 import { TaskPanel } from "../components/TaskPanel";
 import { RCSChatAdapter } from "../lib/rcs-chat-adapter";
@@ -83,10 +83,14 @@ function SessionDetailInner({ sessionId, initialCwd }: { sessionId: string; init
       setError("");
 
       try {
-        const sess = await apiGet<Session>(`/web/sessions/${sessionId}`);
+        const { data: sess, error: sessErr } = await sessionApi.get({ id: sessionId });
         if (cancelled) return;
-        setSession(sess);
-        setSessionStatus(sess.status);
+        if (sessErr || !sess) {
+          setError(sessErr?.message ?? "Failed to load session");
+          return;
+        }
+        setSession(sess as Session);
+        setSessionStatus((sess as Session).status);
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load session");
@@ -200,12 +204,15 @@ function SessionDetailInner({ sessionId, initialCwd }: { sessionId: string; init
   const handleSubmitAnswers = useCallback(
     async (requestId: string, answers: Record<string, unknown>, questions: import("../types").Question[]) => {
       try {
-        await api(`/web/sessions/${sessionId}/control`, "POST", {
-          type: "permission_response",
-          approved: true,
-          request_id: requestId,
-          updated_input: { questions, answers },
-        });
+        await controlApi.control(
+          { id: sessionId },
+          {
+            type: "permission_response",
+            approved: true,
+            request_id: requestId,
+            updated_input: { questions, answers },
+          },
+        );
       } catch (err) {
         console.error("Failed to submit answers:", err);
       }
@@ -218,23 +225,29 @@ function SessionDetailInner({ sessionId, initialCwd }: { sessionId: string; init
     async (requestId: string, value: string, feedback?: string) => {
       try {
         if (value === "no") {
-          await api(`/web/sessions/${sessionId}/control`, "POST", {
-            type: "permission_response",
-            approved: false,
-            request_id: requestId,
-            ...(feedback ? { message: feedback } : {}),
-          });
+          await controlApi.control(
+            { id: sessionId },
+            {
+              type: "permission_response",
+              approved: false,
+              request_id: requestId,
+              ...(feedback ? { message: feedback } : {}),
+            },
+          );
         } else {
           const modeMap: Record<string, string> = {
             "yes-accept-edits": "acceptEdits",
             "yes-default": "default",
           };
-          await api(`/web/sessions/${sessionId}/control`, "POST", {
-            type: "permission_response",
-            approved: true,
-            request_id: requestId,
-            updated_permissions: [{ type: "setMode", mode: modeMap[value] || "default", destination: "session" }],
-          });
+          await controlApi.control(
+            { id: sessionId },
+            {
+              type: "permission_response",
+              approved: true,
+              request_id: requestId,
+              updated_permissions: [{ type: "setMode", mode: modeMap[value] || "default", destination: "session" }],
+            },
+          );
         }
       } catch (err) {
         console.error("Failed to submit plan response:", err);

@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiPost } from "../api/client";
+import { skillConfigApi } from "@/src/api/sdk";
 import type { PermissionAction } from "../types/config";
 
 // ── 常量定义 ──
@@ -133,11 +133,12 @@ export function PermissionTab({ agentName: _agentName, permission, onPermissionC
   useEffect(() => {
     let cancelled = false;
     setSkillLoading(true);
-    apiPost<Record<string, unknown>[]>("/web/config/skills", { action: "list" } as Record<string, unknown>)
-      .then((data) => {
+    skillConfigApi
+      .list()
+      .then(({ data }) => {
         if (!cancelled) {
           const skills = Array.isArray(data) ? data : [];
-          const names = skills.map((s) => String(s.name ?? ""));
+          const names = skills.map((s: Record<string, unknown>) => String(s.name ?? ""));
           setSkillNames(names);
           setSkillValues((prev) => {
             const next = { ...prev };
