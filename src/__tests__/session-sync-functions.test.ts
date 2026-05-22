@@ -1,7 +1,14 @@
 // ── session.ts 同步函数返回 Promise 验证 ──
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { _setEventService, _setSessionRepo, _setUuid, createSession, getSession, resolveExistingSessionId } from "../services/session";
 import type { ISessionRepo } from "../repositories";
+import {
+  _setEventService,
+  _setSessionRepo,
+  _setUuid,
+  createSession,
+  getSession,
+  resolveExistingSessionId,
+} from "../services/session";
 
 // 注入 mock eventService
 const mockBuses = new Map();

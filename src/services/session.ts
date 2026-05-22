@@ -21,8 +21,8 @@ export function _setUuid(fn: () => string) {
   _uuid = fn;
 }
 
-import { sessionRepo as realSessionRepo } from "../repositories";
 import type { ISessionRepo } from "../repositories";
+import { sessionRepo as realSessionRepo } from "../repositories";
 
 export let _sessionRepo: ISessionRepo = realSessionRepo;
 export function _setSessionRepo(repo: ISessionRepo) {

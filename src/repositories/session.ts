@@ -29,10 +29,7 @@ export interface SessionCreateParams {
 export interface ISessionRepo {
   create(params: SessionCreateParams): Promise<SessionRecord>;
   getById(id: string): Promise<SessionRecord | undefined>;
-  update(
-    id: string,
-    patch: Partial<Pick<SessionRecord, "title" | "status" | "updatedAt">>,
-  ): Promise<boolean>;
+  update(id: string, patch: Partial<Pick<SessionRecord, "title" | "status" | "updatedAt">>): Promise<boolean>;
   delete(id: string): Promise<boolean>;
   listAll(): Promise<SessionRecord[]>;
   listByEnvironment(envId: string): Promise<SessionRecord[]>;
@@ -89,10 +86,7 @@ class PgSessionRepo implements ISessionRepo {
     return rows[0] ? rowToRecord(rows[0]) : undefined;
   }
 
-  async update(
-    id: string,
-    patch: Partial<Pick<SessionRecord, "title" | "status" | "updatedAt">>,
-  ): Promise<boolean> {
+  async update(id: string, patch: Partial<Pick<SessionRecord, "title" | "status" | "updatedAt">>): Promise<boolean> {
     const set: Record<string, unknown> = { updatedAt: new Date() };
     if (patch.title !== undefined) set.title = patch.title;
     if (patch.status !== undefined) set.status = patch.status;

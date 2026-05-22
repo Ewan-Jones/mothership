@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import swagger from "@elysiajs/swagger";
 import Elysia from "elysia";
 import { applyEnv, config } from "./config";
-import { initDb, client as pgClient, db } from "./db";
+import { db, initDb, client as pgClient } from "./db";
 import { agentSession } from "./db/schema";
 import { validateEnv } from "./env";
 import { authPlugin } from "./plugins/auth";
@@ -40,6 +40,7 @@ console.log("[RCS] Database initialized (PostgreSQL + better-auth)");
 // 重启时重置所有 agent_session 状态为 idle
 // WebSocket/EventBus 已断开，之前的运行状态不再有效
 import { sql } from "drizzle-orm";
+
 await db.update(agentSession).set({ status: "idle", updatedAt: new Date() }).where(sql`1=1`);
 console.log("[RCS] All agent sessions reset to idle");
 
