@@ -29,6 +29,7 @@
     "editTitle": "Edit Agent",
     "cancel": "Cancel",
     "createTitle": "New Agent",
+    "createConfirm": "Create",
     "tabs": {
       "basic": "Basic Config",
       "knowledge": "Knowledge Base",
