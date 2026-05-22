@@ -31,6 +31,7 @@ services:
             - rcs-opencode-data:/root/.local/share/opencode
             - rcs-workspaces:/workspaces
             - ./workflow:/app/workflow
+            - ./workspaces:/app/workspaces
         healthcheck:
             test:
                 [

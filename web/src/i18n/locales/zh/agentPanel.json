@@ -17,7 +17,7 @@
   "apiKeys": "API Key",
   "agents": "智能体",
   "noAgents": "暂无智能体",
-  "instanceN": "实例 #{{number}}",
+  "instanceN": "智能体 #{{number}}",
   "stopInstanceFailed": "停止实例失败: {{message}}",
   "enterInstanceFailed": "进入实例失败: {{message}}",
   "tabFiles": "文件",

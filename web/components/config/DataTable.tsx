@@ -298,7 +298,23 @@ export function DataTable<T>({
                 const isExpanded = row.getIsExpanded();
                 return (
                   <Fragment key={rowId}>
-                    <TableRow className="group border-b hover:bg-surface-hover transition-colors relative table-row-hover">
+                    <TableRow
+                      className={`group border-b hover:bg-surface-hover transition-colors relative table-row-hover${expandableRow ? " cursor-pointer" : ""}`}
+                      onClick={
+                        expandableRow
+                          ? (e) => {
+                              const target = e.target as HTMLElement;
+                              if (
+                                target.closest(
+                                  "button, a, input, select, [role='checkbox'], [data-radix-collection-item]",
+                                )
+                              )
+                                return;
+                              row.toggleExpanded();
+                            }
+                          : undefined
+                      }
+                    >
                       {row.getVisibleCells().map((cell) => {
                         if (cell.column.id === "expand" && expandableRow) {
                           return (

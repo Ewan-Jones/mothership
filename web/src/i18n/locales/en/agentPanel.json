@@ -17,7 +17,7 @@
   "apiKeys": "API Key",
   "agents": "Agents",
   "noAgents": "No agents yet",
-  "instanceN": "Instance #{{number}}",
+  "instanceN": "Agent #{{number}}",
   "stopInstanceFailed": "Failed to stop instance: {{message}}",
   "enterInstanceFailed": "Failed to enter instance: {{message}}",
   "tabFiles": "Files",
