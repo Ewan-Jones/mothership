@@ -41,6 +41,8 @@ import { Route as AgentPanelApikeysRouteImport } from "./routes/agent/_panel/api
 import { Route as AgentAgentIdSessionIdRouteImport } from "./routes/agent/$agentId_.$sessionId"
 import { Route as AppWorkflowSplatRouteImport } from "./routes/_app/workflow_.$"
 import { Route as AgentPanelChatAgentIdRouteImport } from "./routes/agent/_panel/chat.$agentId"
+import { Route as AgentPanelWorkflowIdVersionsRouteImport } from "./routes/agent/_panel/workflow_.$id.versions"
+import { Route as AgentPanelWorkflowIdEditRouteImport } from "./routes/agent/_panel/workflow_.$id.edit"
 import { Route as AgentPanelChatAgentIdSessionIdRouteImport } from "./routes/agent/_panel/chat.$agentId_.$sessionId"
 
 const LoginRoute = LoginRouteImport.update({
@@ -203,6 +205,18 @@ const AgentPanelChatAgentIdRoute = AgentPanelChatAgentIdRouteImport.update({
   path: "/chat/$agentId",
   getParentRoute: () => AgentPanelRoute,
 } as any)
+const AgentPanelWorkflowIdVersionsRoute =
+  AgentPanelWorkflowIdVersionsRouteImport.update({
+    id: "/workflow_/$id/versions",
+    path: "/workflow/$id/versions",
+    getParentRoute: () => AgentPanelRoute,
+  } as any)
+const AgentPanelWorkflowIdEditRoute =
+  AgentPanelWorkflowIdEditRouteImport.update({
+    id: "/workflow_/$id/edit",
+    path: "/workflow/$id/edit",
+    getParentRoute: () => AgentPanelRoute,
+  } as any)
 const AgentPanelChatAgentIdSessionIdRoute =
   AgentPanelChatAgentIdSessionIdRouteImport.update({
     id: "/chat/$agentId_/$sessionId",
@@ -243,6 +257,8 @@ export interface FileRoutesByFullPath {
   "/agent/": typeof AgentPanelIndexRoute
   "/agent/chat/$agentId": typeof AgentPanelChatAgentIdRoute
   "/agent/chat/$agentId/$sessionId": typeof AgentPanelChatAgentIdSessionIdRoute
+  "/agent/workflow/$id/edit": typeof AgentPanelWorkflowIdEditRoute
+  "/agent/workflow/$id/versions": typeof AgentPanelWorkflowIdVersionsRoute
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute
@@ -276,6 +292,8 @@ export interface FileRoutesByTo {
   "/agent": typeof AgentPanelIndexRoute
   "/agent/chat/$agentId": typeof AgentPanelChatAgentIdRoute
   "/agent/chat/$agentId/$sessionId": typeof AgentPanelChatAgentIdSessionIdRoute
+  "/agent/workflow/$id/edit": typeof AgentPanelWorkflowIdEditRoute
+  "/agent/workflow/$id/versions": typeof AgentPanelWorkflowIdVersionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -312,6 +330,8 @@ export interface FileRoutesById {
   "/agent/_panel/": typeof AgentPanelIndexRoute
   "/agent/_panel/chat/$agentId": typeof AgentPanelChatAgentIdRoute
   "/agent/_panel/chat/$agentId_/$sessionId": typeof AgentPanelChatAgentIdSessionIdRoute
+  "/agent/_panel/workflow_/$id/edit": typeof AgentPanelWorkflowIdEditRoute
+  "/agent/_panel/workflow_/$id/versions": typeof AgentPanelWorkflowIdVersionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -348,6 +368,8 @@ export interface FileRouteTypes {
     | "/agent/"
     | "/agent/chat/$agentId"
     | "/agent/chat/$agentId/$sessionId"
+    | "/agent/workflow/$id/edit"
+    | "/agent/workflow/$id/versions"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/login"
@@ -381,6 +403,8 @@ export interface FileRouteTypes {
     | "/agent"
     | "/agent/chat/$agentId"
     | "/agent/chat/$agentId/$sessionId"
+    | "/agent/workflow/$id/edit"
+    | "/agent/workflow/$id/versions"
   id:
     | "__root__"
     | "/_app"
@@ -416,6 +440,8 @@ export interface FileRouteTypes {
     | "/agent/_panel/"
     | "/agent/_panel/chat/$agentId"
     | "/agent/_panel/chat/$agentId_/$sessionId"
+    | "/agent/_panel/workflow_/$id/edit"
+    | "/agent/_panel/workflow_/$id/versions"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -652,6 +678,20 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AgentPanelChatAgentIdRouteImport
       parentRoute: typeof AgentPanelRoute
     }
+    "/agent/_panel/workflow_/$id/versions": {
+      id: "/agent/_panel/workflow_/$id/versions"
+      path: "/workflow/$id/versions"
+      fullPath: "/agent/workflow/$id/versions"
+      preLoaderRoute: typeof AgentPanelWorkflowIdVersionsRouteImport
+      parentRoute: typeof AgentPanelRoute
+    }
+    "/agent/_panel/workflow_/$id/edit": {
+      id: "/agent/_panel/workflow_/$id/edit"
+      path: "/workflow/$id/edit"
+      fullPath: "/agent/workflow/$id/edit"
+      preLoaderRoute: typeof AgentPanelWorkflowIdEditRouteImport
+      parentRoute: typeof AgentPanelRoute
+    }
     "/agent/_panel/chat/$agentId_/$sessionId": {
       id: "/agent/_panel/chat/$agentId_/$sessionId"
       path: "/chat/$agentId/$sessionId"
@@ -713,6 +753,8 @@ interface AgentPanelRouteChildren {
   AgentPanelIndexRoute: typeof AgentPanelIndexRoute
   AgentPanelChatAgentIdRoute: typeof AgentPanelChatAgentIdRoute
   AgentPanelChatAgentIdSessionIdRoute: typeof AgentPanelChatAgentIdSessionIdRoute
+  AgentPanelWorkflowIdEditRoute: typeof AgentPanelWorkflowIdEditRoute
+  AgentPanelWorkflowIdVersionsRoute: typeof AgentPanelWorkflowIdVersionsRoute
 }
 
 const AgentPanelRouteChildren: AgentPanelRouteChildren = {
@@ -730,6 +772,8 @@ const AgentPanelRouteChildren: AgentPanelRouteChildren = {
   AgentPanelIndexRoute: AgentPanelIndexRoute,
   AgentPanelChatAgentIdRoute: AgentPanelChatAgentIdRoute,
   AgentPanelChatAgentIdSessionIdRoute: AgentPanelChatAgentIdSessionIdRoute,
+  AgentPanelWorkflowIdEditRoute: AgentPanelWorkflowIdEditRoute,
+  AgentPanelWorkflowIdVersionsRoute: AgentPanelWorkflowIdVersionsRoute,
 }
 
 const AgentPanelRouteWithChildren = AgentPanelRoute._addFileChildren(
