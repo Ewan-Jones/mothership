@@ -9,3 +9,6 @@ export { ok, err } from "./result";
 
 // 从后端 schema 重导出的类型
 export type * from "./types/schemas";
+
+// 模块类
+export * from "./modules";
