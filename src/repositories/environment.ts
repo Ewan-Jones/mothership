@@ -134,7 +134,7 @@ class PgEnvironmentRepo implements IEnvironmentRepo {
       status,
       userId: params.userId,
       organizationId: orgId,
-      autoStart: params.autoStart ?? false,
+      autoStart: params.autoStart ?? true,
       lastPollAt: now,
     });
     return {
@@ -155,7 +155,7 @@ class PgEnvironmentRepo implements IEnvironmentRepo {
       username: params.username ?? null,
       userId: params.userId,
       organizationId: orgId,
-      autoStart: params.autoStart ?? false,
+      autoStart: params.autoStart ?? true,
       lastPollAt: now,
       createdAt: now,
       updatedAt: now,

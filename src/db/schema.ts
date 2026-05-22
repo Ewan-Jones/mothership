@@ -218,7 +218,7 @@ export const environment = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     organizationId: text("organization_id").notNull(),
-    autoStart: boolean("auto_start").notNull().default(false),
+    autoStart: boolean("auto_start").notNull().default(true),
     lastPollAt: timestamp("last_poll_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -39,7 +39,7 @@ export async function createWebEnvironment(params: CreateWebEnvironmentParams) {
       secret,
       userId,
       organizationId: organizationId ?? userId,
-      autoStart: autoStart === true,
+      autoStart: autoStart !== false,
       agentConfigId: params.agentConfigId ?? null,
     });
   } catch (err: unknown) {
