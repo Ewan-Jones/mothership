@@ -1,6 +1,7 @@
 // ── session.ts 同步函数返回 Promise 验证 ──
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { _setEventService, _setUuid, createSession, getSession, resolveExistingSessionId } from "../services/session";
+import { _setEventService, _setSessionRepo, _setUuid, createSession, getSession, resolveExistingSessionId } from "../services/session";
+import type { ISessionRepo } from "../repositories";
 
 // 注入 mock eventService
 const mockBuses = new Map();
@@ -11,6 +12,30 @@ _setEventService({
 } as any);
 
 _setUuid(() => "test-uuid");
+
+// 注入 mock sessionRepo（避免 createSession 打到真实数据库）
+const mockSessionRepo: ISessionRepo = {
+  create: mock(async (params) => ({
+    id: `${params.idPrefix || "session_"}testuuid`,
+    environmentId: params.environmentId ?? null,
+    title: params.title ?? null,
+    status: "idle",
+    source: params.source ?? "acp",
+    username: params.username ?? null,
+    userId: params.userId ?? null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })),
+  getById: mock(async () => undefined),
+  update: mock(async () => true),
+  delete: mock(async () => true),
+  listAll: mock(async () => []),
+  listByEnvironment: mock(async () => []),
+  listByUserId: mock(async () => []),
+  bindOwner: mock(async () => {}),
+  reset: () => {},
+};
+_setSessionRepo(mockSessionRepo);
 
 describe("getSession — 同步返回 Promise", () => {
   beforeEach(() => {
