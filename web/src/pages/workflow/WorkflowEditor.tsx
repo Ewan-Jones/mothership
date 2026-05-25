@@ -47,6 +47,7 @@ import {
   type PendingApproval,
   workflowEngineApi,
 } from "../../api/workflow-engine";
+import { connectWorkflowSSE, disconnectWorkflowSSE } from "../../api/workflow-sse";
 import { MetaAgentPanel } from "./components/MetaAgentPanel";
 import { NodeConfigPanel } from "./components/NodeConfigPanel";
 import { RunStatusPanel } from "./components/RunStatusPanel";
@@ -188,6 +189,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
     setRunRightTab,
     updateNodesFromSnapshot,
     clearDryRunResult,
+    handleWorkflowEvent,
   } = useWorkflowRun({
     workflowId,
     nodes,
@@ -214,6 +216,31 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
     lastSavedYaml,
     setLastSavedYaml,
   });
+
+  // ── Workflow SSE 实时事件 ──
+  useEffect(() => {
+    if (!workflowId) return;
+
+    connectWorkflowSSE(workflowId, (event) => {
+      switch (event.type) {
+        case "workflow.draft_updated":
+          handleRefreshDraft();
+          break;
+        case "workflow.run_started":
+        case "workflow.run_status_changed":
+        case "workflow.run_cancelled":
+          handleWorkflowEvent(event);
+          break;
+        case "workflow.dry_run_completed":
+        case "workflow.version_published":
+          break;
+      }
+    });
+
+    return () => {
+      disconnectWorkflowSSE();
+    };
+  }, [workflowId, handleRefreshDraft, handleWorkflowEvent]);
 
   // ── Derived state ──
   const onSelectionChange: OnSelectionChangeFunc = canvasOnSelectionChange;

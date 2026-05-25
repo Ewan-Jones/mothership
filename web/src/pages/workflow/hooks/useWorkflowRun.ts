@@ -10,6 +10,7 @@ import {
   type PendingApproval,
   workflowEngineApi,
 } from "../../../api/workflow-engine";
+import { type WorkflowSSEEvent } from "../../../api/workflow-sse";
 import {
   buildRunSummary,
   clearWorkflowEvents,
@@ -65,6 +66,7 @@ export interface UseWorkflowRunReturn {
   updateNodesFromSnapshot: (snap: DAGSnapshot) => void;
   loadRunData: (runId: string) => Promise<void>;
   clearDryRunResult: () => void;
+  handleWorkflowEvent: (event: WorkflowSSEEvent) => void;
   pollRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
 }
 
@@ -193,9 +195,10 @@ export function useWorkflowRun(params: UseWorkflowRunParams): UseWorkflowRunRetu
     const poll = async () => {
       if (cancelled) return;
       await loadRunData(activeRunId);
-      if (!cancelled) pollRef.current = setTimeout(poll, 2000);
+      if (!cancelled) pollRef.current = setTimeout(poll, 10_000);
     };
-    pollRef.current = setTimeout(poll, 2000);
+    // SSE 作为主要状态更新机制，轮询 10s 作为兜底
+    pollRef.current = setTimeout(poll, 10_000);
     return () => {
       cancelled = true;
       if (pollRef.current) clearTimeout(pollRef.current);
@@ -446,6 +449,46 @@ export function useWorkflowRun(params: UseWorkflowRunParams): UseWorkflowRunRetu
 
   const clearDryRunResult = useCallback(() => setDryRunResult(null), []);
 
+  const handleWorkflowEvent = useCallback(
+    (event: WorkflowSSEEvent) => {
+      switch (event.type) {
+        case "workflow.run_started": {
+          const runId = event.runId as string;
+          if (runId && runId !== activeRunId) {
+            setActiveRunId(runId);
+            setRunSnapshot(null);
+            setRunEvents([]);
+            setRunApprovals([]);
+            setSelectedRunNodeId(null);
+            setSelectedNodeOutput(null);
+            loadRunData(runId);
+          }
+          break;
+        }
+        case "workflow.run_status_changed":
+        case "workflow.run_cancelled": {
+          if (activeRunId) loadRunData(activeRunId);
+          break;
+        }
+        case "workflow.draft_updated":
+        case "workflow.version_published":
+        case "workflow.dry_run_completed": {
+          break;
+        }
+      }
+    },
+    [
+      activeRunId,
+      setActiveRunId,
+      setRunSnapshot,
+      setRunEvents,
+      setRunApprovals,
+      setSelectedRunNodeId,
+      setSelectedNodeOutput,
+      loadRunData,
+    ],
+  );
+
   return {
     handleDryRun,
     handleRun,
@@ -465,6 +508,7 @@ export function useWorkflowRun(params: UseWorkflowRunParams): UseWorkflowRunRetu
     updateNodesFromSnapshot,
     loadRunData,
     clearDryRunResult,
+    handleWorkflowEvent,
     pollRef,
   };
 }

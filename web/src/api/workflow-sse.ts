@@ -18,10 +18,7 @@ let lastSeqNum = 0;
  * 连接 workflow SSE 事件流。
  * 同一时间只维护一个连接（调用时会自动断开旧连接）。
  */
-export function connectWorkflowSSE(
-  workflowId: string,
-  onEvent: (event: WorkflowSSEEvent) => void,
-): void {
+export function connectWorkflowSSE(workflowId: string, onEvent: (event: WorkflowSSEEvent) => void): void {
   disconnectWorkflowSSE();
 
   const url = `/web/workflow/${encodeURIComponent(workflowId)}/events${
