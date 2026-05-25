@@ -1,6 +1,6 @@
-# Mothership
+# FenixAgent
 
-Mothership 一个 ACP Agent的统一后端服务，你可以通过它来控制所有支持 ACP 协议的 Agent，比如 OpenCode、OpenClaw、Claude Code 等。
+FenixAgent 是一个 ACP Agent的统一后端服务，你可以通过它来控制所有支持 ACP 协议的 Agent，比如 OpenCode、OpenClaw、Claude Code 等。
 
 ## 功能
 

@@ -3,7 +3,7 @@ import { constants } from "node:fs";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec } from "@fenix/plugin-sdk";
 import type { ManagedAcpLinkProcess } from "../process/acp-link-process-manager";
 import type { PortAllocator } from "../process/port-allocator";
 import { createOpencodeRuntime } from "../runtime/opencode-runtime";

@@ -1,4 +1,4 @@
-import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec } from "@fenix/plugin-sdk";
 
 /**
  * Core 编排层维护的实例状态枚举。

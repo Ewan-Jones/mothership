@@ -1,4 +1,4 @@
-import type { AgentLaunchSpec, McpServerConfig } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec, McpServerConfig } from "@fenix/plugin-sdk";
 
 export interface InstalledSkillReference {
   name: string;

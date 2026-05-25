@@ -15,7 +15,7 @@ import type {
   NodeType,
   RunSummary,
   StorageAdapter,
-} from "@mothership/workflow-engine";
+} from "@fenix/workflow-engine";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { workflowEvent, workflowNodeOutput, workflowSnapshot } from "../../db/schema";
@@ -309,7 +309,7 @@ function mapRowToSnapshot(row: typeof workflowSnapshot.$inferSelect): DAGSnapsho
     timestamp: row.timestamp.toISOString(),
     node_states: row.nodeStates as Record<
       string,
-      { status: import("@mothership/workflow-engine").NodeStatus; exit_code?: number }
+      { status: import("@fenix/workflow-engine").NodeStatus; exit_code?: number }
     >,
     dag_status: row.dagStatus as DAGStatus,
   };

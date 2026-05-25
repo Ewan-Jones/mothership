@@ -1,12 +1,12 @@
-# @mothership/sdk 实现计划 — Part 4: 前端迁移 + 清理
+# @fenix/sdk 实现计划 — Part 4: 前端迁移 + 清理
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将所有前端 API 调用（Eden Treaty、`api<T>()`、`apiGet<T>()`、`apiPost<T>()`、`fetchUpload<T>()`、`orgAction<T>()`）硬切换为 `@mothership/sdk` 模块类调用，删除旧的 `web/src/api/client.ts`。
+**Goal:** 将所有前端 API 调用（Eden Treaty、`api<T>()`、`apiGet<T>()`、`apiPost<T>()`、`fetchUpload<T>()`、`orgAction<T>()`）硬切换为 `@fenix/sdk` 模块类调用，删除旧的 `web/src/api/client.ts`。
 
 **Architecture:** 逐文件替换。每个文件先 import 对应的 SDK 模块类，替换 API 调用为 `const { data, error } = await api.method()`，处理错误收窄。全部替换完成后删除旧 client。
 
-**Tech Stack:** @mothership/sdk, React, sonner toast
+**Tech Stack:** @fenix/sdk, React, sonner toast
 
 ---
 
@@ -107,7 +107,7 @@ import {
   V1SessionApi,
   V2CodeSessionApi,
   V2WorkerApi,
-} from "@mothership/sdk";
+} from "@fenix/sdk";
 
 // ── Web 模块 ──
 export const envApi = new EnvironmentApi();
@@ -204,7 +204,7 @@ Expected: PASS（所有文件类型正确）
 
 ```bash
 git add web/src/pages/AgentsPage.tsx web/src/pages/agent-panel/ web/src/pages/ModelsPage.tsx web/src/pages/McpPage.tsx web/src/pages/SkillsPage.tsx web/components/config/ModelConfigDialog.tsx
-git commit -m "refactor(web): 迁移 Config 相关页面到 @mothership/sdk"
+git commit -m "refactor(web): 迁移 Config 相关页面到 @fenix/sdk"
 ```
 
 ---
@@ -395,7 +395,7 @@ git rm web/src/__tests__/eden-fetch-type-test.ts
 
 ```typescript
 import { describe, expect, it, mock, afterEach } from "bun:test";
-import { SessionApi, ControlApi } from "@mothership/sdk";
+import { SessionApi, ControlApi } from "@fenix/sdk";
 
 // ... 用 SDK 模块类重写测试
 ```
@@ -459,7 +459,7 @@ Expected: PASS
 - [ ] **Step 6: 最终 commit**
 
 ```bash
-git commit --allow-empty -m "chore: @mothership/sdk 全量迁移完成，验证通过"
+git commit --allow-empty -m "chore: @fenix/sdk 全量迁移完成，验证通过"
 ```
 
 ---

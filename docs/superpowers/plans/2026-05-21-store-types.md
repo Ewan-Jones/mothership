@@ -121,7 +121,7 @@ Extract inline interfaces from transport handlers and services into a single typ
 
 ```typescript
 // src/types/store.ts
-import type { EngineRelayHandle } from "@mothership/plugin-sdk";
+import type { EngineRelayHandle } from "@fenix/plugin-sdk";
 import type { InstanceStatus } from "./instance";
 import type { WsConnection } from "../transport/ws-types";
 

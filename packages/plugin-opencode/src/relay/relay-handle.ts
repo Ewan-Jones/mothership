@@ -1,4 +1,4 @@
-import type { EngineRelayHandle, EngineRelayMessage, EngineRelayState } from "@mothership/plugin-sdk";
+import type { EngineRelayHandle, EngineRelayMessage, EngineRelayState } from "@fenix/plugin-sdk";
 
 const RELAY_KEEPALIVE_INTERVAL_MS = 20_000;
 

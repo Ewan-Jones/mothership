@@ -31,7 +31,7 @@ import {
   V2WorkerApi,
   WorkflowDefApi,
   WorkflowEngineApi,
-} from "@mothership/sdk";
+} from "@fenix/sdk";
 
 // ── Web 模块 ──
 export const envApi = new EnvironmentApi();

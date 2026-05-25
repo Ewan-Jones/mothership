@@ -5,7 +5,7 @@
  * listRuns 直接调用 StorageAdapter（不走引擎门面）。
  */
 
-import { WorkflowError } from "@mothership/workflow-engine";
+import { WorkflowError } from "@fenix/workflow-engine";
 import { and, eq } from "drizzle-orm";
 import Elysia from "elysia";
 import { db } from "../../db";

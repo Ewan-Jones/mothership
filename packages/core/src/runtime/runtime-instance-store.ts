@@ -1,4 +1,4 @@
-import type { AgentLaunchSpec, EnginePlugin, EngineRelayHandle, EngineRuntime } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec, EnginePlugin, EngineRelayHandle, EngineRuntime } from "@fenix/plugin-sdk";
 import { createCoreRuntimeError } from "../errors/core-runtime-error";
 import type { RuntimeInstanceRecord, RuntimeInstanceSnapshot, RuntimeInstanceStatus } from "../types/runtime-instance";
 

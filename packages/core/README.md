@@ -1,6 +1,6 @@
-# @mothership/core
+# @fenix/core
 
-`@mothership/core` 是本仓库的本地 node 编排内核，负责把上层准备好的
+`@fenix/core` 是本仓库的本地 node 编排内核，负责把上层准备好的
 `engineType + nodeId + AgentLaunchSpec` 组装成统一的实例生命周期：
 
 - 注册 engine plugin
@@ -15,8 +15,8 @@
 包外唯一推荐入口是 `createCoreRuntime()`：
 
 ```ts
-import { createCoreRuntime } from "@mothership/core";
-import { createEnginePlugin } from "@mothership/opencode";
+import { createCoreRuntime } from "@fenix/core";
+import { createEnginePlugin } from "@fenix/opencode";
 
 const core = createCoreRuntime();
 
@@ -39,7 +39,7 @@ core.registerNode({
 下面是 `src` 层最常见的一条调用链：
 
 ```ts
-import type { LaunchInstanceRequest } from "@mothership/core";
+import type { LaunchInstanceRequest } from "@fenix/core";
 
 const launchRequest: LaunchInstanceRequest = {
   instanceId: "inst_demo_001",
@@ -124,7 +124,7 @@ await core.stopInstance(instance.instanceId);
 
 ## 错误模型
 
-`@mothership/core` 使用 `CoreRuntimeError` 表达稳定错误码。上层可以优先判断 `code`，而不是依赖字符串匹配。
+`@fenix/core` 使用 `CoreRuntimeError` 表达稳定错误码。上层可以优先判断 `code`，而不是依赖字符串匹配。
 
 常见错误码包括：
 
@@ -141,7 +141,7 @@ await core.stopInstance(instance.instanceId);
 示例：
 
 ```ts
-import { isCoreRuntimeError } from "@mothership/core";
+import { isCoreRuntimeError } from "@fenix/core";
 
 try {
   await core.connectInstanceRelay({ instanceId: "inst_demo_001" });
@@ -156,7 +156,7 @@ try {
 
 - `createCoreRuntime()` 是包外唯一推荐入口
 - `src/index.ts` 只导出 facade、registry、核心类型和测试友好工厂
-- `core` 只依赖 `@mothership/plugin-sdk` 的公共接口，不读取具体 plugin 的私有状态
+- `core` 只依赖 `@fenix/plugin-sdk` 的公共接口，不读取具体 plugin 的私有状态
 - `connectInstanceRelay()` 仅允许在实例 `running` 时调用
 - `stopInstance()` 对已经 `stopped` 的实例保持幂等
 

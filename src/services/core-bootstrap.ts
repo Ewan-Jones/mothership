@@ -1,5 +1,5 @@
-import { type CoreRuntimeFacade, createCoreRuntime } from "@mothership/core";
-import { createEnginePlugin, type OpencodeRuntime } from "@mothership/opencode";
+import { type CoreRuntimeFacade, createCoreRuntime } from "@fenix/core";
+import { createEnginePlugin, type OpencodeRuntime } from "@fenix/opencode";
 
 let facade: CoreRuntimeFacade | null = null;
 

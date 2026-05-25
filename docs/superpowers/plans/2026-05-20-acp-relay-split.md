@@ -6,7 +6,7 @@
 
 **Architecture:** The current file mixes connection lifecycle (Map of relay entries), message filtering/forwarding (keep_alive interception, outbound buffering), and protocol handling (open/close/message). We split along these three seams. `RelayConnectionManager` owns the `relayConnections` Map and provides typed access. `RelayMessageRouter` handles message filtering, buffering, and forwarding. The main handler retains only the Elysia/WebSocket protocol glue.
 
-**Tech Stack:** Bun WebSocket, existing `WsConnection` type, `@mothership/plugin-sdk` EngineRelayHandle
+**Tech Stack:** Bun WebSocket, existing `WsConnection` type, `@fenix/plugin-sdk` EngineRelayHandle
 
 ---
 
@@ -116,7 +116,7 @@ Create `src/transport/relay/connection-manager.ts`:
 
 ```typescript
 import type { WsConnection } from "../ws-types";
-import type { EngineRelayHandle } from "@mothership/plugin-sdk";
+import type { EngineRelayHandle } from "@fenix/plugin-sdk";
 
 export interface RelayConnectionEntry {
   agentId: string;

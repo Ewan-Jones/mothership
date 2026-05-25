@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import type { SkillConfig } from "@mothership/plugin-sdk";
+import type { SkillConfig } from "@fenix/plugin-sdk";
 import { ensureWorkspaceRuntimeDirs } from "./environment-preparer";
 import type { InstalledSkillReference } from "./runtime-config";
 

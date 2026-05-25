@@ -4,7 +4,7 @@
 services:
     postgres:
         image: postgres:16-alpine
-        container_name: mothership-postgres
+        container_name: fenix-postgres
         restart: unless-stopped
         environment:
             POSTGRES_USER: rcs
@@ -22,7 +22,7 @@ services:
 
     openviking:
         image: ghcr.io/volcengine/openviking:v0.3.14
-        container_name: mothership-openviking
+        container_name: fenix-openviking
         profiles:
             - openviking
         restart: unless-stopped
@@ -45,7 +45,7 @@ services:
 
     rustfs:
         image: rustfs/rustfs:latest
-        container_name: mothership-rustfs
+        container_name: fenix-rustfs
         restart: unless-stopped
         ports:
             - "9000:9000"
@@ -72,7 +72,7 @@ services:
 
     rustfs-setup:
         image: alpine:latest
-        container_name: mothership-rustfs-setup
+        container_name: fenix-rustfs-setup
         user: root
         volumes:
             - rustfs-data:/data
@@ -80,7 +80,7 @@ services:
 
     rustfs-init:
         image: minio/mc:latest
-        container_name: mothership-rustfs-init
+        container_name: fenix-rustfs-init
         depends_on:
             rustfs:
                 condition: service_healthy

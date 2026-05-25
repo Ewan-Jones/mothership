@@ -1,4 +1,4 @@
-import type { EnginePlugin } from "@mothership/plugin-sdk";
+import type { EnginePlugin } from "@fenix/plugin-sdk";
 import { CoreRuntimeError, createCoreRuntimeError } from "../errors/core-runtime-error";
 
 /**

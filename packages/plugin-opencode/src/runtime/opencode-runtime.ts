@@ -9,7 +9,7 @@ import type {
   PrepareEnvironmentInput,
   StartInstanceInput,
   StopInstanceInput,
-} from "@mothership/plugin-sdk";
+} from "@fenix/plugin-sdk";
 import { AcpLinkProcessManager, type ManagedAcpLinkProcess } from "../process/acp-link-process-manager";
 import { createPortAllocator, type PortAllocator } from "../process/port-allocator";
 import { createRelayHandle, type OpencodeRelayHandle, type RelayHandleDependencies } from "../relay/relay-handle";

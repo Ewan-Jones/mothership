@@ -1,5 +1,5 @@
 /**
- * `@mothership/plugin-sdk` 的公共导出面。
+ * `@fenix/plugin-sdk` 的公共导出面。
  */
 export type {
   AgentConfig,

@@ -1,5 +1,5 @@
 /**
- * `@mothership/core` 的受控公开导出面。
+ * `@fenix/core` 的受控公开导出面。
  */
 
 export type { CoreRuntimeErrorCode } from "./errors/core-runtime-error";

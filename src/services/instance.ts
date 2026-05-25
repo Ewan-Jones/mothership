@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { RuntimeInstanceSnapshot } from "@mothership/core";
+import type { RuntimeInstanceSnapshot } from "@fenix/core";
 import { AppError, NotFoundError } from "../errors";
 import { log, error as logError } from "../logger";
 import type { EnvironmentRecord } from "../repositories";
@@ -49,7 +49,7 @@ function getNextInstanceNumber(environmentId: string): number {
   return next;
 }
 
-function mapCoreStatus(status: import("@mothership/core").RuntimeInstanceStatus): SpawnedInstance["status"] {
+function mapCoreStatus(status: import("@fenix/core").RuntimeInstanceStatus): SpawnedInstance["status"] {
   switch (status) {
     case "running":
       return "running";

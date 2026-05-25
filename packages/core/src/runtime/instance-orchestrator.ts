@@ -1,4 +1,4 @@
-import type { EngineRelayHandle, EngineRuntime } from "@mothership/plugin-sdk";
+import type { EngineRelayHandle, EngineRuntime } from "@fenix/plugin-sdk";
 import { createCoreRuntimeError } from "../errors/core-runtime-error";
 import type { CoreNodeRegistry } from "../registry/core-node-registry";
 import type { EnginePluginRegistry } from "../registry/engine-plugin-registry";

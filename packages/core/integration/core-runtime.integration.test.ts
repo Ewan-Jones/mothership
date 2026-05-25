@@ -3,8 +3,8 @@
  */
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { createEnginePlugin } from "@mothership/opencode";
-import type { AgentLaunchSpec, EngineRelayHandle, EngineRelayMessage } from "@mothership/plugin-sdk";
+import { createEnginePlugin } from "@fenix/opencode";
+import type { AgentLaunchSpec, EngineRelayHandle, EngineRelayMessage } from "@fenix/plugin-sdk";
 import { createCoreRuntime } from "../src/index";
 
 interface IntegrationRelayConfig {

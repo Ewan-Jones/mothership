@@ -1,4 +1,4 @@
-import type { EngineRelayMessage } from "@mothership/plugin-sdk";
+import type { EngineRelayMessage } from "@fenix/plugin-sdk";
 import { log, error as logError } from "../../logger";
 import { getCoreRuntime } from "../../services/core-bootstrap";
 import { findInstanceBySessionId, findRunningInstanceByEnvironment } from "../../services/instance";

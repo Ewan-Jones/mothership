@@ -1,6 +1,6 @@
-# @mothership/opencode
+# @fenix/opencode
 
-`@mothership/opencode` 是仓库里的首个真实 engine plugin，负责把平台层的
+`@fenix/opencode` 是仓库里的首个真实 engine plugin，负责把平台层的
 `AgentLaunchSpec` 转成 opencode 运行时可消费的 workspace、进程和 relay 生命周期。
 
 ## 使用方式
@@ -8,7 +8,7 @@
 包外唯一应该调用的入口是 `createEnginePlugin()`：
 
 ```ts
-import { createEnginePlugin } from "@mothership/opencode";
+import { createEnginePlugin } from "@fenix/opencode";
 
 const runtime = createEnginePlugin().createRuntime();
 ```

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "mothership",
+      "name": "fenix",
       "dependencies": {
         "@ai-sdk/react": "^3.0.192",
         "@aws-sdk/client-s3": "^3.1052.0",
@@ -117,31 +117,31 @@
       },
     },
     "packages/core": {
-      "name": "@mothership/core",
+      "name": "@fenix/core",
       "version": "0.1.0",
       "dependencies": {
-        "@mothership/plugin-sdk": "workspace:*",
+        "@fenix/plugin-sdk": "workspace:*",
       },
     },
     "packages/plugin-opencode": {
-      "name": "@mothership/opencode",
+      "name": "@fenix/opencode",
       "version": "0.1.0",
       "dependencies": {
-        "@mothership/core": "workspace:*",
-        "@mothership/plugin-sdk": "workspace:*",
+        "@fenix/core": "workspace:*",
+        "@fenix/plugin-sdk": "workspace:*",
         "acp-link": "^1.1.0",
       },
     },
     "packages/plugin-sdk": {
-      "name": "@mothership/plugin-sdk",
+      "name": "@fenix/plugin-sdk",
       "version": "0.1.0",
     },
     "packages/sdk": {
-      "name": "@mothership/sdk",
+      "name": "@fenix/sdk",
       "version": "0.1.0",
     },
     "packages/workflow-engine": {
-      "name": "@mothership/workflow-engine",
+      "name": "@fenix/workflow-engine",
       "version": "0.1.0",
       "dependencies": {
         "yaml": "^2.9.0",
@@ -423,6 +423,16 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "https://registry.npmmirror.com/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
 
+    "@fenix/core": ["@fenix/core@workspace:packages/core"],
+
+    "@fenix/opencode": ["@fenix/opencode@workspace:packages/plugin-opencode"],
+
+    "@fenix/plugin-sdk": ["@fenix/plugin-sdk@workspace:packages/plugin-sdk"],
+
+    "@fenix/sdk": ["@fenix/sdk@workspace:packages/sdk"],
+
+    "@fenix/workflow-engine": ["@fenix/workflow-engine@workspace:packages/workflow-engine"],
+
     "@floating-ui/core": ["@floating-ui/core@1.7.5", "https://registry.npmmirror.com/@floating-ui/core/-/core-1.7.5.tgz", { "dependencies": { "@floating-ui/utils": "^0.2.11" } }, "sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ=="],
 
     "@floating-ui/dom": ["@floating-ui/dom@1.7.6", "https://registry.npmmirror.com/@floating-ui/dom/-/dom-1.7.6.tgz", { "dependencies": { "@floating-ui/core": "^1.7.5", "@floating-ui/utils": "^0.2.11" } }, "sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ=="],
@@ -462,16 +472,6 @@
     "@mermaid-js/parser": ["@mermaid-js/parser@1.1.1", "https://registry.npmmirror.com/@mermaid-js/parser/-/parser-1.1.1.tgz", { "dependencies": { "@chevrotain/types": "~11.1.1" } }, "sha512-VuHdsYMK1bT6X2JbcAaWAhugTRvRBRyuZgd+c22swUeI9g/ntaxF7CY7dYarhZovofCbUNO0G7JesfmNtjYOCw=="],
 
     "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.29.0", "https://registry.npmmirror.com/@modelcontextprotocol/sdk/-/sdk-1.29.0.tgz", { "dependencies": { "@hono/node-server": "^1.19.9", "ajv": "^8.17.1", "ajv-formats": "^3.0.1", "content-type": "^1.0.5", "cors": "^2.8.5", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "eventsource-parser": "^3.0.0", "express": "^5.2.1", "express-rate-limit": "^8.2.1", "hono": "^4.11.4", "jose": "^6.1.3", "json-schema-typed": "^8.0.2", "pkce-challenge": "^5.0.0", "raw-body": "^3.0.0", "zod": "^3.25 || ^4.0", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "@cfworker/json-schema": "^4.1.1" }, "optionalPeers": ["@cfworker/json-schema"] }, "sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ=="],
-
-    "@mothership/core": ["@mothership/core@workspace:packages/core"],
-
-    "@mothership/opencode": ["@mothership/opencode@workspace:packages/plugin-opencode"],
-
-    "@mothership/plugin-sdk": ["@mothership/plugin-sdk@workspace:packages/plugin-sdk"],
-
-    "@mothership/sdk": ["@mothership/sdk@workspace:packages/sdk"],
-
-    "@mothership/workflow-engine": ["@mothership/workflow-engine@workspace:packages/workflow-engine"],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.4", "https://registry.npmmirror.com/@napi-rs/wasm-runtime/-/wasm-runtime-1.1.4.tgz", { "dependencies": { "@tybys/wasm-util": "^0.10.1" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow=="],
 
@@ -2025,11 +2025,11 @@
 
     "@esbuild-kit/core-utils/esbuild": ["esbuild@0.18.20", "https://registry.npmmirror.com/esbuild/-/esbuild-0.18.20.tgz", { "optionalDependencies": { "@esbuild/android-arm": "0.18.20", "@esbuild/android-arm64": "0.18.20", "@esbuild/android-x64": "0.18.20", "@esbuild/darwin-arm64": "0.18.20", "@esbuild/darwin-x64": "0.18.20", "@esbuild/freebsd-arm64": "0.18.20", "@esbuild/freebsd-x64": "0.18.20", "@esbuild/linux-arm": "0.18.20", "@esbuild/linux-arm64": "0.18.20", "@esbuild/linux-ia32": "0.18.20", "@esbuild/linux-loong64": "0.18.20", "@esbuild/linux-mips64el": "0.18.20", "@esbuild/linux-ppc64": "0.18.20", "@esbuild/linux-riscv64": "0.18.20", "@esbuild/linux-s390x": "0.18.20", "@esbuild/linux-x64": "0.18.20", "@esbuild/netbsd-x64": "0.18.20", "@esbuild/openbsd-x64": "0.18.20", "@esbuild/sunos-x64": "0.18.20", "@esbuild/win32-arm64": "0.18.20", "@esbuild/win32-ia32": "0.18.20", "@esbuild/win32-x64": "0.18.20" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-ceqxoedUrcayh7Y7ZX6NdbbDzGROiyVBgC4PriJThBKSVPWnnFHZAkfI1lJT8QFkOwH4qOS2SJkS4wvpGl8BpA=="],
 
+    "@fenix/opencode/acp-link": ["acp-link@1.1.0", "https://registry.npmmirror.com/acp-link/-/acp-link-1.1.0.tgz", { "dependencies": { "@agentclientprotocol/sdk": "^0.19.0", "@hono/node-server": "^1.13.8", "@hono/node-ws": "^1.0.5", "@stricli/auto-complete": "^1.2.4", "@stricli/core": "^1.2.4", "hono": "^4.7.0", "pino": "^10.3.0", "pino-pretty": "^13.1.3", "selfsigned": "^5.5.0" }, "bin": { "acp-link": "dist/cli/bin.js" } }, "sha512-WPE+n4JjxTHPTB7fjs2kEuqTQrmvpr1whnZixqJKam8HTqA7mEsGbwtNnDZs1BiUdUIUubfjEUDfl/29usHxPQ=="],
+
     "@hono/node-ws/@hono/node-server": ["@hono/node-server@1.19.14", "https://registry.npmmirror.com/@hono/node-server/-/node-server-1.19.14.tgz", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
 
     "@modelcontextprotocol/sdk/@hono/node-server": ["@hono/node-server@1.19.14", "https://registry.npmmirror.com/@hono/node-server/-/node-server-1.19.14.tgz", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
-
-    "@mothership/opencode/acp-link": ["acp-link@1.1.0", "https://registry.npmmirror.com/acp-link/-/acp-link-1.1.0.tgz", { "dependencies": { "@agentclientprotocol/sdk": "^0.19.0", "@hono/node-server": "^1.13.8", "@hono/node-ws": "^1.0.5", "@stricli/auto-complete": "^1.2.4", "@stricli/core": "^1.2.4", "hono": "^4.7.0", "pino": "^10.3.0", "pino-pretty": "^13.1.3", "selfsigned": "^5.5.0" }, "bin": { "acp-link": "dist/cli/bin.js" } }, "sha512-WPE+n4JjxTHPTB7fjs2kEuqTQrmvpr1whnZixqJKam8HTqA7mEsGbwtNnDZs1BiUdUIUubfjEUDfl/29usHxPQ=="],
 
     "@radix-ui/react-alert-dialog/@radix-ui/react-slot": ["@radix-ui/react-slot@1.2.3", "https://registry.npmmirror.com/@radix-ui/react-slot/-/react-slot-1.2.3.tgz", { "dependencies": { "@radix-ui/react-compose-refs": "1.1.2" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="],
 
@@ -2177,9 +2177,9 @@
 
     "@esbuild-kit/core-utils/esbuild/@esbuild/win32-x64": ["@esbuild/win32-x64@0.18.20", "https://registry.npmmirror.com/@esbuild/win32-x64/-/win32-x64-0.18.20.tgz", { "os": "win32", "cpu": "x64" }, "sha512-kTdfRcSiDfQca/y9QIkng02avJ+NCaQvrMejlsB3RRv5sE9rRoeBPISaZpKxHELzRxZyLvNts1P27W3wV+8geQ=="],
 
-    "@mothership/opencode/acp-link/@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@0.19.2", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-0.19.2.tgz", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-G1Qi50Kc2GZxYjvH6t6yG8KFZMVe5vWTzZH4c7ylb0yiqMfNQSBDHPy0FMxYLPsorMqlM+eyV4yRp4oeUjl/Lw=="],
+    "@fenix/opencode/acp-link/@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@0.19.2", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-0.19.2.tgz", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-G1Qi50Kc2GZxYjvH6t6yG8KFZMVe5vWTzZH4c7ylb0yiqMfNQSBDHPy0FMxYLPsorMqlM+eyV4yRp4oeUjl/Lw=="],
 
-    "@mothership/opencode/acp-link/@hono/node-server": ["@hono/node-server@1.19.14", "https://registry.npmmirror.com/@hono/node-server/-/node-server-1.19.14.tgz", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
+    "@fenix/opencode/acp-link/@hono/node-server": ["@hono/node-server@1.19.14", "https://registry.npmmirror.com/@hono/node-server/-/node-server-1.19.14.tgz", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
 
     "@scalar/themes/@scalar/types/@scalar/openapi-types": ["@scalar/openapi-types@0.2.0", "https://registry.npmmirror.com/@scalar/openapi-types/-/openapi-types-0.2.0.tgz", { "dependencies": { "zod": "^3.23.8" } }, "sha512-waiKk12cRCqyUCWTOX0K1WEVX46+hVUK+zRPzAahDJ7G0TApvbNkuy5wx7aoUyEk++HHde0XuQnshXnt8jsddA=="],
 

@@ -1,6 +1,6 @@
 # plugin-sdk
 
-`@mothership/plugin-sdk` 提供 engine plugin 对接宿主时会共享的一组 TypeScript 类型定义。
+`@fenix/plugin-sdk` 提供 engine plugin 对接宿主时会共享的一组 TypeScript 类型定义。
 
 当前主入口会统一导出三类公共类型：
 
@@ -46,13 +46,13 @@ import type {
   EngineRelayHandle,
   EngineRuntime,
   McpServerConfig,
-} from "@mothership/plugin-sdk";
+} from "@fenix/plugin-sdk";
 ```
 
 ## 最小实现
 
 ```ts
-import type { EnginePlugin, EngineRelayHandle } from "@mothership/plugin-sdk";
+import type { EnginePlugin, EngineRelayHandle } from "@fenix/plugin-sdk";
 
 export function createEnginePlugin(): EnginePlugin {
   return {

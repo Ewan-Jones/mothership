@@ -1,6 +1,6 @@
 # core-runtime 集成测试
 
-这个目录放 `@mothership/core` 的真实链路集成测试，用来验证：
+这个目录放 `@fenix/core` 的真实链路集成测试，用来验证：
 
 - `createCoreRuntime()`
 - `registerPlugin`
