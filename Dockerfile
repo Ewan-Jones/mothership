@@ -17,7 +17,7 @@ RUN bun build src/index.ts --target=bun --sourcemap=external --outdir dist
 ############### migration image ###############
 
 FROM deps AS migrate-build
-COPY scripts/migrate.ts ./
+COPY scripts/migrate.ts ./scripts/migrate.ts
 RUN bun build scripts/migrate.ts --target=bun --outdir /tmp/migrate-bundle
 
 FROM oven/bun:1 AS migrate
