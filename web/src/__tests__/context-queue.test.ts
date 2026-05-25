@@ -1,12 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-const {
-  pushContext,
-  removeContext,
-  flushContext,
-  clearContextQueue,
-  isVisibleContentBlock,
-} = await import("../lib/context-queue");
+const { pushContext, removeContext, flushContext, clearContextQueue, isVisibleContentBlock } = await import(
+  "../lib/context-queue"
+);
 
 describe("context-queue", () => {
   test("flushContext 返回 null 当队列为空", () => {
@@ -68,9 +64,9 @@ describe("isVisibleContentBlock", () => {
   });
 
   test("text block 标签内部有换行时返回 false", () => {
-    expect(
-      isVisibleContentBlock({ type: "text", text: "<system-reminder>\nline1\nline2\n</system-reminder>" }),
-    ).toBe(false);
+    expect(isVisibleContentBlock({ type: "text", text: "<system-reminder>\nline1\nline2\n</system-reminder>" })).toBe(
+      false,
+    );
   });
 
   test("普通文本 text block 返回 true", () => {
@@ -86,6 +82,6 @@ describe("isVisibleContentBlock", () => {
   });
 
   test("非 text 类型 block 返回 true", () => {
-    expect(isVisibleContentBlock({ type: "image", mimeType: "image/png", data: "base64..." })).toBe(true);
+    expect(isVisibleContentBlock({ type: "image" } as { type: string; text?: string })).toBe(true);
   });
 });

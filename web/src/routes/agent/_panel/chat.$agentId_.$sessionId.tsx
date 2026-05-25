@@ -19,7 +19,10 @@ function ChatWithSessionRoute() {
   const { agentId, sessionId } = Route.useParams();
   const { t } = useTranslation("agentPanel");
 
-  useContextQueue("route", `当前页面: /agent/chat/${agentId}/${sessionId}\nagentId: ${agentId}\nsessionId: ${sessionId}`);
+  useContextQueue(
+    "route",
+    `当前页面: /agent/chat/${agentId}/${sessionId}\nagentId: ${agentId}\nsessionId: ${sessionId}`,
+  );
 
   const [artifactsCollapsed, setArtifactsCollapsed] = useState(() => {
     const saved = localStorage.getItem("agent-panel:artifacts-collapsed");

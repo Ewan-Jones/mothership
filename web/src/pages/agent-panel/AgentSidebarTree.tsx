@@ -46,10 +46,7 @@ export function AgentSidebarTree({
 
   const loadData = useCallback(async () => {
     try {
-      const [{ data: agentsResult }, { data: envsData }] = await Promise.all([
-        agentApi.list(),
-        envApi.list(),
-      ]);
+      const [{ data: agentsResult }, { data: envsData }] = await Promise.all([agentApi.list(), envApi.list()]);
 
       const rawAgents = (agentsResult as unknown as { agents?: AgentConfigItem[] } | null)?.agents;
       const agents = Array.isArray(rawAgents) ? rawAgents : [];
@@ -76,9 +73,7 @@ export function AgentSidebarTree({
       // 加载有活跃实例的 environment 的 instances
       const activeEnvs = envs.filter((e) => (e.instances_count ?? 0) > 0);
       if (activeEnvs.length > 0) {
-        const results = await Promise.allSettled(
-          activeEnvs.map((env) => envApi.listInstances({ id: env.id })),
-        );
+        const results = await Promise.allSettled(activeEnvs.map((env) => envApi.listInstances({ id: env.id })));
         const instMap: Record<string, EnvironmentInstance[]> = {};
         activeEnvs.forEach((env, i) => {
           const r = results[i];
@@ -170,9 +165,7 @@ export function AgentSidebarTree({
         // 进入 environment
         const body = instanceNumber !== undefined ? { instance_number: instanceNumber } : {};
         const { data: result } = await envApi.enter({ id: envId }, body);
-        const enterResult = result as
-          | { session_id?: string; instance_id?: string; environment_id?: string }
-          | null;
+        const enterResult = result as { session_id?: string; instance_id?: string; environment_id?: string } | null;
         onSelectInstance(
           enterResult?.instance_id ?? "",
           enterResult?.environment_id ?? envId,

@@ -12,6 +12,7 @@ import type {
 } from "../src/acp/types";
 import { useCommands } from "../src/hooks/useCommands";
 import { useModes } from "../src/hooks/useModes";
+import { flushContext } from "../src/lib/context-queue";
 import type {
   AssistantMessageEntry,
   ChatInputMessage,
@@ -24,7 +25,6 @@ import type {
   UserMessageEntry,
   UserMessageImage,
 } from "../src/lib/types";
-import { flushContext } from "../src/lib/context-queue";
 import { ContextPanel } from "./ContextPanel";
 import { ChatInput } from "./chat/ChatInput";
 import { ChatView } from "./chat/ChatView";

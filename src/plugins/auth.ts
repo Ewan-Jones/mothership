@@ -70,8 +70,7 @@ async function tryApiKeyAuth(
       store.user = user;
       store.authEnvironmentId = envRecord.id;
       const organizationId = envRecord.organizationId ?? envRecord.userId;
-      const role =
-        envRecord.organizationId && envRecord.organizationId !== envRecord.userId ? "member" : "owner";
+      const role = envRecord.organizationId && envRecord.organizationId !== envRecord.userId ? "member" : "owner";
       store.authContext = { organizationId, userId: user.id, role: role as "owner" | "admin" | "member" };
       return true;
     }
