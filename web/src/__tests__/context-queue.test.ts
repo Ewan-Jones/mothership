@@ -1,8 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-const { pushContext, removeContext, flushContext, clearContextQueue, isVisibleContentBlock } = await import(
-  "../lib/context-queue"
-);
+const {
+  pushContext,
+  removeContext,
+  flushContext,
+  clearContextQueue,
+  isVisibleContentBlock,
+} = await import("../lib/context-queue");
 
 describe("context-queue", () => {
   test("flushContext 返回 null 当队列为空", () => {
