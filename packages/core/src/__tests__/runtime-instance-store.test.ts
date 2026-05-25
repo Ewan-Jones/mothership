@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec } from "@fenix/plugin-sdk";
 import { createRuntimeInstanceStore } from "../runtime/runtime-instance-store";
 import { createFakeEnginePlugin } from "./fixtures/fake-engine-plugin";
 
 function createLaunchSpec(): AgentLaunchSpec {
   return {
-    workspace: "/tmp/mothership-workspace",
+    workspace: "/tmp/fenix-workspace",
     env: { OPENAI_API_KEY: "sk-test" },
     agent: { name: "writer", prompt: "Be precise" },
     model: {
@@ -81,7 +81,7 @@ describe("RuntimeInstanceStore", () => {
 
     const persisted = store.get("inst_store");
     expect(persisted?.status).toBe("created");
-    expect(persisted?.launchSpec.workspace).toBe("/tmp/mothership-workspace");
+    expect(persisted?.launchSpec.workspace).toBe("/tmp/fenix-workspace");
   });
 
   // update() 会推进状态、更新时间并在离开 error 后清空错误消息

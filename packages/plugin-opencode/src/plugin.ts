@@ -1,4 +1,4 @@
-import type { EnginePlugin } from "@mothership/plugin-sdk";
+import type { EnginePlugin } from "@fenix/plugin-sdk";
 import { AcpLinkProcessManager } from "./process/acp-link-process-manager";
 import { createPortAllocator } from "./process/port-allocator";
 import { createRelayHandle } from "./relay/relay-handle";

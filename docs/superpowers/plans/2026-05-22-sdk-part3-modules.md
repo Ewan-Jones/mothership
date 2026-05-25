@@ -1,4 +1,4 @@
-# @mothership/sdk 实现计划 — Part 3: SDK 模块类
+# @fenix/sdk 实现计划 — Part 3: SDK 模块类
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -1319,7 +1319,7 @@ export { V2WorkerApi } from "./v2-worker";
 - [ ] **Step 2: 更新 packages/sdk/src/index.ts**
 
 ```typescript
-// @mothership/sdk — 类型安全 REST API 客户端
+// @fenix/sdk — 类型安全 REST API 客户端
 
 // 基础类
 export { BaseApi } from "./base";

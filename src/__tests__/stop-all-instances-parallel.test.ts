@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { RuntimeInstanceSnapshot } from "@mothership/core";
+import type { RuntimeInstanceSnapshot } from "@fenix/core";
 
 const mockListInstances = mock((): RuntimeInstanceSnapshot[] => []);
 const stopOrder: string[] = [];

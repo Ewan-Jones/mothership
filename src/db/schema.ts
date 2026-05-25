@@ -643,7 +643,7 @@ export const workflowRun = pgTable(
 );
 
 // ────────────────────────────────────────────
-// Workflow Engine Event Sourcing（@mothership/workflow-engine）
+// Workflow Engine Event Sourcing（@fenix/workflow-engine）
 // ────────────────────────────────────────────
 
 // Workflow 事件流表

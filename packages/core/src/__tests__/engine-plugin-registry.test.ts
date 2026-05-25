@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { EnginePlugin } from "@mothership/plugin-sdk";
+import type { EnginePlugin } from "@fenix/plugin-sdk";
 import { EnginePluginRegistry } from "../registry/engine-plugin-registry";
 
 function createTestPlugin(engineType = "opencode"): EnginePlugin {

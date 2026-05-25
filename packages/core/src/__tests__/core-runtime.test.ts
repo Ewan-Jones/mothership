@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec } from "@fenix/plugin-sdk";
 import * as coreModule from "../index";
 import { createRuntimeInstanceStore } from "../runtime/runtime-instance-store";
 import { createFakeEnginePlugin } from "./fixtures/fake-engine-plugin";
 
 function createLaunchSpec(): AgentLaunchSpec {
   return {
-    workspace: "/tmp/mothership-core-runtime",
+    workspace: "/tmp/fenix-core-runtime",
     env: { OPENAI_API_KEY: "sk-test" },
     agent: { name: "writer", prompt: "Be precise" },
     model: {
@@ -146,6 +146,6 @@ describe("createCoreRuntime", () => {
     expect(runtime.getInstance("inst_isolated")).toMatchObject({
       status: "running",
     });
-    expect(runtime.getInstance("inst_isolated")?.launchSpec.workspace).toBe("/tmp/mothership-core-runtime");
+    expect(runtime.getInstance("inst_isolated")?.launchSpec.workspace).toBe("/tmp/fenix-core-runtime");
   });
 });

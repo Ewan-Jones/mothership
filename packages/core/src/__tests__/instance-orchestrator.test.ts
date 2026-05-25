@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec } from "@fenix/plugin-sdk";
 import { CoreNodeRegistry } from "../registry/core-node-registry";
 import { EnginePluginRegistry } from "../registry/engine-plugin-registry";
 import { createInstanceOrchestrator } from "../runtime/instance-orchestrator";
@@ -8,7 +8,7 @@ import { createFakeEnginePlugin } from "./fixtures/fake-engine-plugin";
 
 function createLaunchSpec(): AgentLaunchSpec {
   return {
-    workspace: "/tmp/mothership-orchestrator",
+    workspace: "/tmp/fenix-orchestrator",
     env: { OPENAI_API_KEY: "sk-test" },
     agent: { name: "writer", prompt: "Be precise" },
     model: {

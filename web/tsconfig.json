@@ -19,7 +19,7 @@
     "paths": {
       "@/*": ["./*"],
       "@server/*": ["../../src/*"],
-      "@mothership/sdk": ["../../packages/sdk/src/index.ts"]
+      "@fenix/sdk": ["../../packages/sdk/src/index.ts"]
     }
   },
   "include": ["src", "components"],

@@ -1,4 +1,4 @@
-// @mothership/sdk — 类型安全 REST API 客户端
+// @fenix/sdk — 类型安全 REST API 客户端
 
 // 基础类
 export { BaseApi } from "./base";

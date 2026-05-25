@@ -7,7 +7,7 @@
  * 3. 等待 prompt_complete 信号后拼接输出并返回 AgentResponse
  */
 
-import type { AgentRequest, AgentResponse, AgentSession, Transport } from "@mothership/workflow-engine";
+import type { AgentRequest, AgentResponse, AgentSession, Transport } from "@fenix/workflow-engine";
 import { nanoid } from "nanoid";
 import { log } from "../../logger";
 import { findAcpConnectionByAgentId, sendToAgentWs } from "../../transport/acp-ws-handler";

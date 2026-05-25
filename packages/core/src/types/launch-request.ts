@@ -1,4 +1,4 @@
-import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec } from "@fenix/plugin-sdk";
 
 /**
  * 启动一个 runtime instance 所需的最小请求。

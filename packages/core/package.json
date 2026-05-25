@@ -1,5 +1,5 @@
 {
-  "name": "@mothership/core",
+  "name": "@fenix/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     }
   },
   "dependencies": {
-    "@mothership/plugin-sdk": "workspace:*"
+    "@fenix/plugin-sdk": "workspace:*"
   },
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --format esm",

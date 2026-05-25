@@ -7,8 +7,8 @@
  * - Transport（ACP WebSocket）是全局共享的，所有引擎复用同一个实例
  */
 
-import type { AgentResolvedConfig, Transport, WorkflowEngine } from "@mothership/workflow-engine";
-import { createWorkflowEngine } from "@mothership/workflow-engine";
+import type { AgentResolvedConfig, Transport, WorkflowEngine } from "@fenix/workflow-engine";
+import { createWorkflowEngine } from "@fenix/workflow-engine";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { agentConfig } from "../../db/schema";

@@ -1,4 +1,4 @@
-import type { EnginePlugin, EngineRelayHandle, EngineRuntime } from "@mothership/plugin-sdk";
+import type { EnginePlugin, EngineRelayHandle, EngineRuntime } from "@fenix/plugin-sdk";
 import { CoreNodeRegistry } from "../registry/core-node-registry";
 import { EnginePluginRegistry } from "../registry/engine-plugin-registry";
 import { createInstanceOrchestrator } from "../runtime/instance-orchestrator";
@@ -58,7 +58,7 @@ export interface CreateCoreRuntimeOptions {
 }
 
 /**
- * 创建 `@mothership/core` 的唯一公开运行时入口。
+ * 创建 `@fenix/core` 的唯一公开运行时入口。
  */
 export function createCoreRuntime(options?: CreateCoreRuntimeOptions): CoreRuntimeFacade {
   const pluginRegistry = new EnginePluginRegistry();

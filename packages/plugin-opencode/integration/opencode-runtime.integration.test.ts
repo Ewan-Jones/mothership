@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import type { AgentLaunchSpec, EngineRelayHandle, EngineRelayMessage } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec, EngineRelayHandle, EngineRelayMessage } from "@fenix/plugin-sdk";
 import { createEnginePlugin } from "../src/plugin";
 
 interface IntegrationRelayConfig {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import type { RuntimeInstanceSnapshot } from "@mothership/core";
+import type { RuntimeInstanceSnapshot } from "@fenix/core";
 
 // ────────────────────────────────────────────
 // Mock 依赖 — mock.module 必须在 import 被测模块之前

@@ -7,7 +7,7 @@ services:
             context: .
             dockerfile: Dockerfile
             target: migrate
-        container_name: mothership-migrate
+        container_name: fenix-migrate
         depends_on:
             postgres:
                 condition: service_healthy
@@ -19,7 +19,7 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        container_name: mothership-beta
+        container_name: fenix-beta
         restart: unless-stopped
         depends_on:
             postgres:

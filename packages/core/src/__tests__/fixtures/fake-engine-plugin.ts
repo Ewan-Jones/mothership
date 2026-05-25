@@ -7,7 +7,7 @@ import type {
   PrepareEnvironmentInput,
   StartInstanceInput,
   StopInstanceInput,
-} from "@mothership/plugin-sdk";
+} from "@fenix/plugin-sdk";
 
 /**
  * fake engine runtime 记录的调用类型。

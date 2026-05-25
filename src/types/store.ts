@@ -5,7 +5,7 @@
  * should reference these types instead of defining their own.
  */
 
-import type { EngineRelayHandle } from "@mothership/plugin-sdk";
+import type { EngineRelayHandle } from "@fenix/plugin-sdk";
 import type { WsConnection } from "../transport/ws-types";
 
 // ────────────────────────────────────────────

@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 `@mothership/core` + `@mothership/opencode` 的编排能力集成到 RCS 的 `src` 层，替换当前 `src/services/instance.ts` 中手动管理 acp-link 子进程的代码。
+**Goal:** 将 `@fenix/core` + `@fenix/opencode` 的编排能力集成到 RCS 的 `src` 层，替换当前 `src/services/instance.ts` 中手动管理 acp-link 子进程的代码。
 
 **Architecture:** RCS `src` 层负责组装 `AgentLaunchSpec`（从 EnvironmentRecord + AgentConfig 解析），然后委托给 `CoreRuntimeFacade.launchInstance()` 执行完整的 prepare → start 生命周期。停止委托给 `core.stopInstance()`。Relay 连接继续由现有 `acp-relay-handler.ts` 管理，但从中读取实例信息（port/token）的来源从旧的 `instances` Map 切换到新的 adapter 层。
 
-**Tech Stack:** `@mothership/core` (编排层), `@mothership/opencode` (opencode engine plugin), `@mothership/plugin-sdk` (类型定义), Bun test
+**Tech Stack:** `@fenix/core` (编排层), `@fenix/opencode` (opencode engine plugin), `@fenix/plugin-sdk` (类型定义), Bun test
 
 ---
 
@@ -44,8 +44,8 @@
 - [ ] **Step 1: 创建 `src/services/core-bootstrap.ts`**
 
 ```typescript
-import { createCoreRuntime, type CoreRuntimeFacade } from "@mothership/core";
-import { createEnginePlugin } from "@mothership/opencode";
+import { createCoreRuntime, type CoreRuntimeFacade } from "@fenix/core";
+import { createEnginePlugin } from "@fenix/opencode";
 
 let coreInstance: CoreRuntimeFacade | null = null;
 
@@ -82,7 +82,7 @@ export function resetCoreRuntime(): void {
 
 运行: `cd /Users/konghayao/code/pazhou/remote-control-server && bun run typecheck 2>&1 | head -20`
 
-确保 `@mothership/core` 和 `@mothership/opencode` 可以被 `src` 正确导入。如果导入路径有问题，检查 `package.json` 的 workspace 配置。
+确保 `@fenix/core` 和 `@fenix/opencode` 可以被 `src` 正确导入。如果导入路径有问题，检查 `package.json` 的 workspace 配置。
 
 - [ ] **Step 3: 提交**
 
@@ -104,7 +104,7 @@ git commit -m "feat: 创建 core-bootstrap 模块，初始化 CoreRuntimeFacade 
 这个模块负责把 RCS 的 EnvironmentRecord + AgentFullConfig 转换成 plugin-sdk 的 `AgentLaunchSpec`，使 opencode plugin 能正确执行 prepareEnvironment。
 
 ```typescript
-import type { AgentLaunchSpec, McpServerConfig, ModelConfig } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec, McpServerConfig, ModelConfig } from "@fenix/plugin-sdk";
 import type { AgentFullConfig } from "./config-pg";
 import { getBaseUrl } from "../config";
 import { listAgentKnowledgeBindings } from "./agent-knowledge";
@@ -317,9 +317,9 @@ import { getAgentConfigById, getAgentFullConfig } from "./config-pg";
 import { environmentRepo } from "../repositories";
 import { closeInstanceLocalWs } from "../transport/acp-relay-handler";
 import { log } from "../logger";
-import type { AgentLaunchSpec } from "@mothership/plugin-sdk";
-import type { RuntimeInstanceSnapshot } from "@mothership/core";
-import { createEnginePlugin } from "@mothership/opencode";
+import type { AgentLaunchSpec } from "@fenix/plugin-sdk";
+import type { RuntimeInstanceSnapshot } from "@fenix/core";
+import { createEnginePlugin } from "@fenix/opencode";
 
 // ────────────────────────────────────────────
 // 公共类型（保持向后兼容）
@@ -392,7 +392,7 @@ function toSpawnedInstance(
 }
 
 function mapCoreStatus(
-  status: import("@mothership/core").RuntimeInstanceStatus,
+  status: import("@fenix/core").RuntimeInstanceStatus,
 ): SpawnedInstance["status"] {
   switch (status) {
     case "running":
@@ -745,9 +745,9 @@ pluginMetadata: input.pluginMetadata ?? current.pluginMetadata,
 重写 `src/services/core-bootstrap.ts`：
 
 ```typescript
-import { createCoreRuntime, type CoreRuntimeFacade } from "@mothership/core";
-import type { EnginePlugin, EngineRuntime } from "@mothership/plugin-sdk";
-import { createOpencodeRuntime, type OpencodeRuntime } from "@mothership/opencode";
+import { createCoreRuntime, type CoreRuntimeFacade } from "@fenix/core";
+import type { EnginePlugin, EngineRuntime } from "@fenix/plugin-sdk";
+import { createOpencodeRuntime, type OpencodeRuntime } from "@fenix/opencode";
 
 export interface CoreRuntimeBundle {
   facade: CoreRuntimeFacade;
@@ -816,7 +816,7 @@ const pid = runtimeState?.pid ?? null;
 
 这种方式最简单，不需要修改任何 core 或 plugin-opencode 的代码。
 
-- [ ] **Step 4: 检查 `@mothership/opencode` 是否导出 `OpencodeRuntime` 和 `createOpencodeRuntime`**
+- [ ] **Step 4: 检查 `@fenix/opencode` 是否导出 `OpencodeRuntime` 和 `createOpencodeRuntime`**
 
 查看 `packages/plugin-opencode/src/index.ts`，当前只导出 `createEnginePlugin`。需要增加导出：
 

@@ -1,5 +1,5 @@
 /**
- * `@mothership/workflow-engine` 的公开导出面。
+ * `@fenix/workflow-engine` 的公开导出面。
  *
  * 原生 DAG 工作流执行引擎的类型定义和错误类型。
  */

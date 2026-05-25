@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import type { AgentLaunchSpec, McpServerConfig, ModelConfig } from "@mothership/plugin-sdk";
+import type { AgentLaunchSpec, McpServerConfig, ModelConfig } from "@fenix/plugin-sdk";
 import { getBaseUrl } from "../config";
 import { log } from "../logger";
 import { listAgentKnowledgeBindingsById } from "./agent-knowledge";
