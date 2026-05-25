@@ -12,7 +12,7 @@ COPY src ./src
 COPY web ./web
 COPY components.json drizzle.config.ts ./
 RUN bun run build:web
-RUN bun build src/index.ts --outfile=dist/server.js --target=bun --sourcemap=external
+RUN bun build src/index.ts --target=bun --sourcemap=external --outdir dist
 
 ############### migration image ###############
 
@@ -71,4 +71,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD bun -e "fetch('http://127.0.0.1:3000/health').then((r) => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
-CMD ["bun", "dist/server.js"]
+CMD ["bun", "dist/index.js"]
