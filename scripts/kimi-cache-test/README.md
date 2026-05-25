@@ -1,6 +1,7 @@
 # Kimi API 缓存命中率测试工具
 
-验证 `api.kimi.com/coding`（Anthropic 协议）和 `api.moonshot.cn`（OpenAI 协议）的多轮对话缓存行为。
+验证 `api.kimi.com/coding`（Anthropic 协议）的多轮对话缓存行为。
+system prompt 内嵌运行时间戳，确保每次测试都是全新请求，排除旧缓存干扰。
 
 ## 快速开始
 
@@ -13,7 +14,7 @@ python3 scripts/kimi-cache-test/run.py
 
 # 只运行指定测试
 python3 scripts/kimi-cache-test/run.py anthropic-prefix
-python3 scripts/kimi-cache-test/run.py openai-prefix openai-cache-key
+python3 scripts/kimi-cache-test/run.py anthropic-cache-control anthropic-cache-key
 
 # 直接传 key，自定义间隔
 python3 scripts/kimi-cache-test/run.py --key sk-kimi-xxx --interval 3
@@ -21,13 +22,11 @@ python3 scripts/kimi-cache-test/run.py --key sk-kimi-xxx --interval 3
 
 ## 测试项
 
-| 名称 | 端点 | 验证内容 |
-|------|------|---------|
-| `anthropic-prefix` | Anthropic | 无缓存参数，4 轮递增 + 1 轮重复，观察 prefix 缓存 |
-| `anthropic-cache-control` | Anthropic | system/messages 带 `cache_control: ephemeral`，观察 breakpoint 是否生效 |
-| `anthropic-cache-key` | Anthropic | 无 key vs 有 `prompt_cache_key`，4+4 轮对比 |
-| `openai-prefix` | OpenAI | 无缓存参数，观察 `prompt_tokens_details.cached_tokens` |
-| `openai-cache-key` | OpenAI | 无 key vs 有 `prompt_cache_key`，4+4 轮对比 |
+| 名称 | 验证内容 |
+|------|---------|
+| `anthropic-prefix` | 无缓存参数，4 轮递增 + 1 轮重复，观察 prefix 缓存 |
+| `anthropic-cache-control` | system/messages 带 `cache_control: ephemeral`，观察 breakpoint 是否生效 |
+| `anthropic-cache-key` | 无 key vs 有 `prompt_cache_key`，4+4 轮对比 |
 
 ## 输出结构
 
@@ -38,11 +37,10 @@ logs/<timestamp>/
 ├── anthropic-prefix/
 │   ├── test.log                       # 纯文本日志，无特殊符号
 │   ├── round_01.json                  # 每轮完整请求体 + 响应体
-│   ├── round_02.json
 │   └── ...
 ├── anthropic-cache-control/
 │   └── ...
-└── openai-prefix/
+└── anthropic-cache-key/
     └── ...
 ```
 
@@ -66,7 +64,7 @@ logs/<timestamp>/
 
 **1. `cache_creation_input_tokens` 始终为 0**
 
-在所有 27 个 Anthropic 协议请求中，`cache_creation_input_tokens` 均为 0。即使请求体中显式传入了 `cache_control: {"type": "ephemeral"}`（标准 Anthropic prefix caching 标记），服务端也没有报告任何缓存写入。说明该端点没有实现 Anthropic 的 cache_control breakpoint 机制，该参数被静默忽略（不报错，但也不生效）。
+在所有 15 个请求中，`cache_creation_input_tokens` 均为 0。即使请求体中显式传入了 `cache_control: {"type": "ephemeral"}`（标准 Anthropic prefix caching 标记），服务端也没有报告任何缓存写入。说明该端点没有实现 Anthropic 的 cache_control breakpoint 机制，该参数被静默忽略（不报错，但也不生效）。
 
 **2. 缓存基于请求全文 hash，不是 prefix matching**
 
@@ -82,28 +80,24 @@ logs/<timestamp>/
 **3. `prompt_cache_key` 参数无稳定效果**
 
 对比测试（无 key vs 有 key，各 4 轮递增对话）显示：
-- 两组测试的 `cache_read` 均为 0（场景 A 时）或均有命中（场景 B 时）
+- 两组测试的 `cache_read` 均为 0
 - `prompt_cache_key` 的存在与否对缓存命中率没有可观测的稳定影响
 
 该参数在 Kimi 的 OpenAI 兼容端点文档中有说明，但在 Anthropic 协议端点上未体现出预期效果。
 
-**4. OpenAI 兼容端点 (`api.moonshot.cn`) 未测试**
-
-提供的 API Key (`sk-kimi-*`) 仅适用于 `api.kimi.com/coding` 端点，不兼容 `api.moonshot.cn`（返回 401）。如需测试 OpenAI 端点的缓存行为，需使用 Moonshot 平台签发的 API Key。
-
 ### 总结判定
 
-| 缓存机制 | 是否生效 | 置信度 | 证据 |
-|----------|---------|--------|------|
-| Anthropic `cache_control` breakpoint | 未实现 | 高 | 所有 27 个请求 `cache_creation` = 0，参数被静默忽略 |
-| Anthropic 标准 prefix caching | 未实现 | 高 | 冷启动时，前缀相同但追加了新消息的请求 `cache_read` = 0 |
-| 请求全文 hash 缓存 | 有 | 高 | 完全相同的请求始终命中；之前发过的请求组合再次发送也命中 |
-| `prompt_cache_key` 参数 | 无稳定效果 | 高 | 有无对比测试的 `cache_read` 无差异 |
+| 缓存机制 | 是否生效 | 证据 |
+|----------|---------|------|
+| Anthropic `cache_control` breakpoint | 未实现 | 所有 15 个请求 `cache_creation` = 0，参数被静默忽略 |
+| Anthropic 标准 prefix caching | 未实现 | 前缀相同但追加了新消息时，`cache_read` 始终为 0 |
+| 请求全文 hash 缓存 | 有 | 完全相同的请求命中；之前发过的请求组合再次发送也命中 |
+| `prompt_cache_key` 参数 | 无效果 | 有无对比测试的 `cache_read` 无差异 |
 
 ### 对 Coding Agent 场景的影响
 
 使用 `api.kimi.com/coding` 端点构建多轮 Coding Agent 时：
 
-1. **token 成本不受控**：每轮对话的 system prompt 和历史消息无法被稳定缓存，实际按全量 token 计费
-2. **不可依赖缓存优化**：服务端的隐式缓存行为不可预测，不能作为成本优化的依据
+1. **token 成本不受控**：每轮对话的 system prompt 和历史消息无法被缓存复用，实际按全量 token 计费
+2. **不可依赖缓存优化**：服务端缓存基于全文 hash，对多轮对话无实际优化效果
 3. **建议客户端侧控上下文**：在客户端实现上下文窗口管理（截断/压缩历史消息），主动控制 prompt_tokens 增长
