@@ -1,8 +1,8 @@
-import type { ACPClient } from "../../../acp/client";
-import type { AgentSessionInfo } from "../../../acp/types";
 import { Bot, ChevronRight, Loader2, Menu, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ACPClient } from "../../../acp/client";
+import type { AgentSessionInfo } from "../../../acp/types";
 import { ChatPanel } from "../../agent-panel/ChatPanel";
 
 interface MetaAgentPanelProps {
@@ -269,12 +269,7 @@ export function MetaAgentPanel({ chatOpen, setChatOpen, metaAgentId, scenePrompt
 
       {/* 聊天区域 */}
       <div style={{ flex: 1, overflow: "hidden" }}>
-        <ChatPanel
-          agentId={metaAgentId}
-          hideSidebar
-          scenePrompt={scenePrompt}
-          onClientChange={setClient}
-        />
+        <ChatPanel agentId={metaAgentId} hideSidebar scenePrompt={scenePrompt} onClientChange={setClient} />
       </div>
     </div>
   );
