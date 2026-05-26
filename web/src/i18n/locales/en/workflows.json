@@ -311,7 +311,14 @@
     "trigger_create_failed": "Failed to create trigger",
     "trigger_delete_failed": "Failed to delete trigger",
     "trigger_regenerate_failed": "Failed to regenerate trigger",
-    "trigger_type_webhook": "Webhook"
+    "trigger_type_webhook": "Webhook",
+    "history_title": "History",
+    "history_today": "Today",
+    "history_yesterday": "Yesterday",
+    "history_earlier": "Earlier",
+    "history_empty": "No conversations yet",
+    "history_loading": "Loading...",
+    "history_untitled": "New conversation"
   },
   "page": {
     "back_to_list": "Back to list",

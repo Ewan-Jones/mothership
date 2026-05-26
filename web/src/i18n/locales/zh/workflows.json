@@ -311,7 +311,14 @@
     "trigger_create_failed": "创建触发器失败",
     "trigger_delete_failed": "删除触发器失败",
     "trigger_regenerate_failed": "重新生成触发器失败",
-    "trigger_type_webhook": "Webhook"
+    "trigger_type_webhook": "Webhook",
+    "history_title": "历史记录",
+    "history_today": "今天",
+    "history_yesterday": "昨天",
+    "history_earlier": "更早",
+    "history_empty": "暂无对话记录",
+    "history_loading": "加载中...",
+    "history_untitled": "新对话"
   },
   "page": {
     "back_to_list": "返回列表",
