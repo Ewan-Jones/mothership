@@ -67,6 +67,7 @@ function InputsEditor({
   return (
     <div>
       {entries.map(([k, v], i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: index needed to keep input focus stable when key is being edited
         <div key={`${k}-${i}`} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
           <input
             value={k}
