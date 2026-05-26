@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { resetAllStubs, stubConfigPg } from "../test-utils/helpers";
 import { resetTestAuth, setTestAuth } from "../plugins/auth";
-import { setTestOrgContext } from "../services/org-context";
 import modelsRoute from "../routes/web/config/models";
+import { setTestOrgContext } from "../services/org-context";
+import { resetAllStubs, stubConfigPg } from "../test-utils/helpers";
 
 // In-memory store for stub implementations
 let _userConfig: {
@@ -37,7 +37,12 @@ describe("Models Config Route", () => {
         if (!p) return null;
         return {
           ...p,
-          models: [...p.models.entries()].map(([modelId, m]) => ({ id: "model-uuid", providerId: p.id, modelId, ...m })),
+          models: [...p.models.entries()].map(([modelId, m]) => ({
+            id: "model-uuid",
+            providerId: p.id,
+            modelId,
+            ...m,
+          })),
         };
       },
     });

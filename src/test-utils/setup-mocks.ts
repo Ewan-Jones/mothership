@@ -66,7 +66,7 @@ const CONFIG_PG_KEYS = [
   "upsertSkill",
 ] as const;
 
-mock.module("../services/config-pg", () => createLazyMock(CONFIG_PG_KEYS, getConfigPgStub));
+mock.module("../services/config-pg", () => createLazyMock(CONFIG_PG_KEYS, getConfigPgStub as (name: string) => any));
 
 // ── auth.api 方法名称 ──
 
@@ -82,7 +82,7 @@ const AUTH_API_KEYS = [
 ] as const;
 
 mock.module("../auth/better-auth", () => {
-  const apiObj = createLazyMock(AUTH_API_KEYS, getAuthApiStub);
+  const apiObj = createLazyMock(AUTH_API_KEYS, getAuthApiStub as (name: string) => any);
   return {
     auth: {
       api: apiObj,
@@ -95,7 +95,9 @@ mock.module("../auth/better-auth", () => {
 
 const API_KEY_SERVICE_KEYS = ["createApiKey", "hashApiKey"] as const;
 
-mock.module("../auth/api-key-service", () => createLazyMock(API_KEY_SERVICE_KEYS, getApiKeyServiceStub));
+mock.module("../auth/api-key-service", () =>
+  createLazyMock(API_KEY_SERVICE_KEYS, getApiKeyServiceStub as (name: string) => any),
+);
 
 // ── raw db ──
 

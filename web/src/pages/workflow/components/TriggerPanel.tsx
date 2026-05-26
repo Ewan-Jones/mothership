@@ -4,13 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { type TriggerItem, workflowDefApi } from "../../../api/workflow-defs";
 
-export function TriggerPanel({
-  workflowId,
-  onClose,
-}: {
-  workflowId?: string;
-  onClose: () => void;
-}) {
+export function TriggerPanel({ workflowId, onClose }: { workflowId?: string; onClose: () => void }) {
   const [triggers, setTriggers] = useState<TriggerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -117,7 +111,10 @@ export function TriggerPanel({
   return (
     <>
       {/* Header */}
-      <div className="wf-prop-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div
+        className="wf-prop-header"
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+      >
         <span className="wf-prop-title">
           <Globe size={13} style={{ marginRight: 4, verticalAlign: -1 }} />
           {t("editor.trigger_title")}

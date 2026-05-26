@@ -45,8 +45,8 @@ describe("WorkflowEditor trigger integration", () => {
 
   // 测试 editor 导入了 TriggerPanel
   test("editor imports TriggerPanel component", () => {
-    expect(src).toContain('import { TriggerPanel }');
-    expect(src).toContain('./components/TriggerPanel');
+    expect(src).toContain("import { TriggerPanel }");
+    expect(src).toContain("./components/TriggerPanel");
   });
 
   // 测试 editor 包含 triggers tab 类型

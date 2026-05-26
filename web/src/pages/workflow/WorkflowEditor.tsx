@@ -741,9 +741,7 @@ function WorkflowEditorInner({ workflowId, runId }: WorkflowEditorProps) {
         )}
 
         {/* ── 触发器 Tab ── */}
-        {rightTab === "triggers" && (
-          <TriggerPanel workflowId={workflowId} onClose={() => setRightTab("config")} />
-        )}
+        {rightTab === "triggers" && <TriggerPanel workflowId={workflowId} onClose={() => setRightTab("config")} />}
       </aside>
 
       {/* Meta Agent Chat 侧边栏 */}
