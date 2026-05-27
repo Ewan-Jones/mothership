@@ -384,11 +384,11 @@ export function AgentSidebarTree({
                 <span className="truncate">{agent.name}</span>
               </button>
 
-              {/* 右侧操作按钮 */}
+              {/* 右侧操作按钮：设置始终可见，重启/删除 hover 显示 */}
               <div className="agent-tree-actions">
                 <button
                   type="button"
-                  className="agent-tree-action-btn"
+                  className="agent-tree-action-btn agent-tree-hover-action"
                   disabled={isRestarting}
                   onClick={() => handleRestartAgent(node)}
                   title={t("restartAgent")}
@@ -397,19 +397,19 @@ export function AgentSidebarTree({
                 </button>
                 <button
                   type="button"
+                  className="agent-tree-action-btn agent-tree-hover-action text-red-400 hover:text-red-500"
+                  onClick={() => handleDeleteAgent(node)}
+                  title={t("deleteAgent")}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
                   className="agent-tree-action-btn"
                   onClick={() => onEditAgent?.(agent.name)}
                   title={t("agentConfig")}
                 >
                   <Settings className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  className="agent-tree-action-btn text-red-400 hover:text-red-500"
-                  onClick={() => handleDeleteAgent(node)}
-                  title={t("deleteAgent")}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

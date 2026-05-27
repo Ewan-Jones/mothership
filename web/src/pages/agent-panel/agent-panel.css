@@ -332,6 +332,16 @@ file-tree-container {
   flex-shrink: 0;
 }
 
+/* hover 时才显示的操作按钮（重启、删除） */
+.agent-tree-hover-action {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.agent-tree-env-header:hover .agent-tree-hover-action {
+  opacity: 1;
+}
+
 .agent-tree-action-btn {
   display: flex;
   align-items: center;
