@@ -285,6 +285,10 @@ export function AgentSidebarTree({
   const handleDeleteAgent = useCallback(
     async (node: AgentTreeNode) => {
       try {
+        // 先停止所有运行中的实例
+        const running = getRunningInstances(node);
+        await Promise.all(running.map((inst) => instanceApi.delete({ id: inst.id })));
+
         const { error } = await agentApi.delete(node.agent.name);
         if (error) {
           toast.error(t("deleteFailed", { message: error.message }));
@@ -297,7 +301,7 @@ export function AgentSidebarTree({
         toast.error(t("deleteFailed", { message: (err as Error).message }));
       }
     },
-    [t, loadData],
+    [t, loadData, getRunningInstances],
   );
 
   if (loading) {
@@ -401,7 +405,7 @@ export function AgentSidebarTree({
                 </button>
                 <button
                   type="button"
-                  className="agent-tree-action-btn"
+                  className="agent-tree-action-btn text-red-400 hover:text-red-500"
                   onClick={() => handleDeleteAgent(node)}
                   title={t("deleteAgent")}
                 >
