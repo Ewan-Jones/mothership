@@ -1,3 +1,7 @@
+import { Bot, ChevronDown, ChevronRight, Loader2, Plus, RotateCw, Settings, Square } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,10 +13,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Bot, ChevronDown, ChevronRight, Loader2, Plus, RotateCw, Settings, Square } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import { agentApi, envApi, instanceApi } from "@/src/api/sdk";
 import { useOrg } from "../../contexts/OrgContext";
 import { NS } from "../../i18n";
@@ -51,7 +51,7 @@ export function AgentSidebarTree({
   const { org } = useOrg();
   const orgId = org?.id;
   const [treeNodes, setTreeNodes] = useState<AgentTreeNode[]>([]);
-  const [collapsedAgents, setCollapsedAgents] = useState<Record<string, boolean>>({});
+  const [expandedAgents, setExpandedAgents] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [enteringAgentId, setEnteringAgentId] = useState<string | null>(null);
   const [restartingIds, setRestartingIds] = useState<Set<string>>(new Set());
@@ -326,7 +326,7 @@ export function AgentSidebarTree({
       </div>
       {treeNodes.map((node, idx) => {
         const { agent, instances } = node;
-        const collapsed = !!collapsedAgents[agent.id];
+        const collapsed = !expandedAgents[agent.id];
         const isEntering = enteringAgentId === agent.id;
         const runningInstances = getRunningInstances(node);
         const isRestarting = runningInstances.some((inst) => restartingIds.has(inst.id));
@@ -338,17 +338,13 @@ export function AgentSidebarTree({
                 type="button"
                 className="agent-tree-chevron"
                 onClick={() =>
-                  setCollapsedAgents((prev) => ({
+                  setExpandedAgents((prev) => ({
                     ...prev,
                     [agent.id]: !prev[agent.id],
                   }))
                 }
               >
-                {collapsed ? (
-                  <ChevronRight className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                )}
+                {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
 
               {/* 点击名字区域：进入默认实例 */}
