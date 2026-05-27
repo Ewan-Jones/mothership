@@ -15,7 +15,7 @@ import {
   getDefaultKnowledgeFormState,
   isValidAgentNameInput,
   isValidStepsInput,
-} from "../AgentsPage";
+} from "../../lib/agent-utils";
 
 interface AgentCreateDialogProps {
   open: boolean;

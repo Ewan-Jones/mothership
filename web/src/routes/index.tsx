@@ -1,14 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-export const Route = createFileRoute("/_app/")({
-  component: () => <HomeRedirect />,
-});
-
-function HomeRedirect() {
+function IndexRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
     void navigate({ to: "/agent" });
   }, [navigate]);
   return null;
 }
+
+export const Route = createFileRoute("/")({
+  component: IndexRedirect,
+});

@@ -17,7 +17,7 @@ import {
   filterKnowledgeBaseIds,
   getDefaultKnowledgeFormState,
   isValidStepsInput,
-} from "../AgentsPage";
+} from "../../lib/agent-utils";
 
 interface AgentConfigDialogProps {
   open: boolean;
