@@ -103,19 +103,6 @@ export {
   FileWriteResultSchema,
   WriteFileRequestSchema,
 } from "./file.schema";
-// Instances
-export {
-  type DeleteInstanceResponse,
-  DeleteInstanceResponseSchema,
-  type InstanceInfo,
-  InstanceInfoSchema,
-  type InstanceListResponse,
-  InstanceListResponseSchema,
-  type InstanceStatus,
-  InstanceStatusSchema,
-  type SpawnInstanceFromEnvironmentRequest,
-  SpawnInstanceFromEnvironmentRequestSchema,
-} from "./instance.schema";
 // Knowledge
 export {
   type CreateKnowledgeBaseRequest,
@@ -140,6 +127,25 @@ export {
   type UploadKnowledgeResourcesResponse,
   UploadKnowledgeResourcesResponseSchema,
 } from "./knowledge.schema";
+// Registry
+export {
+  type EventQuery,
+  EventQuerySchema,
+  type Machine,
+  type MachineDetail,
+  type MachineDetailResponse,
+  MachineDetailResponseSchema,
+  MachineDetailSchema,
+  type MachineListResponse,
+  MachineListResponseSchema,
+  type MachineQuery,
+  MachineQuerySchema,
+  MachineSchema,
+  type RegistryEvent,
+  type RegistryEventListResponse,
+  RegistryEventListResponseSchema,
+  RegistryEventSchema,
+} from "./registry.schema";
 // S3 Files
 export {
   type S3DeleteBody,
@@ -201,6 +207,30 @@ export {
   type UpdateTaskRequest,
   UpdateTaskRequestSchema,
 } from "./task.schema";
+// V1 Environment
+export {
+  type BridgeRegistrationRequest,
+  BridgeRegistrationRequestSchema,
+  type BridgeRegistrationResponse,
+  BridgeRegistrationResponseSchema,
+} from "./v1-environment.schema";
+// V1 Session
+export {
+  type CreateSessionRequest,
+  CreateSessionRequestSchema,
+  type SendEventsRequest,
+  SendEventsRequestSchema,
+  type UpdateSessionRequest,
+  UpdateSessionRequestSchema,
+  type V1ArchiveSessionResponse,
+  V1ArchiveSessionResponseSchema,
+  type V1CreateSessionResponse,
+  V1CreateSessionResponseSchema,
+  type V1GetSessionResponse,
+  V1GetSessionResponseSchema,
+  type V1SendEventsResponse,
+  V1SendEventsResponseSchema,
+} from "./v1-session.schema";
 // V2 Code Session
 export {
   type CodeSessionBridgeResponse,

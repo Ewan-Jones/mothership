@@ -3,9 +3,11 @@
  *
  * 所有模块类无状态，可以安全复用单例。
  * 前端通过 `import { envApi, sessionApi } from "@/src/api/sdk"` 使用。
+  RegistryApi,
  */
 
 import {
+  RegistryApi,
   AgentApi,
   ApiKeyApi,
   AuthApi,
@@ -19,6 +21,7 @@ import {
   MetaAgentApi,
   ModelApi,
   OrganizationApi,
+  RegistryApi,
   ProviderApi,
   S3FileApi,
   SessionApi,
@@ -52,6 +55,7 @@ export const apiKeyApi = new ApiKeyApi();
 export const workflowEngineApi = new WorkflowEngineApi();
 export const workflowDefApi = new WorkflowDefApi();
 export const metaAgentApi = new MetaAgentApi();
+export const registryApi = new RegistryApi();
 export const authApi = new AuthApi();
 
 // ── V2 模块（一般前端不直接使用，保留导出） ──

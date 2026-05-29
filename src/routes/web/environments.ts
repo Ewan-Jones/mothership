@@ -16,7 +16,8 @@ import {
   sanitizeResponse,
   updateWebEnvironment,
 } from "../../services/environment";
-import { enterEnvironment, listInstancesResponse, spawnInstanceFromEnvironment } from "../../services/instance";
+import { enterEnvironment } from "../../services/environment-web";
+import { spawnInstanceFromEnvironment } from "../../transport/relay";
 
 const app = new Elysia({ name: "web-environments" }).use(authGuardPlugin).model({
   "environment-info": EnvironmentInfoSchema,
@@ -158,23 +159,6 @@ app.post(
     }
   },
   { sessionAuth: true, body: "enter-environment-request" },
-);
-
-/** GET /web/environments/:id/instances — List active instances for an environment */
-app.get(
-  "/environments/:id/instances",
-  async ({ store, params, error }) => {
-    const authCtx = store.authContext!;
-    try {
-      await getOwnedEnvironment(params.id, authCtx.organizationId);
-    } catch (err: unknown) {
-      if (err instanceof Error && (err as { code?: string }).code === "NOT_FOUND")
-        return error(404, { error: { type: "NOT_FOUND", message: err.message } });
-      throw err;
-    }
-    return listInstancesResponse(params.id);
-  },
-  { sessionAuth: true },
 );
 
 /** DELETE /web/environments/:id — Delete environment */

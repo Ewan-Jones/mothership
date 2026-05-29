@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { agentApi, kbApi, modelApi, skillConfigApi } from "@/src/api/sdk";
+import { agentApi, kbApi, modelApi, registryApi, skillConfigApi } from "@/src/api/sdk";
 import { PermissionTab } from "../../components/PermissionTab";
+import { dispatchConfigChange } from "../../lib/config-events";
+import type { KnowledgeBaseInfo } from "../../types/knowledge";
 import {
   DEFAULT_AGENT_MODE,
   getDefaultKnowledgeFormState,
   isValidAgentNameInput,
   isValidStepsInput,
-} from "../../lib/agent-utils";
-import { dispatchConfigChange } from "../../lib/config-events";
-import type { KnowledgeBaseInfo } from "../../types/knowledge";
+} from "../AgentsPage";
 
 interface AgentCreateDialogProps {
   open: boolean;
@@ -27,11 +27,15 @@ interface AgentCreateDialogProps {
 export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }: AgentCreateDialogProps) {
   const { t } = useTranslation("agents");
   const [modelOptions, setModelOptions] = useState<string[]>([]);
+  const [machineOptions, setMachineOptions] = useState<
+    Array<{ id: string; agentName: string; machineInfo: Record<string, unknown> | null }>
+  >([]);
   const [knowledgeOptions, setKnowledgeOptions] = useState<KnowledgeBaseInfo[]>([]);
   const [skillOptions, setSkillOptions] = useState<{ id: string; name: string; description: string }[]>([]);
 
   const [formName, setFormName] = useState("");
   const [formModel, setFormModel] = useState("");
+  const [formMachineId, setFormMachineId] = useState("");
   const [formMode, setFormMode] = useState(DEFAULT_AGENT_MODE);
   const [formSteps, setFormSteps] = useState("50");
   const [formPrompt, setFormPrompt] = useState("");
@@ -69,6 +73,7 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
     setFormPermission(null);
     setFormSkillIds([]);
     setActiveTab("basic");
+    setFormMachineId("");
 
     modelApi.get().then(({ data, error }) => {
       if (error) return;
@@ -96,12 +101,29 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
           : [],
       );
     });
+
+    registryApi.list({ status: "online" }).then(({ data, error }) => {
+      if (error) return;
+      if (data && Array.isArray(data.data)) {
+        setMachineOptions(
+          data.data.map((m) => ({
+            id: m.id,
+            agentName: m.agentName,
+            machineInfo: m.machineInfo as Record<string, unknown> | null,
+          })),
+        );
+      }
+    });
   }, [open, defaultName]);
 
   const handleSave = useCallback(async () => {
     const name = formName.trim();
     if (!isValidAgentNameInput(name)) {
       toast.error(t("form.nameValidationError"));
+      return;
+    }
+    if (!formMachineId) {
+      toast.error(t("form.machineValidationError"));
       return;
     }
     if (!isValidStepsInput(formSteps)) {
@@ -129,6 +151,7 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
     }
     setFormSaving(true);
     const { error } = await agentApi.create(name, {
+      machineId: formMachineId,
       model: formModel || undefined,
       mode: formMode,
       steps: parseInt(formSteps, 10),
@@ -160,6 +183,7 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
   }, [
     formName,
     formModel,
+    formMachineId,
     formMode,
     formSteps,
     formPrompt,
@@ -240,6 +264,30 @@ export function AgentCreateDialog({ open, onOpenChange, defaultName, onSuccess }
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder={t("form.namePlaceholder")}
                 />
+              </div>
+              <div>
+                <Label>
+                  {t("form.machine")} <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formMachineId} onValueChange={setFormMachineId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("form.machinePlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {machineOptions.map((m) => {
+                      const mi = m.machineInfo as Record<string, string> | null;
+                      const ip = mi?.ip ?? "";
+                      const os = mi?.os ?? "";
+                      const mac = mi?.mac ?? "";
+                      const label = `${m.agentName} (${os} / ${ip} / ${mac})`;
+                      return (
+                        <SelectItem key={m.id} value={m.id}>
+                          {label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>{t("form.model")}</Label>

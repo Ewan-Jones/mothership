@@ -10,8 +10,6 @@ function makeEnv(skillDir: string): Env {
     NODE_ENV: "test",
     RCS_HOST: "0.0.0.0",
     RCS_PORT: 3000,
-    RCS_CORS_ORIGIN: "*",
-    RCS_TRUSTED_ORIGINS: "",
     RCS_BASE_URL: "",
     RCS_VERSION: "0.1.0",
     SKILL_DIR: skillDir,
@@ -35,6 +33,7 @@ function makeEnv(skillDir: string): Env {
     RCS_S3_PRESIGN_EXPIRES: 3600,
     RCS_S3_PRESIGN_UPLOAD_EXPIRES: 600,
     RCS_DISABLE_SIGNUP: false,
+    REGISTRY_SECRET: "",
     ACPX_G_URL: "http://localhost:8848",
   };
 }

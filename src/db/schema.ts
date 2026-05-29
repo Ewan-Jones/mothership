@@ -506,6 +506,9 @@ export const agentConfig = pgTable(
     color: varchar("color"),
     description: text("description"),
     knowledge: jsonb("knowledge"),
+    machineId: text("machine_id")
+      .notNull()
+      .references(() => machine.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
