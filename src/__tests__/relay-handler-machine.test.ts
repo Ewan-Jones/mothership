@@ -1,42 +1,32 @@
 import { describe, expect, mock, test } from "bun:test";
 
-// Mock db
+// Mock DB — relay uses getAgentConfigById which queries db
+const _dbRows: Array<Record<string, unknown>> = [];
 mock.module("../db", () => ({
   db: {
-    select: mock(() => {
-      throw new Error("unexpected db call in test");
-    }),
+    select: mock(() => ({
+      from: mock(() => ({
+        where: mock(() => ({
+          limit: mock(() => _dbRows),
+        })),
+        leftJoin: mock(() => ({
+          where: mock(() => _dbRows),
+        })),
+      })),
+    })),
   },
 }));
+// Helper for tests to set db return values
+function _setDbRows(rows: Array<Record<string, unknown>>) {
+  _dbRows.length = 0;
+  _dbRows.push(...rows);
+}
 
 // Mock environment repo
 mock.module("../repositories/environment", () => ({
   environmentRepo: {
     getById: mock(async () => null),
   },
-}));
-
-// Mock agent config and services/config/index (to avoid cascading import issues)
-const agentConfigMock = {
-  listAgentConfigs: mock(async () => []),
-  getAgentConfig: mock(async () => null),
-  getAgentConfigById: mock(async () => null),
-  createAgentConfig: mock(async () => ({})),
-  updateAgentConfig: mock(async () => ({})),
-  deleteAgentConfig: mock(async () => false),
-  AGENT_SETTABLE_FIELDS: [] as string[],
-  validateAgentData: () => null,
-  toolsToPermission: () => ({}) as Record<string, string>,
-  normalizeKnowledgeConfig: () => null,
-  isBuiltInAgent: () => false,
-};
-
-mock.module("../services/config/agent-config", () => agentConfigMock);
-
-mock.module("../services/config", () => ({
-  ...agentConfigMock,
-  listAgentSkillIds: mock(async () => []),
-  syncAgentSkills: mock(async () => {}),
 }));
 
 function createMockWs(readyState = 1) {
@@ -81,11 +71,7 @@ describe("handleRelayOpen — single machine relay path", () => {
       agentConfigId: "agc_001",
     });
 
-    const { getAgentConfigById } = await import("../services/config/agent-config");
-    (getAgentConfigById as ReturnType<typeof mock>).mockResolvedValueOnce({
-      id: "agc_001",
-      machineId: null,
-    });
+    _setDbRows([{ id: "agc_001", machineId: null }]);
 
     await handleRelayOpen(ws as any, "relay_1", "env_001", "user_1");
 
@@ -105,11 +91,7 @@ describe("handleRelayOpen — single machine relay path", () => {
       agentConfigId: "agc_001",
     });
 
-    const { getAgentConfigById } = await import("../services/config/agent-config");
-    (getAgentConfigById as ReturnType<typeof mock>).mockResolvedValueOnce({
-      id: "agc_001",
-      machineId: "mach_nonexistent",
-    });
+    _setDbRows([{ id: "agc_001", machineId: "mach_nonexistent" }]);
 
     await handleRelayOpen(ws as any, "relay_1", "env_001", "user_1");
 
