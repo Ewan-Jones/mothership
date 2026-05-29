@@ -22,7 +22,6 @@ import { spawnInstanceFromEnvironment } from "../../transport/relay";
 const app = new Elysia({ name: "web-environments" }).use(authGuardPlugin).model({
   "environment-info": EnvironmentInfoSchema,
   "environment-list-response": EnvironmentListResponseSchema,
-  "create-environment-request": CreateEnvironmentRequestSchema,
   "update-environment-request": UpdateEnvironmentRequestSchema,
   "enter-environment-request": EnterEnvironmentRequestSchema,
 });
@@ -78,7 +77,7 @@ app.post(
 
     return { ...sanitizeResponse(record), secret: record.secret };
   },
-  { sessionAuth: true, body: "create-environment-request" },
+  { sessionAuth: true },
 );
 
 /** GET /web/environments/:id — Get environment detail (with secret) */
@@ -160,6 +159,7 @@ app.post(
   },
   { sessionAuth: true, body: "enter-environment-request" },
 );
+
 
 /** DELETE /web/environments/:id — Delete environment */
 app.delete(

@@ -1,19 +1,22 @@
+import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { agentConfig, environment, machine } from "../db/schema";
 import { ConflictError, NotFoundError, ValidationError } from "../errors";
 import type { EnvironmentUpdateParams } from "../repositories";
 import { environmentRepo } from "../repositories";
-import { spawnInstanceFromEnvironment } from "../transport/relay";
 import * as configPg from "./config-pg";
 import type { CreateWebEnvironmentParams, UpdateWebEnvironmentParams } from "./environment-core";
 import { generateEnvSecret, getOwnedEnvironment, KEBAB_CASE_RE } from "./environment-core";
-import { findOrCreateForEnvironment } from "./session";
-import { resolveWorkspacePath } from "./workspace-resolver";
+
+// Instance 模型已删除，返回空 Map 替代 groupActiveInstancesByEnvironment
+function groupActiveInstancesByEnvironment(): Map<string, Array<{ id: string; instanceNumber: number; status: string; sessionId: string | null; port: number; createdAt: Date }>> {
+  return new Map();
+}
 
 export type { CreateWebEnvironmentParams, UpdateWebEnvironmentParams };
 
-/** 创建 Web 控制面板 Environment — workspace 路径由 orgId + userId 自动计算 */
+/** 创建 Web 控制面板 Environment — workspace 路径运行时实时计算，创建时写空字符串 */
 export async function createWebEnvironment(params: CreateWebEnvironmentParams) {
   const { name, description, autoStart, userId, organizationId } = params;
 
@@ -28,25 +31,28 @@ export async function createWebEnvironment(params: CreateWebEnvironmentParams) {
     const agent = await configPg.getAgentConfigById(params.agentConfigId, organizationId);
     if (!agent) throw new ValidationError(`AgentConfig '${params.agentConfigId}' 不存在`);
     // 通过 AgentConfig 找到绑定的 machine，取其 agentName 作为 machineName
-    const m = await db
-      .select({ agentName: machine.agentName })
-      .from(machine)
-      .where(eq(machine.id, agent.machineId))
-      .limit(1);
-    machineName = m[0]?.agentName ?? undefined;
+    if (agent.machineId) {
+      const m = await db
+        .select({ agentName: machine.agentName })
+        .from(machine)
+        .where(eq(machine.id, agent.machineId))
+        .limit(1);
+      machineName = m[0]?.agentName ?? undefined;
+    }
   }
 
-  // workspace 路径由 orgId + userId 自动计算
-  const workspacePath = resolveWorkspacePath(organizationId ?? userId, userId);
+  // 预生成 environment ID（workspace 路径运行时实时计算）
+  const envId = `env_${randomBytes(12).toString("hex")}`;
 
-  // 创建记录
+  // 创建记录，workspacePath 写空字符串
   const secret = generateEnvSecret();
   let record: Awaited<ReturnType<typeof environmentRepo.create>>;
   try {
     record = await environmentRepo.create({
+      id: envId,
       name,
       description,
-      workspacePath,
+      workspacePath: "",
       status: "idle",
       secret,
       userId,
@@ -84,16 +90,8 @@ export async function updateWebEnvironment(envId: string, organizationId: string
       const agent = await configPg.getAgentConfigById(params.agentConfigId, organizationId);
       if (!agent) throw new ValidationError(`AgentConfig '${params.agentConfigId}' 不存在`);
       patch.agentConfigId = params.agentConfigId;
-      // 通过 AgentConfig 找到绑定的 machine，取其 agentName 作为 machineName
-      const m = await db
-        .select({ agentName: machine.agentName })
-        .from(machine)
-        .where(eq(machine.id, agent.machineId))
-        .limit(1);
-      patch.machineName = m[0]?.agentName ?? undefined;
     } else {
       patch.agentConfigId = null;
-      patch.machineName = null;
     }
   }
   if (params.description !== undefined) {
@@ -121,8 +119,12 @@ export async function listEnvironmentsWithInstances(organizationId: string) {
     .leftJoin(agentConfig, eq(environment.agentConfigId, agentConfig.id))
     .where(eq(environment.organizationId, organizationId));
 
+  // 单次遍历按 environmentId 分组实例，避免 N 次 listInstances 调用
+  const instanceMap = groupActiveInstancesByEnvironment();
   const results = [];
   for (const { env, agentName } of rows) {
+    const activeInstances = instanceMap.get(env.id) ?? [];
+    const firstInstance = activeInstances[0];
     results.push({
       id: env.id,
       name: env.name,
@@ -137,29 +139,30 @@ export async function listEnvironmentsWithInstances(organizationId: string) {
       last_poll_at: env.lastPollAt ? Math.floor(env.lastPollAt.getTime() / 1000) : null,
       created_at: Math.floor(env.createdAt.getTime() / 1000),
       updated_at: Math.floor(env.updatedAt.getTime() / 1000),
+      session_id: firstInstance?.sessionId ?? null,
+      instance_status: firstInstance ? firstInstance.status : null,
+      instance_id: firstInstance ? firstInstance.id : null,
+      instances: activeInstances.map((inst) => ({
+        id: inst.id,
+        instance_number: inst.instanceNumber,
+        status: inst.status,
+        session_id: inst.sessionId ?? null,
+        port: inst.port,
+        created_at: Math.floor(inst.createdAt.getTime() / 1000),
+      })),
+      instances_count: activeInstances.length,
     });
   }
   return results;
 }
 
-export async function enterEnvironment(
-  userId: string,
-  environmentId: string,
-  _instanceNumber?: number,
-): Promise<{
-  session_id: string | null;
-  instance_id: string;
-  instance_number: number;
-  instance_status: string;
-  environment_id: string;
-}> {
-  const inst = await spawnInstanceFromEnvironment(userId, environmentId);
-  const { id: sessionId } = await findOrCreateForEnvironment(environmentId, "Web Session", userId, "web");
+/** Phase 2: enterEnvironment 不再 spawn 本地实例，直接返回 environment 信息（relay 连接负责启动远端 agent） */
+export async function enterEnvironment(_userId: string, envId: string, _instanceNumber?: number) {
+  const env = await environmentRepo.getById(envId);
+  if (!env) throw new NotFoundError("环境不存在");
   return {
-    session_id: sessionId,
-    instance_id: inst.id,
-    instance_number: inst.instanceNumber,
-    instance_status: inst.status,
-    environment_id: environmentId,
+    environment_id: envId,
+    instance_id: envId, // 复用 envId 作为 instance_id，兼容前端
+    session_id: null,
   };
 }

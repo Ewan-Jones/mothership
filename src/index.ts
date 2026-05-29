@@ -14,11 +14,8 @@ import { ctrlStaticPlugin } from "./plugins/static";
 import { environmentRepo } from "./repositories";
 import acpRoutes from "./routes/acp";
 import knowledgeMcpRoutes from "./routes/mcp/knowledge";
-import v1Environments from "./routes/v1/environments";
-import v1EnvironmentsWork from "./routes/v1/environments.work";
-import v1SessionIngress from "./routes/v1/session-ingress";
-import v1Sessions from "./routes/v1/sessions";
 import v2CodeSessions from "./routes/v2/code-sessions";
+import sessionIngress from "./routes/v2/session-ingress";
 import v2Worker from "./routes/v2/worker";
 import v2WorkerEvents from "./routes/v2/worker-events";
 import v2WorkerEventsStream from "./routes/v2/worker-events-stream";
@@ -130,13 +127,9 @@ const app = new Elysia()
   .use(authPlugin)
   // Static files under /ctrl
   .use(ctrlStaticPlugin)
-  // v1 compatibility routes
-  .use(v1Environments)
-  .use(v1EnvironmentsWork)
-  .use(v1Sessions)
-  .use(v1SessionIngress)
   // v2 routes
   .use(v2CodeSessions)
+  .use(sessionIngress)
   .use(v2Worker)
   .use(v2WorkerEvents)
   .use(v2WorkerEventsStream)
